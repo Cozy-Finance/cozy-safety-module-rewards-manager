@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
+import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
 import {ISafetyModule} from "./interfaces/ISafetyModule.sol";
-import {IReceiptTokenFactory} from "./interfaces/IReceiptTokenFactory.sol";
 import {Configurator} from "./lib/Configurator.sol";
 import {RewardsModuleCommon} from "./lib/RewardsModuleCommon.sol";
 import {Depositor} from "./lib/Depositor.sol";

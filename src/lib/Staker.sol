@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.22;
 
+import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
+import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
+import {SafeERC20} from "cozy-safety-module-shared/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {IERC20} from "../interfaces/IERC20.sol";
-import {IReceiptToken} from "../interfaces/IReceiptToken.sol";
 import {ReservePool} from "./structs/Pools.sol";
 import {ClaimableRewardsData} from "./structs/Rewards.sol";
 import {RewardsModuleCommon} from "./RewardsModuleCommon.sol";
-import {SafeERC20} from "./SafeERC20.sol";
 import {RewardsModuleCalculationsLib} from "./RewardsModuleCalculationsLib.sol";
 
 // TODO: Functions for staking and staking without transfer safety module depositReceiptTokens. The existing functions

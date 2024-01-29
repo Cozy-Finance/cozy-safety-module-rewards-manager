@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.22;
 
-import {IERC20} from "../interfaces/IERC20.sol";
-import {IReceiptToken} from "../interfaces/IReceiptToken.sol";
-import {IReceiptTokenFactory} from "../interfaces/IReceiptTokenFactory.sol";
+import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
+import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
+import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
 import {ISafetyModule} from "../interfaces/ISafetyModule.sol";
 import {AssetPool, ReservePool, IdLookup, RewardPool} from "./structs/Pools.sol";
 import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.22;
 
+import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
 import {RewardPool, ReservePool} from "../../src/lib/structs/Pools.sol";
 import {
   UserRewardsData,
@@ -8,7 +9,6 @@ import {
   PreviewClaimableRewards,
   ClaimableRewardsData
 } from "../../src/lib/structs/Rewards.sol";
-import {SafetyModuleState} from "../../src/lib/SafetyModuleStates.sol";
 import {Test} from "forge-std/Test.sol";
 
 abstract contract TestAssertions is Test {
