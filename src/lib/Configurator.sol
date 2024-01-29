@@ -5,4 +5,4 @@ import {Governable} from "./Governable.sol";
 import {RewardsModuleCommon} from "./RewardsModuleCommon.sol";
 
 // TODO
-abstract contract RewardsModuleConfigurator is RewardsModuleCommon, Governable {}
+abstract contract Configurator is RewardsModuleCommon, Governable {}

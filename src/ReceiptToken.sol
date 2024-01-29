@@ -5,7 +5,7 @@ import {IRewardsModule} from "./interfaces/IRewardsModule.sol";
 import {ERC20} from "./lib/ERC20.sol";
 
 contract ReceiptToken is ERC20 {
-  /// @notice Address of this token's safety module.
+  /// @notice Address of this token's reward module.
   IRewardsModule public rewardsModule;
 
   /// @dev Thrown if the minimal proxy contract is already initialized.

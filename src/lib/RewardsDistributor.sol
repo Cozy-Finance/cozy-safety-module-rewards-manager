@@ -20,7 +20,7 @@ import {RewardPool, IdLookup} from "./structs/Pools.sol";
 import {IReceiptToken} from "../interfaces/IReceiptToken.sol";
 import {IDripModel} from "../interfaces/IDripModel.sol";
 
-abstract contract RewardsModuleDistributor is RewardsModuleCommon {
+abstract contract RewardsDistributor is RewardsModuleCommon {
   using FixedPointMathLib for uint256;
   using SafeERC20 for IERC20;
   using SafeCastLib for uint256;

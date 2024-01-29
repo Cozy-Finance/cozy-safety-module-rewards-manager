@@ -12,7 +12,7 @@ import {RewardsModuleCalculationsLib} from "./RewardsModuleCalculationsLib.sol";
 import {RewardsModuleCommon} from "./RewardsModuleCommon.sol";
 import {SafetyModuleState} from "./SafetyModuleStates.sol";
 
-abstract contract RewardsModuleDepositor is RewardsModuleCommon, IDepositorErrors, IDepositorEvents {
+abstract contract Depositor is RewardsModuleCommon, IDepositorErrors, IDepositorEvents {
   using SafeERC20 for IERC20;
 
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_, address from_)

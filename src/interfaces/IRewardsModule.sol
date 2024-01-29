@@ -52,6 +52,6 @@ interface IRewardsModule {
       IReceiptToken depositToken
     );
 
-  /// @notice Updates the safety module's user rewards data prior to a stkToken transfer.
+  /// @notice Updates the reward module's user rewards data prior to a stkToken transfer.
   function updateUserRewardsForStkTokenTransfer(address from_, address to_) external;
 }

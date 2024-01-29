@@ -10,7 +10,7 @@ import {RewardsModuleCommon} from "./RewardsModuleCommon.sol";
 import {SafeERC20} from "./SafeERC20.sol";
 import {RewardsModuleCalculationsLib} from "./RewardsModuleCalculationsLib.sol";
 
-abstract contract RewardsModuleStaker is RewardsModuleCommon {
+abstract contract Staker is RewardsModuleCommon {
   using FixedPointMathLib for uint256;
   using SafeERC20 for IERC20;
 
