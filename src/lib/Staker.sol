@@ -10,6 +10,8 @@ import {RewardsModuleCommon} from "./RewardsModuleCommon.sol";
 import {SafeERC20} from "./SafeERC20.sol";
 import {RewardsModuleCalculationsLib} from "./RewardsModuleCalculationsLib.sol";
 
+// TODO: Functions for staking and staking without transfer safety module depositReceiptTokens. The existing functions
+// are for staking safety module reserve assets. Also for redeem.
 abstract contract Staker is RewardsModuleCommon {
   using FixedPointMathLib for uint256;
   using SafeERC20 for IERC20;
@@ -79,8 +81,6 @@ abstract contract Staker is RewardsModuleCommon {
 
     if (stkReceiptTokenAmount_ > stkToken_.balanceOf(owner_)) revert InsufficientBalance();
 
-    // TODO: Use reward module specific lib which doesn't floor the asset amount.
-    // TODO: Rewards module inspector
     uint256 depositReceiptTokenAmount_ = RewardsModuleCalculationsLib.convertToAssetAmount(
       stkReceiptTokenAmount_, stkToken_.totalSupply(), reservePool_.asset.totalSupply()
     );

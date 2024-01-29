@@ -98,8 +98,7 @@ abstract contract Depositor is RewardsModuleCommon, IDepositorErrors, IDepositor
 
     IReceiptToken depositReceiptToken_ = rewardPool_.depositToken;
 
-    // TODO: Use reward module specific lib which doesn't floor the asset amount.
-    // TODO: Rewards module inspector
+    // TODO: floor undripped rewards to 1
     depositReceiptTokenAmount_ = RewardsModuleCalculationsLib.convertToReceiptTokenAmount(
       rewardAssetAmount_, depositReceiptToken_.totalSupply(), rewardPool_.undrippedRewards
     );
@@ -122,8 +121,7 @@ abstract contract Depositor is RewardsModuleCommon, IDepositorErrors, IDepositor
   ) internal view returns (uint256 assetAmount_) {
     uint256 nextTotalPoolAmount_ = totalPoolAmount_ - _getNextDripAmount(totalPoolAmount_, dripModel_, lastDripTime_);
 
-    // TODO: Use reward module specific lib which doesn't floor the asset amount.
-    // TODO: Rewards module inspector
+    // TODO: floor nextTotalPoolAmount_ to 1
     assetAmount_ = nextTotalPoolAmount_ == 0
       ? 0
       : RewardsModuleCalculationsLib.convertToAssetAmount(
