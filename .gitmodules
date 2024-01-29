@@ -7,3 +7,6 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "lib/cozy-safety-module-models"]
+	path = lib/cozy-safety-module-models
+	url = https://github.com/Cozy-Finance/cozy-safety-module-models
