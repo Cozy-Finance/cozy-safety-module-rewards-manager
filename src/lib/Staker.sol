@@ -36,12 +36,12 @@ abstract contract Staker is RewardsModuleCommon {
     returns (uint256 stkReceiptTokenAmount_)
   {
     ReservePool storage reservePool_ = reservePools[reservePoolId_];
-    IERC20 reserveAsset_ = reservePool_.asset;
-    AssetPool storage assetPool_ = assetPools[reserveAsset_];
+    IERC20 depositReceiptToken_ = reservePool_.asset;
+    AssetPool storage assetPool_ = assetPools[depositReceiptToken_];
 
     // We don't need to check if the rewards module received enough deposit receipt tokens after the transfer
     // because they are not fee on transfer tokens, and the rewards module can only be configured with them.
-    reservePool_.asset.safeTransferFrom(from_, address(this), depositReceiptTokenAmount_);
+    depositReceiptToken_.safeTransferFrom(from_, address(this), depositReceiptTokenAmount_);
     stkReceiptTokenAmount_ =
       _executeStake(reservePoolId_, depositReceiptTokenAmount_, receiver_, assetPool_, reservePool_);
   }
@@ -54,10 +54,10 @@ abstract contract Staker is RewardsModuleCommon {
     returns (uint256 stkReceiptTokenAmount_)
   {
     ReservePool storage reservePool_ = reservePools[reservePoolId_];
-    IERC20 reserveAsset_ = reservePool_.asset;
-    AssetPool storage assetPool_ = assetPools[reserveAsset_];
+    IERC20 depositReceiptToken_ = reservePool_.asset;
+    AssetPool storage assetPool_ = assetPools[depositReceiptToken_];
 
-    _assertValidDepositBalance(reserveAsset_, assetPool_.amount, depositReceiptTokenAmount_);
+    _assertValidDepositBalance(depositReceiptToken_, assetPool_.amount, depositReceiptTokenAmount_);
 
     stkReceiptTokenAmount_ =
       _executeStake(reservePoolId_, depositReceiptTokenAmount_, receiver_, assetPool_, reservePool_);
