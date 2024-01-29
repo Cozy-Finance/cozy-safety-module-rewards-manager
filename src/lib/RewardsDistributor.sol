@@ -59,14 +59,18 @@ abstract contract RewardsDistributor is RewardsModuleCommon {
     _dripRewardPool(rewardPools[rewardPoolId_]);
   }
 
-  function claimRewards(uint16 reservePoolId_, address receiver_) public override {
+  function claimRewards(uint16 reservePoolId_, address receiver_) external {
+    _claimRewards(reservePoolId_, receiver_, msg.sender);
+  }
+
+  function _claimRewards(uint16 reservePoolId_, address receiver_, address owner_) internal override {
     ReservePool storage reservePool_ = reservePools[reservePoolId_];
     IReceiptToken stkToken_ = reservePool_.stkToken;
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[reservePoolId_];
-    UserRewardsData[] storage userRewards_ = userRewards[reservePoolId_][msg.sender];
+    UserRewardsData[] storage userRewards_ = userRewards[reservePoolId_][owner_];
 
     ClaimRewardsData memory claimRewardsData_ = ClaimRewardsData({
-      userStkTokenBalance: stkToken_.balanceOf(msg.sender),
+      userStkTokenBalance: stkToken_.balanceOf(owner_),
       totalStkTokenSupply: stkToken_.totalSupply(),
       rewardsWeight: reservePool_.rewardsWeight,
       numRewardAssets: rewardPools.length,
