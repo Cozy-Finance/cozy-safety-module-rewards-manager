@@ -9,7 +9,7 @@ import {Depositor} from "./lib/Depositor.sol";
 import {RewardsDistributor} from "./lib/RewardsDistributor.sol";
 import {Staker} from "./lib/Staker.sol";
 
-contract RewardsModule is RewardsModuleCommon, Configurator, Depositor, RewardsDistributor, Staker {
+contract RewardsManager is RewardsModuleCommon, Configurator, Depositor, RewardsDistributor, Staker {
   /// @dev Thrown if the contract is already initialized.
   error Initialized();
 

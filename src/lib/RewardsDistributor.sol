@@ -68,7 +68,7 @@ abstract contract RewardsDistributor is RewardsModuleCommon {
     ClaimRewardsData memory claimRewardsData_ = ClaimRewardsData({
       userStkTokenBalance: stkToken_.balanceOf(msg.sender),
       totalStkTokenSupply: stkToken_.totalSupply(),
-      rewardsWeight: reservePool_.rewardsPoolsWeight,
+      rewardsWeight: reservePool_.rewardsWeight,
       numRewardAssets: rewardPools.length,
       numUserRewardAssets: userRewards_.length
     });
@@ -221,7 +221,7 @@ abstract contract RewardsDistributor is RewardsModuleCommon {
     ReservePool storage reservePool_ = reservePools[reservePoolId_];
     uint256 totalStkTokenSupply_ = reservePool_.stkToken.totalSupply();
     uint256 ownerStkTokenBalance_ = reservePool_.stkToken.balanceOf(owner_);
-    uint256 rewardsWeight_ = reservePool_.rewardsPoolsWeight;
+    uint256 rewardsWeight_ = reservePool_.rewardsWeight;
 
     // Compute preview user accrued rewards accounting for any pending rewards drips.
     PreviewClaimableRewardsData[] memory claimableRewardsData_ =
@@ -279,7 +279,7 @@ abstract contract RewardsDistributor is RewardsModuleCommon {
   ) internal override {
     uint256 numRewardAssets_ = rewardPools.length;
     uint256 totalStkTokenSupply_ = reservePool_.stkToken.totalSupply();
-    uint256 rewardsWeight_ = reservePool_.rewardsPoolsWeight;
+    uint256 rewardsWeight_ = reservePool_.rewardsWeight;
 
     for (uint16 i = 0; i < numRewardAssets_; i++) {
       RewardPool storage rewardPool_ = rewardPools[i];
@@ -311,7 +311,7 @@ abstract contract RewardsDistributor is RewardsModuleCommon {
           claimableRewards[j][i],
           oldCumulativeDrippedRewards_,
           reservePool_.stkToken.totalSupply(),
-          reservePool_.rewardsPoolsWeight
+          reservePool_.rewardsWeight
         );
         claimableRewards[j][i] =
           ClaimableRewardsData({cumulativeClaimedRewards: 0, indexSnapshot: claimableRewardsData_.indexSnapshot});
