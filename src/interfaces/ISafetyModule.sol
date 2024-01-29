@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity ^0.8.0;
 
-import {IERC20} from "./IERC20.sol";
+import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
+import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
+import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
+import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
 import {AssetPool} from "../lib/structs/Pools.sol";
 import {ClaimableRewardsData, PreviewClaimableRewards} from "../lib/structs/Rewards.sol";
-import {SafetyModuleState} from "../lib/SafetyModuleStates.sol";
 import {IDripModel} from "./IDripModel.sol";
-import {IReceiptToken} from "./IReceiptToken.sol";
-import {IReceiptTokenFactory} from "./IReceiptTokenFactory.sol";
 
 interface ISafetyModule {
   struct Delays {

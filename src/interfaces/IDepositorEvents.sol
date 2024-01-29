@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity ^0.8.0;
 
-import {IReceiptToken} from "./IReceiptToken.sol";
+import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 
 interface IDepositorEvents {
   /// @dev Emitted when a user deposits.
