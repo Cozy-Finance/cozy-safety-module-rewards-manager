@@ -3,6 +3,7 @@ pragma solidity 0.8.22;
 
 import {Clones} from "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import {IManager} from "./interfaces/IManager.sol";
+import {ISafetyModule} from "./interfaces/ISafetyModule.sol";
 import {IRewardsManager} from "./interfaces/IRewardsManager.sol";
 import {IRewardsManagerFactory} from "./interfaces/IRewardsManagerFactory.sol";
 import {RewardPoolConfig} from "./lib/structs/Rewards.sol";
@@ -52,7 +53,7 @@ contract RewardsManagerFactory is IRewardsManagerFactory {
 
     rewardsManager_ = IRewardsManager(address(rewardsManagerLogic).cloneDeterministic(salt(baseSalt_)));
     rewardsManager_.initialize(owner_, pauser_, safetyModuleAddress_, rewardPoolConfigs_, rewardsWeights_);
-    emit RewardsManagerDeployed(rewardsManager_);
+    emit RewardsManagerDeployed(rewardsManager_, ISafetyModule(safetyModuleAddress_));
   }
 
   /// @notice Given the `baseSalt_` compute and return the address that Rewards Manager will be deployed to.

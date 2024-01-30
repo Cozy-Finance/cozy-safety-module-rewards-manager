@@ -2,12 +2,13 @@
 pragma solidity ^0.8.0;
 
 import {IManager} from "./IManager.sol";
+import {ISafetyModule} from "./ISafetyModule.sol";
 import {IRewardsManager} from "./IRewardsManager.sol";
 import {RewardPoolConfig} from "../lib/structs/Rewards.sol";
 
 interface IRewardsManagerFactory {
   /// @dev Emitted when a new Rewards Manager is deployed.
-  event RewardsManagerDeployed(IRewardsManager rewardsManager);
+  event RewardsManagerDeployed(IRewardsManager rewardsManager, ISafetyModule safetyModule);
 
   function computeAddress(bytes32 baseSalt_) external view returns (address);
 

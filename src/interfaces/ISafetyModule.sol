@@ -80,6 +80,5 @@ interface ISafetyModule {
   /// @notice The state of this SafetyModule.
   function safetyModuleState() external view returns (SafetyModuleState);
 
-  function numRewardPools() external view returns (uint16);
   function numReservePools() external view returns (uint16);
 }

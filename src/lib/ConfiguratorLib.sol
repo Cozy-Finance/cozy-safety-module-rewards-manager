@@ -6,6 +6,7 @@ import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceip
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {SafeCastLib} from "cozy-safety-module-shared/lib/SafeCastLib.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {ICommonErrors} from "../interfaces/ICommonErrors.sol";
 import {ISafetyModule} from "../interfaces/ISafetyModule.sol";
 import {IManager} from "../interfaces/IManager.sol";
@@ -19,11 +20,11 @@ library ConfiguratorLib {
 
   /// @notice Emitted when a reserve pool is created.
   event ReservePoolCreated(
-    uint16 indexed reservePoolId, address stkReceiptTokenAddress, address safetyModuleReceiptTokenAddress
+    uint16 indexed reservePoolId, IReceiptToken stkReceiptToken, IReceiptToken safetyModuleReceiptToken
   );
 
   /// @notice Emitted when an reward pool is created.
-  event RewardPoolCreated(uint16 indexed rewardPoolid, address rewardAssetAddress, address depositTokenAddress);
+  event RewardPoolCreated(uint16 indexed rewardPoolid, IERC20 rewardAsset, IReceiptToken depositReceiptToken);
 
   /// @dev Emitted when a rewards manager's configuration updates are applied.
   event ConfigUpdatesApplied(RewardPoolConfig[] rewardPoolConfigs, uint16[] rewardsWeights);
@@ -121,6 +122,8 @@ library ConfiguratorLib {
 
     // Initialize new reserve pools.
     for (uint256 i = numExistingReservePools_; i < rewardsWeights_.length; i++) {
+      // This will revert if `i > safetyModule_.numReservePools()`.
+      // TODO: Change this after we have fixed the reserve pool struct in the core protocol.
       (,,,,,,,, IReceiptToken safetyModuleReceiptToken_,,) = safetyModule_.reservePools(i);
       initializeReservePool(
         reservePools_,
@@ -168,7 +171,7 @@ library ConfiguratorLib {
     );
     stkReceiptTokenToReservePoolIds_[stkReceiptToken_] = IdLookup({index: reservePoolId_, exists: true});
 
-    emit ReservePoolCreated(reservePoolId_, address(stkReceiptToken_), address(safetyModuleReceiptToken_));
+    emit ReservePoolCreated(reservePoolId_, stkReceiptToken_, safetyModuleReceiptToken_);
   }
 
   /// @dev Initializes a new reward pool when it is added to the rewards manager.
@@ -194,6 +197,6 @@ library ConfiguratorLib {
       })
     );
 
-    emit RewardPoolCreated(rewardPoolid_, address(rewardPoolConfig_.asset), address(rewardDepositToken_));
+    emit RewardPoolCreated(rewardPoolid_, rewardPoolConfig_.asset, rewardDepositToken_);
   }
 }
