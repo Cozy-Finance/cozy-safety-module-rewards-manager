@@ -48,8 +48,8 @@ abstract contract Staker is RewardsManagerCommon {
     IReceiptToken safetyModuleReceiptToken_ = reservePool_.safetyModuleReceiptToken;
     AssetPool storage assetPool_ = assetPools[safetyModuleReceiptToken_];
 
-    // We don't need to check if the rewards module received enough deposit receipt tokens after the transfer
-    // because they are not fee on transfer tokens, and the rewards module can only be configured with them.
+    // We don't need to check if the rewards manager received enough deposit receipt tokens after the transfer
+    // because they are not fee on transfer tokens, and the rewards manager can only be configured with them.
     safetyModuleReceiptToken_.safeTransferFrom(from_, address(this), safetyModuleReceiptTokenAmount_);
     stkReceiptTokenAmount_ =
       _executeStake(reservePoolId_, safetyModuleReceiptTokenAmount_, receiver_, assetPool_, reservePool_);
@@ -57,7 +57,7 @@ abstract contract Staker is RewardsManagerCommon {
 
   /// @notice Stake by minting `stkReceiptTokenAmount_` stkTokens to `receiver_`.
   /// @dev Assumes that `safetyModuleReceiptTokenAmount_` of the safety module deposit receipt token has already been
-  /// transferred to this rewards module contract.
+  /// transferred to this rewards manager contract.
   function stakeWithoutTransfer(uint16 reservePoolId_, uint256 safetyModuleReceiptTokenAmount_, address receiver_)
     external
     returns (uint256 stkReceiptTokenAmount_)
@@ -76,7 +76,7 @@ abstract contract Staker is RewardsManagerCommon {
   /// `safetyModuleReceiptTokenAmount_` of `reservePoolId_` safety module deposit receipt tokens to `receiver_`. Also
   /// claims
   /// any outstanding rewards for `reservePoolId_` and sends them to `receiver_`.
-  /// @dev Assumes that user has approved this RewardsModule to spend its stake tokens.
+  /// @dev Assumes that user has approved this rewards manager to spend its stake tokens.
   function unstake(uint16 reservePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_)
     external
     returns (uint256 safetyModuleReceiptTokenAmount_)
