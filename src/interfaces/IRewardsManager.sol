@@ -52,4 +52,12 @@ interface IRewardsManager {
 
   /// @notice Updates the reward module's user rewards data prior to a stkToken transfer.
   function updateUserRewardsForStkTokenTransfer(address from_, address to_) external;
+
+  function cozyManager() external view returns (address);
+
+  function receiptTokenFactory() external view returns (address);
+
+  function owner() external view returns (address);
+
+  function pauser() external view returns (address);
 }
