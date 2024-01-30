@@ -59,14 +59,18 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     _dripRewardPool(rewardPools[rewardPoolId_]);
   }
 
-  function claimRewards(uint16 reservePoolId_, address receiver_) public override {
+  function claimRewards(uint16 reservePoolId_, address receiver_) external {
+    _claimRewards(reservePoolId_, receiver_, msg.sender);
+  }
+
+  function _claimRewards(uint16 reservePoolId_, address receiver_, address owner_) internal override {
     ReservePool storage reservePool_ = reservePools[reservePoolId_];
-    IReceiptToken stkToken_ = reservePool_.stkToken;
+    IReceiptToken stkToken_ = reservePool_.stkReceiptToken;
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[reservePoolId_];
-    UserRewardsData[] storage userRewards_ = userRewards[reservePoolId_][msg.sender];
+    UserRewardsData[] storage userRewards_ = userRewards[reservePoolId_][owner_];
 
     ClaimRewardsData memory claimRewardsData_ = ClaimRewardsData({
-      userStkTokenBalance: stkToken_.balanceOf(msg.sender),
+      userStkTokenBalance: stkToken_.balanceOf(owner_),
       totalStkTokenSupply: stkToken_.totalSupply(),
       rewardsWeight: reservePool_.rewardsWeight,
       numRewardAssets: rewardPools.length,
@@ -150,7 +154,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     if (!idLookup_.exists) revert Ownable.Unauthorized();
 
     uint16 reservePoolId_ = idLookup_.index;
-    IReceiptToken stkToken_ = reservePools[reservePoolId_].stkToken;
+    IReceiptToken stkToken_ = reservePools[reservePoolId_].stkReceiptToken;
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[reservePoolId_];
 
     // Fully accure historical rewards for both users given their current stkToken balances. Moving forward all rewards
@@ -198,8 +202,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     internal
   {
     if (amount_ == 0) return;
-    // TODO: Fine to remove this from RewardsModule?
-    // assetPools[rewardAsset_].amount -= amount_;
+    assetPools[rewardAsset_].amount -= amount_;
     rewardAsset_.safeTransfer(receiver_, amount_);
     emit ClaimedRewards(reservePoolId_, rewardAsset_, amount_, msg.sender, receiver_);
   }
@@ -219,8 +222,9 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     returns (PreviewClaimableRewards memory)
   {
     ReservePool storage reservePool_ = reservePools[reservePoolId_];
-    uint256 totalStkTokenSupply_ = reservePool_.stkToken.totalSupply();
-    uint256 ownerStkTokenBalance_ = reservePool_.stkToken.balanceOf(owner_);
+    IReceiptToken stkToken_ = reservePool_.stkReceiptToken;
+    uint256 totalStkTokenSupply_ = stkToken_.totalSupply();
+    uint256 ownerStkTokenBalance_ = stkToken_.balanceOf(owner_);
     uint256 rewardsWeight_ = reservePool_.rewardsWeight;
 
     // Compute preview user accrued rewards accounting for any pending rewards drips.
@@ -278,7 +282,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_
   ) internal override {
     uint256 numRewardAssets_ = rewardPools.length;
-    uint256 totalStkTokenSupply_ = reservePool_.stkToken.totalSupply();
+    uint256 totalStkTokenSupply_ = reservePool_.stkReceiptToken.totalSupply();
     uint256 rewardsWeight_ = reservePool_.rewardsWeight;
 
     for (uint16 i = 0; i < numRewardAssets_; i++) {
@@ -310,7 +314,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
         ClaimableRewardsData memory claimableRewardsData_ = _previewNextClaimableRewardsData(
           claimableRewards[j][i],
           oldCumulativeDrippedRewards_,
-          reservePool_.stkToken.totalSupply(),
+          reservePool_.stkReceiptToken.totalSupply(),
           reservePool_.rewardsWeight
         );
         claimableRewards[j][i] =

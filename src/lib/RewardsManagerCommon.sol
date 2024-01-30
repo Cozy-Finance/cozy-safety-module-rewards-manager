@@ -10,12 +10,19 @@ import {ReservePool, RewardPool} from "./structs/Pools.sol";
 
 abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErrors {
   /// @notice Claim staking rewards for a given reserve pool.
-  function claimRewards(uint16 reservePoolId_, address receiver_) public virtual;
+  function _claimRewards(uint16 reservePoolId_, address receiver_, address owner_) internal virtual;
 
   /// @notice Updates the balances for each reward pool by applying a drip factor on them, and increment the
   /// claimable rewards index for each claimable rewards pool.
   /// @dev Defined in RewardsHandler.
   function dripRewards() public virtual;
+
+  /// @dev Helper to assert that the rewards manager has a balance of tokens that matches the required amount for a
+  /// deposit/stake.
+  function _assertValidDepositBalance(IERC20 token_, uint256 tokenPoolBalance_, uint256 depositAmount_)
+    internal
+    view
+    virtual;
 
   // @dev Returns the next amount of rewards/fees to be dripped given a base amount and a drip model.
   function _getNextDripAmount(uint256 totalBaseAmount_, IDripModel dripModel_, uint256 lastDripTime_)

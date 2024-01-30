@@ -18,4 +18,17 @@ contract MockERC20 is ERC20 {
   function burn(address from, uint256 value) public virtual {
     _burn(from, value);
   }
+
+  function burn(address caller_, address owner_, uint256 amount_) external {
+    if (caller_ != owner_) {
+      uint256 allowed_ = allowance[owner_][caller_]; // Saves gas for limited approvals.
+      if (allowed_ != type(uint256).max) _setAllowance(owner_, caller_, allowed_ - amount_);
+    }
+    _burn(owner_, amount_);
+  }
+
+  /// @notice Sets the allowance such that the `_spender` can spend `_amount` of `_owner`s tokens.
+  function _setAllowance(address _owner, address _spender, uint256 _amount) internal {
+    allowance[_owner][_spender] = _amount;
+  }
 }

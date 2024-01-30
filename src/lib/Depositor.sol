@@ -94,7 +94,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     RewardPool storage rewardPool_
   ) internal returns (uint256 depositReceiptTokenAmount_) {
     if (safetyModule.safetyModuleState() == SafetyModuleState.PAUSED) revert InvalidState();
-    if (token_.balanceOf(address(this)) - assetPools[token_].amount < rewardAssetAmount_) revert InvalidDeposit();
+    _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
 
     IReceiptToken depositReceiptToken_ = rewardPool_.depositToken;
 
@@ -128,5 +128,13 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
         receiptTokenAmount_, receiptToken_.totalSupply(), nextTotalPoolAmount_
       );
     if (assetAmount_ == 0) revert RoundsToZero(); // Check for rounding error since we round down in conversion.
+  }
+
+  function _assertValidDepositBalance(IERC20 token_, uint256 assetPoolBalance_, uint256 depositAmount_)
+    internal
+    view
+    override
+  {
+    if (token_.balanceOf(address(this)) - assetPoolBalance_ < depositAmount_) revert InvalidDeposit();
   }
 }
