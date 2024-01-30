@@ -671,7 +671,7 @@ contract StakerUnitTest is TestBase {
     assertEq(unstakeAmountPreview_, safetyModuleReceiptTokenAmountReceived_);
   }
 
-  function test_unstake_previewUnstakeRoundsDownToZer() external {
+  function test_unstake_previewUnstakeRoundsDownToZero() external {
     (, address receiver_,,) = _setupDefaultSingleUserFixture();
 
     vm.expectRevert(ICommonErrors.RoundsToZero.selector);

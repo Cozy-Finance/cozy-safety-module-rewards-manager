@@ -24,7 +24,7 @@ contract RewardsManager is RewardsManagerCommon, Configurator, Depositor, Reward
   function initialize(address owner_, address pauser_, address safetyModule_) external {
     if (address(safetyModule) != address(0)) revert Initialized();
 
-    // rewards managers are minimal proxies, so the owner and pauser is set to address(0) in the constructor for the
+    // Rewards managers are minimal proxies, so the owner and pauser is set to address(0) in the constructor for the
     // logic contract. When the rewards manager is initialized for the minimal proxy, we update the owner and pauser.
     __initGovernable(owner_, pauser_);
 

@@ -74,8 +74,7 @@ abstract contract Staker is RewardsManagerCommon {
 
   /// @notice Unstakes by burning `stkReceiptTokenAmount_` of `reservePoolId_` reserve pool stake tokens and sending
   /// `safetyModuleReceiptTokenAmount_` of `reservePoolId_` safety module deposit receipt tokens to `receiver_`. Also
-  /// claims
-  /// any outstanding rewards for `reservePoolId_` and sends them to `receiver_`.
+  /// claims any outstanding rewards for `reservePoolId_` and sends them to `receiver_`.
   /// @dev Assumes that user has approved this rewards manager to spend its stake tokens.
   function unstake(uint16 reservePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_)
     external
