@@ -770,10 +770,6 @@ contract TestableDepositor is Depositor {
     MockSafetyModule(address(safetyModule)).setSafetyModuleState(safetyModuleState_);
   }
 
-  function mockAddReservePool(ReservePool memory reservePool_) external {
-    reservePools.push(reservePool_);
-  }
-
   function mockAddRewardPool(RewardPool memory rewardPool_) external {
     rewardPools.push(rewardPool_);
   }
