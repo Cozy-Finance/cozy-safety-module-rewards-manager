@@ -25,6 +25,9 @@ library ConfiguratorLib {
   /// @notice Emitted when an reward pool is created.
   event RewardPoolCreated(uint16 indexed rewardPoolid, address rewardAssetAddress, address depositTokenAddress);
 
+  /// @dev Emitted when a rewards manager's configuration updates are applied.
+  event ConfigUpdatesApplied(RewardPoolConfig[] rewardPoolConfigs, uint16[] rewardsWeights);
+
   /// @notice Returns true if the provided configs are valid for the rewards manager, false otherwise.
   function isValidUpdate(
     RewardPool[] storage rewardPools_,
@@ -138,6 +141,8 @@ library ConfiguratorLib {
     for (uint256 i = numExistingRewardPools_; i < rewardPoolConfigs_.length; i++) {
       initializeRewardPool(rewardPools_, receiptTokenFactory_, rewardPoolConfigs_[i]);
     }
+
+    emit ConfigUpdatesApplied(rewardPoolConfigs_, rewardsWeights_);
   }
 
   /// @dev Initializes a new reserve pool when it is added to the rewards manager.
