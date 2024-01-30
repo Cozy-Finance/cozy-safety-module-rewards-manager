@@ -65,7 +65,7 @@ abstract contract RewardsDistributor is RewardsModuleCommon {
 
   function _claimRewards(uint16 reservePoolId_, address receiver_, address owner_) internal override {
     ReservePool storage reservePool_ = reservePools[reservePoolId_];
-    IReceiptToken stkToken_ = reservePool_.stkToken;
+    IReceiptToken stkToken_ = reservePool_.stkReceiptToken;
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[reservePoolId_];
     UserRewardsData[] storage userRewards_ = userRewards[reservePoolId_][owner_];
 
@@ -154,7 +154,7 @@ abstract contract RewardsDistributor is RewardsModuleCommon {
     if (!idLookup_.exists) revert Ownable.Unauthorized();
 
     uint16 reservePoolId_ = idLookup_.index;
-    IReceiptToken stkToken_ = reservePools[reservePoolId_].stkToken;
+    IReceiptToken stkToken_ = reservePools[reservePoolId_].stkReceiptToken;
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[reservePoolId_];
 
     // Fully accure historical rewards for both users given their current stkToken balances. Moving forward all rewards
@@ -223,8 +223,9 @@ abstract contract RewardsDistributor is RewardsModuleCommon {
     returns (PreviewClaimableRewards memory)
   {
     ReservePool storage reservePool_ = reservePools[reservePoolId_];
-    uint256 totalStkTokenSupply_ = reservePool_.stkToken.totalSupply();
-    uint256 ownerStkTokenBalance_ = reservePool_.stkToken.balanceOf(owner_);
+    IReceiptToken stkToken_ = reservePool_.stkReceiptToken;
+    uint256 totalStkTokenSupply_ = stkToken_.totalSupply();
+    uint256 ownerStkTokenBalance_ = stkToken_.balanceOf(owner_);
     uint256 rewardsWeight_ = reservePool_.rewardsWeight;
 
     // Compute preview user accrued rewards accounting for any pending rewards drips.
@@ -282,7 +283,7 @@ abstract contract RewardsDistributor is RewardsModuleCommon {
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_
   ) internal override {
     uint256 numRewardAssets_ = rewardPools.length;
-    uint256 totalStkTokenSupply_ = reservePool_.stkToken.totalSupply();
+    uint256 totalStkTokenSupply_ = reservePool_.stkReceiptToken.totalSupply();
     uint256 rewardsWeight_ = reservePool_.rewardsWeight;
 
     for (uint16 i = 0; i < numRewardAssets_; i++) {
@@ -314,7 +315,7 @@ abstract contract RewardsDistributor is RewardsModuleCommon {
         ClaimableRewardsData memory claimableRewardsData_ = _previewNextClaimableRewardsData(
           claimableRewards[j][i],
           oldCumulativeDrippedRewards_,
-          reservePool_.stkToken.totalSupply(),
+          reservePool_.stkReceiptToken.totalSupply(),
           reservePool_.rewardsWeight
         );
         claimableRewards[j][i] =

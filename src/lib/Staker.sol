@@ -13,7 +13,7 @@ import {RewardsModuleCalculationsLib} from "./RewardsModuleCalculationsLib.sol";
 
 abstract contract Staker is RewardsModuleCommon {
   using FixedPointMathLib for uint256;
-  using SafeERC20 for IERC20;
+  using SafeERC20 for IReceiptToken;
 
   /// @dev Emitted when a user stakes.
   event Staked(
@@ -45,7 +45,7 @@ abstract contract Staker is RewardsModuleCommon {
     returns (uint256 stkReceiptTokenAmount_)
   {
     ReservePool storage reservePool_ = reservePools[reservePoolId_];
-    IERC20 safetyModuleReceiptToken_ = reservePool_.asset;
+    IReceiptToken safetyModuleReceiptToken_ = reservePool_.safetyModuleReceiptToken;
     AssetPool storage assetPool_ = assetPools[safetyModuleReceiptToken_];
 
     // We don't need to check if the rewards module received enough deposit receipt tokens after the transfer
@@ -63,7 +63,7 @@ abstract contract Staker is RewardsModuleCommon {
     returns (uint256 stkReceiptTokenAmount_)
   {
     ReservePool storage reservePool_ = reservePools[reservePoolId_];
-    IERC20 safetyModuleReceiptToken_ = reservePool_.asset;
+    IERC20 safetyModuleReceiptToken_ = reservePool_.safetyModuleReceiptToken;
     AssetPool storage assetPool_ = assetPools[safetyModuleReceiptToken_];
 
     _assertValidDepositBalance(safetyModuleReceiptToken_, assetPool_.amount, safetyModuleReceiptTokenAmount_);
@@ -84,14 +84,12 @@ abstract contract Staker is RewardsModuleCommon {
     _claimRewards(reservePoolId_, receiver_, owner_);
 
     ReservePool storage reservePool_ = reservePools[reservePoolId_];
-    IReceiptToken stkReceiptToken_ = reservePool_.stkToken;
-    IERC20 safetyModuleReceiptToken_ = reservePool_.asset;
+    IReceiptToken stkReceiptToken_ = reservePool_.stkReceiptToken;
+    IReceiptToken safetyModuleReceiptToken_ = reservePool_.safetyModuleReceiptToken;
 
-    safetyModuleReceiptTokenAmount_ = _previewUnstake(
-      reservePools[reservePoolId_].stkToken, stkReceiptTokenAmount_, reservePools[reservePoolId_].stakeAmount
-    );
+    safetyModuleReceiptTokenAmount_ = _previewUnstake(stkReceiptToken_, stkReceiptTokenAmount_, reservePool_.amount);
 
-    reservePool_.stakeAmount -= safetyModuleReceiptTokenAmount_;
+    reservePool_.amount -= safetyModuleReceiptTokenAmount_;
     assetPools[safetyModuleReceiptToken_].amount -= safetyModuleReceiptTokenAmount_;
     // Burn also ensures that the sender has sufficient allowance if they're not the owner.
     stkReceiptToken_.burn(msg.sender, owner_, stkReceiptTokenAmount_);
@@ -109,7 +107,7 @@ abstract contract Staker is RewardsModuleCommon {
     returns (uint256 safetyModuleReceiptTokenAmount_)
   {
     return _previewUnstake(
-      reservePools[reservePoolId_].stkToken, stkReceiptTokenAmount_, reservePools[reservePoolId_].stakeAmount
+      reservePools[reservePoolId_].stkReceiptToken, stkReceiptTokenAmount_, reservePools[reservePoolId_].amount
     );
   }
 
@@ -134,15 +132,15 @@ abstract contract Staker is RewardsModuleCommon {
     // TODO: Should we revert if the safety module is paused?
     if (safetyModule.safetyModuleState() == SafetyModuleState.PAUSED) revert InvalidState();
 
-    IReceiptToken stkToken_ = reservePool_.stkToken;
+    IReceiptToken stkToken_ = reservePool_.stkReceiptToken;
 
     stkReceiptTokenAmount_ = RewardsModuleCalculationsLib.convertToReceiptTokenAmount(
-      safetyModuleReceiptTokenAmount_, stkToken_.totalSupply(), reservePool_.stakeAmount
+      safetyModuleReceiptTokenAmount_, stkToken_.totalSupply(), reservePool_.amount
     );
     if (stkReceiptTokenAmount_ == 0) revert RoundsToZero();
 
     // Increment reserve pool accounting only after calculating `stkReceiptTokenAmount_` to mint.
-    reservePool_.stakeAmount += safetyModuleReceiptTokenAmount_;
+    reservePool_.amount += safetyModuleReceiptTokenAmount_;
     assetPool_.amount += safetyModuleReceiptTokenAmount_;
 
     // Update user rewards before minting any new stkTokens.

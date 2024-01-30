@@ -93,31 +93,13 @@ contract TestBase is Test, TestAssertions {
     view
     returns (ReservePool memory)
   {
-    (
-      uint256 stakeAmount,
-      uint256 depositAmount,
-      uint256 pendingUnstakesAmount,
-      uint256 pendingWithdrawalsAmount,
-      uint256 feeAmount,
-      uint256 maxSlashPercentage,
-      IERC20 asset,
-      IReceiptToken stkToken,
-      IReceiptToken depositToken,
-      uint16 rewardsPoolsWeight,
-      uint128 lastFeesDripTime
-    ) = rewardsModule_.reservePools(reservePoolId_);
+    (uint256 amount, IReceiptToken safetyModuleReceiptToken, IReceiptToken stkReceiptToken, uint16 rewardsWeight) =
+      rewardsModule_.reservePools(reservePoolId_);
     return ReservePool({
-      stakeAmount: stakeAmount,
-      depositAmount: depositAmount,
-      pendingUnstakesAmount: pendingUnstakesAmount,
-      pendingWithdrawalsAmount: pendingWithdrawalsAmount,
-      feeAmount: feeAmount,
-      maxSlashPercentage: maxSlashPercentage,
-      asset: asset,
-      stkToken: stkToken,
-      depositToken: depositToken,
-      rewardsPoolsWeight: rewardsPoolsWeight,
-      lastFeesDripTime: lastFeesDripTime
+      amount: amount,
+      safetyModuleReceiptToken: safetyModuleReceiptToken,
+      stkReceiptToken: stkReceiptToken,
+      rewardsWeight: rewardsWeight
     });
   }
 
@@ -145,17 +127,10 @@ contract TestBase is Test, TestAssertions {
   }
 
   function copyReservePool(ReservePool memory original_) internal pure returns (ReservePool memory copied_) {
-    copied_.asset = original_.asset;
-    copied_.stkToken = original_.stkToken;
-    copied_.depositToken = original_.depositToken;
-    copied_.stakeAmount = original_.stakeAmount;
-    copied_.depositAmount = original_.depositAmount;
-    copied_.rewardsPoolsWeight = original_.rewardsPoolsWeight;
-    copied_.pendingUnstakesAmount = original_.pendingUnstakesAmount;
-    copied_.pendingWithdrawalsAmount = original_.pendingWithdrawalsAmount;
-    copied_.feeAmount = original_.feeAmount;
-    copied_.maxSlashPercentage = original_.maxSlashPercentage;
-    copied_.lastFeesDripTime = original_.lastFeesDripTime;
+    copied_.safetyModuleReceiptToken = original_.safetyModuleReceiptToken;
+    copied_.stkReceiptToken = original_.stkReceiptToken;
+    copied_.rewardsWeight = original_.rewardsWeight;
+    copied_.amount = original_.amount;
   }
 
   function copyRewardPool(RewardPool memory original_) internal pure returns (RewardPool memory copied_) {

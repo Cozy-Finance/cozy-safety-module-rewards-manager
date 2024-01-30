@@ -27,18 +27,14 @@ abstract contract TestAssertions is Test {
   }
 
   function assertEq(ReservePool memory actual_, ReservePool memory expected_) internal {
-    assertEq(address(actual_.asset), address(expected_.asset), "ReservePool.asset");
-    assertEq(address(actual_.stkToken), address(expected_.stkToken), "ReservePool.stkToken");
-    assertEq(address(actual_.depositToken), address(expected_.depositToken), "ReservePool.depositToken");
-    assertEq(actual_.stakeAmount, expected_.stakeAmount, "ReservePool.stakeAmount");
-    assertEq(actual_.depositAmount, expected_.depositAmount, "ReservePool.depositAmount");
-    assertEq(actual_.pendingUnstakesAmount, expected_.pendingUnstakesAmount, "ReservePool.pendingUnstakesAmount");
     assertEq(
-      actual_.pendingWithdrawalsAmount, expected_.pendingWithdrawalsAmount, "ReservePool.pendingWithdrawalsAmount"
+      address(actual_.safetyModuleReceiptToken),
+      address(expected_.safetyModuleReceiptToken),
+      "ReservePool.safetyModuleReceiptToken"
     );
-    assertEq(actual_.feeAmount, expected_.feeAmount, "ReservePool.feeAmount");
-    assertEq(actual_.rewardsPoolsWeight, expected_.rewardsPoolsWeight, "ReservePool.rewardsPoolsWeight");
-    assertEq(actual_.maxSlashPercentage, expected_.maxSlashPercentage, "ReservePool.maxSlashPercentage");
+    assertEq(address(actual_.stkReceiptToken), address(expected_.stkReceiptToken), "ReservePool.stkReceiptToken");
+    assertEq(actual_.amount, expected_.amount, "ReservePool.amount");
+    assertEq(actual_.rewardsWeight, expected_.rewardsWeight, "ReservePool.rewardsWeight");
   }
 
   function assertEq(RewardPool[] memory actual_, RewardPool[] memory expected_) internal {
