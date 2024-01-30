@@ -37,9 +37,9 @@ abstract contract Staker is RewardsManagerCommon {
   error InsufficientBalance();
 
   /// @notice Stake by minting `stkReceiptTokenAmount_` stkTokens to `receiver_` after depositing exactly
-  /// `safetyModuleReceiptTokenAmount_` of the safety module deposit receipt token.
+  /// `safetyModuleReceiptTokenAmount_` of the safety module receipt token.
   /// @dev Assumes that `from_` has already approved this contract to transfer `safetyModuleReceiptTokenAmount_` of the
-  /// safety module deposit receipt token.
+  /// safety module receipt token.
   function stake(uint16 reservePoolId_, uint256 safetyModuleReceiptTokenAmount_, address receiver_, address from_)
     external
     returns (uint256 stkReceiptTokenAmount_)
@@ -48,7 +48,7 @@ abstract contract Staker is RewardsManagerCommon {
     IReceiptToken safetyModuleReceiptToken_ = reservePool_.safetyModuleReceiptToken;
     AssetPool storage assetPool_ = assetPools[safetyModuleReceiptToken_];
 
-    // We don't need to check if the rewards manager received enough deposit receipt tokens after the transfer
+    // We don't need to check if the rewards manager received enough safety module receipt tokens after the transfer
     // because they are not fee on transfer tokens, and the rewards manager can only be configured with them.
     safetyModuleReceiptToken_.safeTransferFrom(from_, address(this), safetyModuleReceiptTokenAmount_);
     stkReceiptTokenAmount_ =
@@ -56,7 +56,7 @@ abstract contract Staker is RewardsManagerCommon {
   }
 
   /// @notice Stake by minting `stkReceiptTokenAmount_` stkTokens to `receiver_`.
-  /// @dev Assumes that `safetyModuleReceiptTokenAmount_` of the safety module deposit receipt token has already been
+  /// @dev Assumes that `safetyModuleReceiptTokenAmount_` of the safety module receipt token has already been
   /// transferred to this rewards manager contract.
   function stakeWithoutTransfer(uint16 reservePoolId_, uint256 safetyModuleReceiptTokenAmount_, address receiver_)
     external
@@ -73,7 +73,7 @@ abstract contract Staker is RewardsManagerCommon {
   }
 
   /// @notice Unstakes by burning `stkReceiptTokenAmount_` of `reservePoolId_` reserve pool stake tokens and sending
-  /// `safetyModuleReceiptTokenAmount_` of `reservePoolId_` safety module deposit receipt tokens to `receiver_`. Also
+  /// `safetyModuleReceiptTokenAmount_` of `reservePoolId_` safety module receipt tokens to `receiver_`. Also
   /// claims any outstanding rewards for `reservePoolId_` and sends them to `receiver_`.
   /// @dev Assumes that user has approved this rewards manager to spend its stake tokens.
   function unstake(uint16 reservePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_)
