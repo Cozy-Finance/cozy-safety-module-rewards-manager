@@ -15,6 +15,8 @@ import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDepositorEvents {
   using SafeERC20 for IERC20;
 
+  uint8 internal constant REWARDS_POOL_FLOOR = 1;
+
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_, address from_)
     external
     returns (uint256 depositReceiptTokenAmount_)
@@ -51,7 +53,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
     _dripRewardPool(rewardPool_);
 
-    IReceiptToken depositReceiptToken_ = rewardPool_.depositToken;
+    IReceiptToken depositReceiptToken_ = rewardPool_.depositReceiptToken;
     rewardAssetAmount_ = _previewRedemption(
       depositReceiptToken_,
       depositReceiptTokenAmount_,
@@ -79,7 +81,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     uint256 lastDripTime_ = rewardPool_.lastDripTime;
 
     rewardAssetAmount_ = _previewRedemption(
-      rewardPool_.depositToken,
+      rewardPool_.depositReceiptToken,
       depositReceiptTokenAmount_,
       rewardPool_.dripModel,
       rewardPool_.undrippedRewards,
@@ -96,11 +98,10 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     if (safetyModule.safetyModuleState() == SafetyModuleState.PAUSED) revert InvalidState();
     _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
 
-    IReceiptToken depositReceiptToken_ = rewardPool_.depositToken;
+    IReceiptToken depositReceiptToken_ = rewardPool_.depositReceiptToken;
 
-    // TODO: floor undripped rewards to 1
     depositReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToReceiptTokenAmount(
-      rewardAssetAmount_, depositReceiptToken_.totalSupply(), rewardPool_.undrippedRewards
+      rewardAssetAmount_, depositReceiptToken_.totalSupply(), _amountWithFloor(rewardPool_.undrippedRewards)
     );
     if (depositReceiptTokenAmount_ == 0) revert RoundsToZero();
 
@@ -121,7 +122,6 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
   ) internal view returns (uint256 assetAmount_) {
     uint256 nextTotalPoolAmount_ = totalPoolAmount_ - _getNextDripAmount(totalPoolAmount_, dripModel_, lastDripTime_);
 
-    // TODO: floor nextTotalPoolAmount_ to 1
     assetAmount_ = nextTotalPoolAmount_ == 0
       ? 0
       : RewardsManagerCalculationsLib.convertToAssetAmount(
@@ -136,5 +136,12 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     override
   {
     if (token_.balanceOf(address(this)) - assetPoolBalance_ < depositAmount_) revert InvalidDeposit();
+  }
+
+  /// @notice The rewards pool amount for the purposes of performing conversions. We set a floor once
+  /// deposit receipt tokens have been initialized to avoid divide-by-zero errors that would occur when the supply
+  /// of deposit receipt tokens > 0, but the `poolAmount` = 0, which can occur due to drip.
+  function _amountWithFloor(uint256 poolAmount_) private pure returns (uint256) {
+    return poolAmount_ > REWARDS_POOL_FLOOR ? poolAmount_ : REWARDS_POOL_FLOOR;
   }
 }

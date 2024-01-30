@@ -114,13 +114,13 @@ contract TestBase is Test, TestAssertions {
       uint128 lastDripTime,
       IERC20 asset,
       IDripModel dripModel,
-      IReceiptToken depositToken
+      IReceiptToken depositReceiptToken
     ) = rewardsManager_.rewardPools(rewardPoolid_);
     return RewardPool({
       undrippedRewards: undrippedRewards,
       asset: asset,
       dripModel: dripModel,
-      depositToken: depositToken,
+      depositReceiptToken: depositReceiptToken,
       cumulativeDrippedRewards: cumulativeDrippedRewards,
       lastDripTime: lastDripTime
     });
@@ -138,7 +138,7 @@ contract TestBase is Test, TestAssertions {
     copied_.undrippedRewards = original_.undrippedRewards;
     copied_.cumulativeDrippedRewards = original_.cumulativeDrippedRewards;
     copied_.dripModel = original_.dripModel;
-    copied_.depositToken = original_.depositToken;
+    copied_.depositReceiptToken = original_.depositReceiptToken;
     copied_.lastDripTime = original_.lastDripTime;
   }
 }

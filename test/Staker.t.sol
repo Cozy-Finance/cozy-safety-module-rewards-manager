@@ -30,7 +30,7 @@ contract StakerUnitTest is TestBase {
   using SafeCastLib for uint256;
 
   MockERC20 mockAsset = new MockERC20("Mock Asset", "MOCK", 6);
-  MockERC20 mockSafetyModuleReceiptToken = new MockERC20("Mock Asset", "MOCK", 6);
+  MockERC20 mockSafetyModuleReceiptToken = new MockERC20("Mock SM Asset", "MOCK SM", 6);
   MockERC20 mockStkToken = new MockERC20("Mock Cozy Stake Token", "cozyStk", 6);
   MockERC20 mockDepositToken = new MockERC20("Mock Cozy Deposit Token", "cozyDep", 6);
   MockSafetyModule mockSafetyModule = new MockSafetyModule(SafetyModuleState.ACTIVE);
@@ -712,7 +712,7 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor {
         asset: rewardAsset_,
         dripModel: IDripModel(address(new MockDripModel(1e18))),
         undrippedRewards: 0,
-        depositToken: IReceiptToken(address(new MockERC20("Mock Cozy Deposit Token", "cozyDep", 6))),
+        depositReceiptToken: IReceiptToken(address(new MockERC20("Mock Cozy Deposit Token", "cozyDep", 6))),
         cumulativeDrippedRewards: cumulativeDrippedRewards_,
         lastDripTime: uint128(block.timestamp)
       })
