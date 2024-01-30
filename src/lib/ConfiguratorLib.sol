@@ -9,6 +9,7 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {ICommonErrors} from "../interfaces/ICommonErrors.sol";
 import {ISafetyModule} from "../interfaces/ISafetyModule.sol";
 import {IManager} from "../interfaces/IManager.sol";
+import {IConfiguratorErrors} from "../interfaces/IConfiguratorErrors.sol";
 import {ReservePool, RewardPool, IdLookup} from "./structs/Pools.sol";
 import {RewardPoolConfig} from "./structs/Rewards.sol";
 
@@ -71,6 +72,31 @@ library ConfiguratorLib {
     if (rewardsWeightSum_ != MathConstants.ZOC) return false;
 
     return true;
+  }
+
+  function updateConfigs(
+    ReservePool[] storage reservePools_,
+    RewardPool[] storage rewardPools_,
+    mapping(IReceiptToken => IdLookup) storage stkReceiptTokenToReservePoolIds_,
+    IReceiptTokenFactory receiptTokenFactory_,
+    RewardPoolConfig[] calldata rewardPoolConfigs_,
+    uint16[] calldata rewardsWeights_,
+    ISafetyModule safetyModule_,
+    IManager manager_
+  ) public {
+    if (!isValidUpdate(rewardPools_, rewardPoolConfigs_, rewardsWeights_, safetyModule_, manager_)) {
+      revert IConfiguratorErrors.InvalidConfiguration();
+    }
+
+    applyConfigUpdates(
+      reservePools_,
+      rewardPools_,
+      stkReceiptTokenToReservePoolIds_,
+      receiptTokenFactory_,
+      rewardPoolConfigs_,
+      rewardsWeights_,
+      safetyModule_
+    );
   }
 
   /// @notice Apply queued updates to safety module config.
