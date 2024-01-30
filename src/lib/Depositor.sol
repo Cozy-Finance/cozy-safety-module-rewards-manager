@@ -9,10 +9,10 @@ import {IDepositorErrors} from "../interfaces/IDepositorErrors.sol";
 import {IDepositorEvents} from "../interfaces/IDepositorEvents.sol";
 import {IDripModel} from "../interfaces/IDripModel.sol";
 import {ReservePool, AssetPool, RewardPool} from "./structs/Pools.sol";
-import {RewardsModuleCalculationsLib} from "./RewardsModuleCalculationsLib.sol";
-import {RewardsModuleCommon} from "./RewardsModuleCommon.sol";
+import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
+import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 
-abstract contract Depositor is RewardsModuleCommon, IDepositorErrors, IDepositorEvents {
+abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDepositorEvents {
   using SafeERC20 for IERC20;
 
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_, address from_)
@@ -99,7 +99,7 @@ abstract contract Depositor is RewardsModuleCommon, IDepositorErrors, IDepositor
     IReceiptToken depositReceiptToken_ = rewardPool_.depositToken;
 
     // TODO: floor undripped rewards to 1
-    depositReceiptTokenAmount_ = RewardsModuleCalculationsLib.convertToReceiptTokenAmount(
+    depositReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToReceiptTokenAmount(
       rewardAssetAmount_, depositReceiptToken_.totalSupply(), rewardPool_.undrippedRewards
     );
     if (depositReceiptTokenAmount_ == 0) revert RoundsToZero();
@@ -124,7 +124,7 @@ abstract contract Depositor is RewardsModuleCommon, IDepositorErrors, IDepositor
     // TODO: floor nextTotalPoolAmount_ to 1
     assetAmount_ = nextTotalPoolAmount_ == 0
       ? 0
-      : RewardsModuleCalculationsLib.convertToAssetAmount(
+      : RewardsManagerCalculationsLib.convertToAssetAmount(
         receiptTokenAmount_, receiptToken_.totalSupply(), nextTotalPoolAmount_
       );
     if (assetAmount_ == 0) revert RoundsToZero(); // Check for rounding error since we round down in conversion.
