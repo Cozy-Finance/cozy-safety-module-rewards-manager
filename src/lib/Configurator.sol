@@ -15,7 +15,10 @@ abstract contract Configurator is RewardsManagerCommon, Governable {
   /// may also include config for new reward pools.
   /// @param rewardsWeights_ The array of new rewards weights, sorted by associated reserve pool ID. The length of the
   /// weights must match `safetyModule.numReservePools()`.
-  function updateConfigs(RewardPoolConfig[] calldata rewardPoolConfigs_, uint16[] calldata rewardsWeights_) external {
+  function updateConfigs(RewardPoolConfig[] calldata rewardPoolConfigs_, uint16[] calldata rewardsWeights_)
+    external
+    onlyOwner
+  {
     // A config update may change the rewards weights, which breaks the invariants that we use to do claimable rewards
     // accounting. It may no longer hold that:
     //    claimableRewards[reservePool][rewardPool].cumulativeClaimedRewards <=
