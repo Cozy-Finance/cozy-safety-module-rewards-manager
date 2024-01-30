@@ -202,8 +202,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     internal
   {
     if (amount_ == 0) return;
-    // TODO: Fine to remove this from RewardsModule?
-    // assetPools[rewardAsset_].amount -= amount_;
+    assetPools[rewardAsset_].amount -= amount_;
     rewardAsset_.safeTransfer(receiver_, amount_);
     emit ClaimedRewards(reservePoolId_, rewardAsset_, amount_, msg.sender, receiver_);
   }
