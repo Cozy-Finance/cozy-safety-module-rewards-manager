@@ -4,11 +4,12 @@ pragma solidity 0.8.22;
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
+import {IManager} from "../interfaces/IManager.sol";
 import {ISafetyModule} from "../interfaces/ISafetyModule.sol";
 import {AssetPool, ReservePool, IdLookup, RewardPool} from "./structs/Pools.sol";
 import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";
 
-abstract contract RewardsModuleBaseStorage {
+abstract contract RewardsManagerBaseStorage {
   /// @notice Address of the Cozy SafetyModule.
   ISafetyModule public safetyModule;
 
@@ -32,4 +33,7 @@ abstract contract RewardsModuleBaseStorage {
 
   /// @dev Used when claiming rewards
   mapping(IReceiptToken stkToken_ => IdLookup reservePoolId_) public stkTokenToReservePoolIds;
+
+  /// @dev Has parameters for max rewards pools
+  IManager public immutable cozyManager;
 }

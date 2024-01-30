@@ -6,7 +6,7 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 /**
  * @notice Read-only rewards module calculations.
  */
-library RewardsModuleCalculationsLib {
+library RewardsManagerCalculationsLib {
   using FixedPointMathLib for uint256;
 
   uint256 internal constant POOL_AMOUNT_FLOOR = 1;

@@ -10,7 +10,7 @@ import {SafeERC20} from "cozy-safety-module-shared/lib/SafeERC20.sol";
 import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {ReservePool, AssetPool} from "./structs/Pools.sol";
-import {RewardsModuleCommon} from "./RewardsModuleCommon.sol";
+import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {
   UserRewardsData,
   PreviewClaimableRewardsData,
@@ -20,7 +20,7 @@ import {
 import {RewardPool, IdLookup} from "./structs/Pools.sol";
 import {IDripModel} from "../interfaces/IDripModel.sol";
 
-abstract contract RewardsDistributor is RewardsModuleCommon {
+abstract contract RewardsDistributor is RewardsManagerCommon {
   using FixedPointMathLib for uint256;
   using SafeERC20 for IERC20;
   using SafeCastLib for uint256;

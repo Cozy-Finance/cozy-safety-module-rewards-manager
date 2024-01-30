@@ -7,12 +7,12 @@ import {SafeERC20} from "cozy-safety-module-shared/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {ReservePool} from "./structs/Pools.sol";
 import {ClaimableRewardsData} from "./structs/Rewards.sol";
-import {RewardsModuleCommon} from "./RewardsModuleCommon.sol";
-import {RewardsModuleCalculationsLib} from "./RewardsModuleCalculationsLib.sol";
+import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
 
 // TODO: Functions for staking and staking without transfer safety module depositReceiptTokens. The existing functions
 // are for staking safety module reserve assets. Also for redeem.
-abstract contract Staker is RewardsModuleCommon {
+abstract contract Staker is RewardsManagerCommon {
   using FixedPointMathLib for uint256;
   using SafeERC20 for IERC20;
 
@@ -69,7 +69,7 @@ abstract contract Staker is RewardsModuleCommon {
   /// @notice Unstakes by burning `stkReceiptTokenAmount_` of `reservePoolId_` reserve pool stake tokens and sending
   /// `reserveAssetAmount_` of `reservePoolId_` reserve pool assets to `receiver_`. Also claims any outstanding rewards
   /// and sends them to `receiver_`.
-  /// @dev Assumes that user has approved the RewardsModule to spend its stake tokens.
+  /// @dev Assumes that user has approved the RewardsManager to spend its stake tokens.
   function unstake(uint16 reservePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_)
     external
     returns (uint64 redemptionId_, uint256 reserveAssetAmount_)
@@ -81,14 +81,14 @@ abstract contract Staker is RewardsModuleCommon {
 
     if (stkReceiptTokenAmount_ > stkToken_.balanceOf(owner_)) revert InsufficientBalance();
 
-    uint256 depositReceiptTokenAmount_ = RewardsModuleCalculationsLib.convertToAssetAmount(
+    uint256 depositReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToAssetAmount(
       stkReceiptTokenAmount_, stkToken_.totalSupply(), reservePool_.asset.totalSupply()
     );
 
     // Receipt tokens are burned on the first step of redemption.
     stkToken_.burn(msg.sender, owner_, stkReceiptTokenAmount_);
 
-    // SafetyModule.redeem requires that the caller (this RewardsModule) has approved the safety module to spend its
+    // SafetyModule.redeem requires that the caller (this RewardsManager) has approved the safety module to spend its
     // stkTokens.
     reservePool_.asset.safeIncreaseAllowance(address(safetyModule), depositReceiptTokenAmount_);
     (redemptionId_, reserveAssetAmount_) =
@@ -104,7 +104,7 @@ abstract contract Staker is RewardsModuleCommon {
   ) internal returns (uint256 stkReceiptTokenAmount_) {
     IReceiptToken stkToken_ = reservePool_.stkToken;
 
-    stkReceiptTokenAmount_ = RewardsModuleCalculationsLib.convertToReceiptTokenAmount(
+    stkReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToReceiptTokenAmount(
       // TODO: Can we remove pending unstakes amount?
       depositReceiptTokenAmount_,
       stkToken_.totalSupply(),

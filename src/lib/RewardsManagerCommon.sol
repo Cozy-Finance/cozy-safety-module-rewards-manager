@@ -2,13 +2,13 @@
 pragma solidity 0.8.22;
 
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {RewardsModuleBaseStorage} from "./RewardsModuleBaseStorage.sol";
+import {RewardsManagerBaseStorage} from "./RewardsManagerBaseStorage.sol";
 import {ICommonErrors} from "../interfaces/ICommonErrors.sol";
 import {IDripModel} from "../interfaces/IDripModel.sol";
 import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";
 import {ReservePool, RewardPool} from "./structs/Pools.sol";
 
-abstract contract RewardsModuleCommon is RewardsModuleBaseStorage, ICommonErrors {
+abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErrors {
   /// @notice Claim staking rewards for a given reserve pool.
   function claimRewards(uint16 reservePoolId_, address receiver_) public virtual;
 
