@@ -5,7 +5,6 @@ import {ReceiptToken} from "cozy-safety-module-shared/ReceiptToken.sol";
 import {ReceiptTokenFactory} from "cozy-safety-module-shared/ReceiptTokenFactory.sol";
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
-
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
@@ -110,29 +109,22 @@ contract RewardsManagerFactoryTest is TestBase {
     assertEq(reservePool_.rewardsWeight, rewardsWeights_[0]);
   }
 
-  function test_revertDeploySafetyModuleNotManager() public {
+  function test_revertDeployRewardsManagerNotCozyManager() public {
     address caller_ = _randomAddress();
-    address owner_ = _randomAddress();
-    address pauser_ = _randomAddress();
-    IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6)));
 
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
-    rewardPoolConfigs_[0] = RewardPoolConfig({asset: asset_, dripModel: IDripModel(address(_randomAddress()))});
-
+    rewardPoolConfigs_[0] = RewardPoolConfig({
+      asset: IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6))),
+      dripModel: IDripModel(address(_randomAddress()))
+    });
     uint16[] memory rewardsWeights_ = new uint16[](1);
-    rewardsWeights_[0] = uint16(MathConstants.ZOC);
-
-    MockSafetyModule safetyModule_ = new MockSafetyModule(SafetyModuleState.ACTIVE);
-    safetyModule_.setNumReservePools(1);
-    IReceiptToken safetyModuleReceiptToken_ = IReceiptToken(address(new ReceiptToken()));
-    safetyModule_.setReservePoolStkReceiptToken(0, safetyModuleReceiptToken_);
 
     bytes32 baseSalt_ = _randomBytes32();
 
     vm.expectRevert(RewardsManagerFactory.Unauthorized.selector);
     vm.prank(caller_);
     rewardsManagerFactory.deployRewardsManager(
-      owner_, pauser_, address(safetyModule_), rewardPoolConfigs_, rewardsWeights_, baseSalt_
+      _randomAddress(), _randomAddress(), _randomAddress(), rewardPoolConfigs_, rewardsWeights_, baseSalt_
     );
   }
 }
