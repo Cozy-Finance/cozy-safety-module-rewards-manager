@@ -30,7 +30,7 @@ struct RewardPool {
   uint128 lastDripTime;
   IERC20 asset;
   IDripModel dripModel;
-  IReceiptToken depositToken;
+  IReceiptToken depositReceiptToken;
 }
 
 struct IdLookup {
