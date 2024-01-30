@@ -4,14 +4,14 @@ pragma solidity 0.8.22;
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 /**
- * @notice Read-only rewards module calculations.
+ * @notice Read-only rewards manager calculations.
  */
 library RewardsManagerCalculationsLib {
   using FixedPointMathLib for uint256;
 
   uint256 internal constant POOL_AMOUNT_FLOOR = 1;
 
-  /// @notice The `tokenAmount_` that the rewards module would exchange for `assetAmount_` of receipt token provided.
+  /// @notice The `tokenAmount_` that the rewards manager would exchange for `assetAmount_` of receipt token provided.
   /// @dev See the ERC-4626 spec for more info.
   function convertToReceiptTokenAmount(uint256 assetAmount_, uint256 receiptTokenSupply_, uint256 poolAmount_)
     internal
@@ -22,7 +22,7 @@ library RewardsManagerCalculationsLib {
       receiptTokenSupply_ == 0 ? assetAmount_ : assetAmount_.mulDivDown(receiptTokenSupply_, poolAmount_);
   }
 
-  /// @notice The `assetAmount_` that the rewards module would exchange for `receiptTokenAmount_` of the receipt
+  /// @notice The `assetAmount_` that the rewards manager would exchange for `receiptTokenAmount_` of the receipt
   /// token.
   /// @dev See the ERC-4626 spec for more info.
   function convertToAssetAmount(uint256 receiptTokenAmount_, uint256 receiptTokenSupply_, uint256 poolAmount_)
