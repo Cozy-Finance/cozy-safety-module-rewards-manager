@@ -3,17 +3,21 @@ pragma solidity ^0.8.22;
 
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
 import {ISafetyModule} from "./interfaces/ISafetyModule.sol";
+import {IManager} from "./interfaces/IManager.sol";
 import {Configurator} from "./lib/Configurator.sol";
-import {RewardsModuleCommon} from "./lib/RewardsModuleCommon.sol";
+import {RewardsManagerCommon} from "./lib/RewardsManagerCommon.sol";
 import {Depositor} from "./lib/Depositor.sol";
 import {RewardsDistributor} from "./lib/RewardsDistributor.sol";
 import {Staker} from "./lib/Staker.sol";
 
-contract RewardsManager is RewardsModuleCommon, Configurator, Depositor, RewardsDistributor, Staker {
+contract RewardsManager is RewardsManagerCommon, Configurator, Depositor, RewardsDistributor, Staker {
   /// @dev Thrown if the contract is already initialized.
   error Initialized();
 
-  constructor(IReceiptTokenFactory receiptTokenFactory_) {
+  constructor(IManager manager_, IReceiptTokenFactory receiptTokenFactory_) {
+    _assertAddressNotZero(address(manager_));
+    _assertAddressNotZero(address(receiptTokenFactory_));
+    cozyManager = manager_;
     receiptTokenFactory = receiptTokenFactory_;
   }
 

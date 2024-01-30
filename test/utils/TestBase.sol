@@ -4,7 +4,7 @@ pragma solidity 0.8.22;
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IDripModel} from "../../src/interfaces/IDripModel.sol";
-import {IRewardsModule} from "../../src/interfaces/IRewardsModule.sol";
+import {IRewardsManager} from "../../src/interfaces/IRewardsManager.sol";
 import {ISafetyModule} from "../../src/interfaces/ISafetyModule.sol";
 import {RewardPool, ReservePool} from "../../src/lib/structs/Pools.sol";
 import {Test} from "forge-std/Test.sol";
@@ -88,13 +88,13 @@ contract TestBase is Test, TestAssertions {
     vm.expectRevert(abi.encodeWithSelector(PANIC_SELECTOR, code_));
   }
 
-  function getReservePool(IRewardsModule rewardsModule_, uint256 reservePoolId_)
+  function getReservePool(IRewardsManager rewardsManager_, uint256 reservePoolId_)
     internal
     view
     returns (ReservePool memory)
   {
     (uint256 amount, IReceiptToken safetyModuleReceiptToken, IReceiptToken stkReceiptToken, uint16 rewardsWeight) =
-      rewardsModule_.reservePools(reservePoolId_);
+      rewardsManager_.reservePools(reservePoolId_);
     return ReservePool({
       amount: amount,
       safetyModuleReceiptToken: safetyModuleReceiptToken,
@@ -103,7 +103,7 @@ contract TestBase is Test, TestAssertions {
     });
   }
 
-  function getRewardPool(IRewardsModule rewardsModule_, uint256 rewardPoolid_)
+  function getRewardPool(IRewardsManager rewardsManager_, uint256 rewardPoolid_)
     internal
     view
     returns (RewardPool memory)
@@ -115,7 +115,7 @@ contract TestBase is Test, TestAssertions {
       IERC20 asset,
       IDripModel dripModel,
       IReceiptToken depositToken
-    ) = rewardsModule_.rewardPools(rewardPoolid_);
+    ) = rewardsManager_.rewardPools(rewardPoolid_);
     return RewardPool({
       undrippedRewards: undrippedRewards,
       asset: asset,

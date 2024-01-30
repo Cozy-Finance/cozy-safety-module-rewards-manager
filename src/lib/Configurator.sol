@@ -2,7 +2,9 @@
 pragma solidity 0.8.22;
 
 import {Governable} from "cozy-safety-module-shared/lib/Governable.sol";
-import {RewardsModuleCommon} from "./RewardsModuleCommon.sol";
+import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
+import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {ReservePool, RewardPool} from "./structs/Pools.sol";
+import {ICommonErrors} from "../interfaces/ICommonErrors.sol";
 
-// TODO
-abstract contract Configurator is RewardsModuleCommon, Governable {}
+abstract contract Configurator is RewardsManagerCommon, Governable {}

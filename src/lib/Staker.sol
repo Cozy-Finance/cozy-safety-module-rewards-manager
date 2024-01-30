@@ -8,10 +8,10 @@ import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleState
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {AssetPool, ReservePool} from "./structs/Pools.sol";
 import {ClaimableRewardsData} from "./structs/Rewards.sol";
-import {RewardsModuleCommon} from "./RewardsModuleCommon.sol";
-import {RewardsModuleCalculationsLib} from "./RewardsModuleCalculationsLib.sol";
+import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
 
-abstract contract Staker is RewardsModuleCommon {
+abstract contract Staker is RewardsManagerCommon {
   using FixedPointMathLib for uint256;
   using SafeERC20 for IReceiptToken;
 
@@ -116,7 +116,7 @@ abstract contract Staker is RewardsModuleCommon {
     view
     returns (uint256 safetyModuleReceiptTokenAmount_)
   {
-    safetyModuleReceiptTokenAmount_ = RewardsModuleCalculationsLib.convertToAssetAmount(
+    safetyModuleReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToAssetAmount(
       stkReceiptTokenAmount_, stkReceiptToken_.totalSupply(), totalStakeAmount_
     );
     if (safetyModuleReceiptTokenAmount_ == 0) revert RoundsToZero();
@@ -134,7 +134,7 @@ abstract contract Staker is RewardsModuleCommon {
 
     IReceiptToken stkToken_ = reservePool_.stkReceiptToken;
 
-    stkReceiptTokenAmount_ = RewardsModuleCalculationsLib.convertToReceiptTokenAmount(
+    stkReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToReceiptTokenAmount(
       safetyModuleReceiptTokenAmount_, stkToken_.totalSupply(), reservePool_.amount
     );
     if (stkReceiptTokenAmount_ == 0) revert RoundsToZero();

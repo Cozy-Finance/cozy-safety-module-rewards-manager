@@ -89,11 +89,11 @@ contract StakerUnitTest is TestBase {
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
 
-    // Mint initial safety module receipt token balance for rewards module.
+    // Mint initial safety module receipt token balance for rewards manager.
     mockSafetyModuleReceiptToken.mint(address(component), 150e18);
     // Mint initial safety module receipt token balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
-    // Approve rewards module to spend safety module receipt token.
+    // Approve rewards manager to spend safety module receipt token.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.approve(address(component), amountToStake_);
 
@@ -132,14 +132,14 @@ contract StakerUnitTest is TestBase {
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
 
-    // Mint initial safety module receipt token balance for rewards module.
+    // Mint initial safety module receipt token balance for rewards manager.
     mockSafetyModuleReceiptToken.mint(address(component), 150e18);
     // Mint initial safety module receipt token balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
     // Mint/burn some stkTokens.
     uint256 initialStkTokenSupply_ = 50e18;
     mockStkToken.mint(address(0), initialStkTokenSupply_);
-    // Approve rewards module to spend safety module receipt token.
+    // Approve rewards manager to spend safety module receipt token.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.approve(address(component), amountToStake_);
 
@@ -184,14 +184,14 @@ contract StakerUnitTest is TestBase {
 
     amountToStake_ = bound(amountToStake_, 1, type(uint216).max);
 
-    // Mint initial safety module receipt token balance for rewards module.
+    // Mint initial safety module receipt token balance for rewards manager.
     mockSafetyModuleReceiptToken.mint(address(component), 150e18);
     // Mint initial balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
     // Mint/burn some stkTokens.
     uint256 initialStkTokenSupply_ = 50e18;
     mockStkToken.mint(address(0), initialStkTokenSupply_);
-    // Approve rewards module to spend safety module receipt token.
+    // Approve rewards manager to spend safety module receipt token.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.approve(address(component), amountToStake_);
 
@@ -221,7 +221,7 @@ contract StakerUnitTest is TestBase {
 
     // Mint insufficient safety module receipt tokens for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_ - 1);
-    // Approve rewards module to spend safety module receipt tokens.
+    // Approve rewards manager to spend safety module receipt tokens.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.approve(address(component), amountToStake_);
 
@@ -237,11 +237,11 @@ contract StakerUnitTest is TestBase {
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
 
-    // Mint initial safety module receipt token balance for rewards module.
+    // Mint initial safety module receipt token balance for rewards manager.
     mockSafetyModuleReceiptToken.mint(address(component), 150e18);
     // Mint initial balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
-    // Transfer to rewards module.
+    // Transfer to rewards manager.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.transfer(address(component), amountToStake_);
 
@@ -274,14 +274,14 @@ contract StakerUnitTest is TestBase {
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
 
-    // Mint initial safety module receipt token balance for rewards module.
+    // Mint initial safety module receipt token balance for rewards manager.
     mockSafetyModuleReceiptToken.mint(address(component), 150e18);
     // Mint initial balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
     // Mint/burn some stkTokens.
     uint256 initialStkTokenSupply_ = 50e18;
     mockStkToken.mint(address(0), initialStkTokenSupply_);
-    // Transfer to rewards module.
+    // Transfer to rewards manager.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.transfer(address(component), amountToStake_);
 
@@ -315,14 +315,14 @@ contract StakerUnitTest is TestBase {
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
 
-    // Mint initial safety module receipt token balance for rewards module.
+    // Mint initial safety module receipt token balance for rewards manager.
     mockSafetyModuleReceiptToken.mint(address(component), 150e18);
     // Mint initial balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
     // Mint/burn some stkTokens.
     uint256 initialStkTokenSupply_ = 50e18;
     mockStkToken.mint(address(0), initialStkTokenSupply_);
-    // Transfer to rewards module.
+    // Transfer to rewards manager.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.transfer(address(component), amountToStake_);
 
@@ -347,7 +347,7 @@ contract StakerUnitTest is TestBase {
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
 
-    // Set initial safety module receipt token balance for rewards module.
+    // Set initial safety module receipt token balance for rewards manager.
     deal(address(mockSafetyModuleReceiptToken), address(component), 150e18);
     // Mint safety module receipt tokens for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
@@ -392,7 +392,7 @@ contract StakerUnitTest is TestBase {
 
     // Mint initial safety module receipt token balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountStaked_);
-    // Approve rewards module to spend safety module receipt token.
+    // Approve rewards manager to spend safety module receipt token.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.approve(address(component), amountStaked_);
 
@@ -624,7 +624,7 @@ contract StakerUnitTest is TestBase {
 
     // Mint initial safety module receipt token balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountStaked_);
-    // Approve rewards module to spend safety module receipt token.
+    // Approve rewards manager to spend safety module receipt token.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.approve(address(component), amountStaked_);
 
@@ -650,7 +650,7 @@ contract StakerUnitTest is TestBase {
 
     // Mint initial safety module receipt token balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountStaked_);
-    // Approve rewards module to spend safety module receipt token.
+    // Approve rewards manager to spend safety module receipt token.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.approve(address(component), amountStaked_);
 

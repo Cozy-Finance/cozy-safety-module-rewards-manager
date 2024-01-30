@@ -9,7 +9,10 @@ import {AssetPool} from "../lib/structs/Pools.sol";
 import {ClaimableRewardsData, PreviewClaimableRewards} from "../lib/structs/Rewards.sol";
 import {IDripModel} from "./IDripModel.sol";
 
-interface IRewardsModule {
+interface IRewardsManager {
+  /// @notice Replaces the constructor for minimal proxies.
+  function initialize(address owner_, address pauser_, address safetyModule_) external;
+
   function assetPools(IERC20 asset_) external view returns (AssetPool memory assetPool_);
 
   /// @notice Retrieve accounting and metadata about reserve pools.
