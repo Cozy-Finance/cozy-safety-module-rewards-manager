@@ -47,7 +47,9 @@ abstract contract TestAssertions is Test {
   function assertEq(RewardPool memory actual_, RewardPool memory expected_) internal {
     assertEq(address(actual_.asset), address(expected_.asset), "RewardPool.asset");
     assertEq(address(actual_.dripModel), address(expected_.dripModel), "RewardPool.dripModel");
-    assertEq(address(actual_.depositToken), address(expected_.depositToken), "RewardPool.depositToken");
+    assertEq(
+      address(actual_.depositReceiptToken), address(expected_.depositReceiptToken), "RewardPool.depositReceiptToken"
+    );
     assertEq(actual_.undrippedRewards, expected_.undrippedRewards, "RewardPool.undrippedRewards");
     assertEq(
       actual_.cumulativeDrippedRewards, expected_.cumulativeDrippedRewards, "RewardPool.cumulativeDrippedRewards"
