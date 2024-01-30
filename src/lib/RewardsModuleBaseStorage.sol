@@ -32,4 +32,7 @@ abstract contract RewardsModuleBaseStorage {
 
   /// @dev Used when claiming rewards
   mapping(IReceiptToken stkToken_ => IdLookup reservePoolId_) public stkTokenToReservePoolIds;
+
+  /// @dev Has parameters for max rewards pools
+  IManager public immutable cozyManager;
 }

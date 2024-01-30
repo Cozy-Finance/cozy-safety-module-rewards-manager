@@ -13,7 +13,10 @@ contract RewardsManager is RewardsModuleCommon, Configurator, Depositor, Rewards
   /// @dev Thrown if the contract is already initialized.
   error Initialized();
 
-  constructor(IReceiptTokenFactory receiptTokenFactory_) {
+  constructor(IManager manager_, IReceiptTokenFactory receiptTokenFactory_) {
+    _assertAddressNotZero(address(manager_));
+    _assertAddressNotZero(address(receiptTokenFactory_));
+    cozyManager = manager_;
     receiptTokenFactory = receiptTokenFactory_;
   }
 
