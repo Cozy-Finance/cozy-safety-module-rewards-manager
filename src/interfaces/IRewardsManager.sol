@@ -7,11 +7,18 @@ import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceip
 import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
 import {AssetPool} from "../lib/structs/Pools.sol";
 import {ClaimableRewardsData, PreviewClaimableRewards} from "../lib/structs/Rewards.sol";
+import {RewardPoolConfig} from "../lib/structs/Rewards.sol";
 import {IDripModel} from "./IDripModel.sol";
 
 interface IRewardsManager {
   /// @notice Replaces the constructor for minimal proxies.
-  function initialize(address owner_, address pauser_, address safetyModule_) external;
+  function initialize(
+    address owner_,
+    address pauser_,
+    address safetyModuleAddress_,
+    RewardPoolConfig[] calldata rewardPoolConfigs_,
+    uint16[] calldata rewardsWeights_
+  ) external;
 
   function assetPools(IERC20 asset_) external view returns (AssetPool memory assetPool_);
 
