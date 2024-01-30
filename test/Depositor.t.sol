@@ -18,7 +18,7 @@ import {MockSafetyModule} from "./utils/MockSafetyModule.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 
-abstract contract DepositorUnitTest is TestBase {
+contract DepositorUnitTest is TestBase {
   MockERC20 mockAsset = new MockERC20("Mock Asset", "MOCK", 6);
   MockERC20 mockSafetyModuleReceiptToken = new MockERC20("Mock SM Asset", "MOCK SM", 6);
   MockERC20 mockRewardPoolDepositToken = new MockERC20("Mock Cozy Deposit Token", "cozyDep", 6);
@@ -48,9 +48,6 @@ abstract contract DepositorUnitTest is TestBase {
 
   uint256 initialSafetyModuleBal = 50e18;
   uint256 initialUndrippedRewards = 50e18;
-
-  // Test contract specific variables.
-  MockERC20 mockDepositToken;
 
   function setUp() public {
     RewardPool memory initialRewardPool_ = RewardPool({
@@ -96,7 +93,11 @@ abstract contract DepositorUnitTest is TestBase {
     uint256 expectedDepositTokenAmount_ = 10e18;
     _expectEmit();
     emit Deposited(
-      depositor_, receiver_, IReceiptToken(address(mockDepositToken)), amountToDeposit_, expectedDepositTokenAmount_
+      depositor_,
+      receiver_,
+      IReceiptToken(address(mockRewardPoolDepositToken)),
+      amountToDeposit_,
+      expectedDepositTokenAmount_
     );
 
     vm.prank(depositor_);
@@ -113,7 +114,7 @@ abstract contract DepositorUnitTest is TestBase {
     assertEq(mockAsset.balanceOf(address(component)), 60e18);
 
     assertEq(mockAsset.balanceOf(depositor_), 0);
-    assertEq(mockDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
+    assertEq(mockRewardPoolDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
   }
 
   function test_depositReserve_DepositTokensAndStorageUpdatesNonZeroSupply() external {
@@ -125,7 +126,7 @@ abstract contract DepositorUnitTest is TestBase {
     mockAsset.mint(depositor_, amountToDeposit_);
     // Mint/burn some depositTokens.
     uint256 initialDepositTokenSupply_ = 50e18;
-    mockDepositToken.mint(address(0), initialDepositTokenSupply_);
+    mockRewardPoolDepositToken.mint(address(0), initialDepositTokenSupply_);
     // Approve rewards manager to spend asset.
     vm.prank(depositor_);
     mockAsset.approve(address(component), amountToDeposit_);
@@ -134,7 +135,11 @@ abstract contract DepositorUnitTest is TestBase {
     uint256 expectedDepositTokenAmount_ = 20e18;
     _expectEmit();
     emit Deposited(
-      depositor_, receiver_, IReceiptToken(address(mockDepositToken)), amountToDeposit_, expectedDepositTokenAmount_
+      depositor_,
+      receiver_,
+      IReceiptToken(address(mockRewardPoolDepositToken)),
+      amountToDeposit_,
+      expectedDepositTokenAmount_
     );
 
     vm.prank(depositor_);
@@ -150,7 +155,7 @@ abstract contract DepositorUnitTest is TestBase {
     assertEq(finalAssetPool_.amount, 70e18);
     assertEq(mockAsset.balanceOf(address(component)), 70e18);
     assertEq(mockAsset.balanceOf(depositor_), 0);
-    assertEq(mockDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
+    assertEq(mockRewardPoolDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
   }
 
   function testFuzz_depositReserve_RevertSafetyModulePaused(uint256 amountToDeposit_) external {
@@ -167,7 +172,7 @@ abstract contract DepositorUnitTest is TestBase {
     mockAsset.mint(depositor_, amountToDeposit_);
     // Mint/burn some depositTokens.
     uint256 initialDepositTokenSupply_ = 50e18;
-    mockDepositToken.mint(address(0), initialDepositTokenSupply_);
+    mockRewardPoolDepositToken.mint(address(0), initialDepositTokenSupply_);
     // Approve rewards manager to spend asset.
     vm.prank(depositor_);
     mockAsset.approve(address(component), amountToDeposit_);
@@ -218,7 +223,11 @@ abstract contract DepositorUnitTest is TestBase {
     uint256 expectedDepositTokenAmount_ = 10e18;
     _expectEmit();
     emit Deposited(
-      depositor_, receiver_, IReceiptToken(address(mockDepositToken)), amountToDeposit_, expectedDepositTokenAmount_
+      depositor_,
+      receiver_,
+      IReceiptToken(address(mockRewardPoolDepositToken)),
+      amountToDeposit_,
+      expectedDepositTokenAmount_
     );
 
     vm.prank(depositor_);
@@ -235,7 +244,7 @@ abstract contract DepositorUnitTest is TestBase {
     assertEq(mockAsset.balanceOf(address(component)), 60e18);
 
     assertEq(mockAsset.balanceOf(depositor_), 0);
-    assertEq(mockDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
+    assertEq(mockRewardPoolDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
   }
 
   function test_depositReserveAssetsWithoutTransfer_DepositTokensAndStorageUpdatesNonZeroSupply() external {
@@ -247,7 +256,7 @@ abstract contract DepositorUnitTest is TestBase {
     mockAsset.mint(depositor_, amountToDeposit_);
     // Mint/burn some depositTokens.
     uint256 initialDepositTokenSupply_ = 50e18;
-    mockDepositToken.mint(address(0), initialDepositTokenSupply_);
+    mockRewardPoolDepositToken.mint(address(0), initialDepositTokenSupply_);
     // Transfer to rewards manager.
     vm.prank(depositor_);
     mockAsset.transfer(address(component), amountToDeposit_);
@@ -256,7 +265,11 @@ abstract contract DepositorUnitTest is TestBase {
     uint256 expectedDepositTokenAmount_ = 20e18;
     _expectEmit();
     emit Deposited(
-      depositor_, receiver_, IReceiptToken(address(mockDepositToken)), amountToDeposit_, expectedDepositTokenAmount_
+      depositor_,
+      receiver_,
+      IReceiptToken(address(mockRewardPoolDepositToken)),
+      amountToDeposit_,
+      expectedDepositTokenAmount_
     );
 
     vm.prank(depositor_);
@@ -273,7 +286,7 @@ abstract contract DepositorUnitTest is TestBase {
     assertEq(mockAsset.balanceOf(address(component)), 70e18);
 
     assertEq(mockAsset.balanceOf(depositor_), 0);
-    assertEq(mockDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
+    assertEq(mockRewardPoolDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
   }
 
   function testFuzz_depositReserveAssetsWithoutTransfer_RevertSafetyModulePaused(uint256 amountToDeposit_) external {
@@ -288,7 +301,7 @@ abstract contract DepositorUnitTest is TestBase {
     mockAsset.mint(depositor_, amountToDeposit_);
     // Mint/burn some depositTokens.
     uint256 initialDepositTokenSupply_ = 50e18;
-    mockDepositToken.mint(address(0), initialDepositTokenSupply_);
+    mockRewardPoolDepositToken.mint(address(0), initialDepositTokenSupply_);
     // Transfer to rewards manager.
     vm.prank(depositor_);
     mockAsset.transfer(address(component), amountToDeposit_);
@@ -742,12 +755,6 @@ abstract contract DepositorUnitTest is TestBase {
     // 0 * (3 / 3) rounds to zero.
     vm.expectRevert(ICommonErrors.RoundsToZero.selector);
     component.previewUndrippedRewardsRedemption(0, depositTokenAmount_);
-  }
-}
-
-contract RewardPoolDepositorUnitTest is DepositorUnitTest {
-  constructor() {
-    mockDepositToken = mockRewardPoolDepositToken;
   }
 }
 
