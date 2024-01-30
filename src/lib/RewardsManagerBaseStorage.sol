@@ -32,7 +32,7 @@ abstract contract RewardsManagerBaseStorage {
   mapping(uint16 => mapping(address => UserRewardsData[])) public userRewards;
 
   /// @dev Used when claiming rewards
-  mapping(IReceiptToken stkToken_ => IdLookup reservePoolId_) public stkTokenToReservePoolIds;
+  mapping(IReceiptToken stkReceiptToken_ => IdLookup reservePoolId_) public stkReceiptTokenToReservePoolIds;
 
   /// @dev Has parameters for max rewards pools
   IManager public immutable cozyManager;

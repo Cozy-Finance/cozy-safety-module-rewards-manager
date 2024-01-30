@@ -1,92 +1,41 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.22;
 
+import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
+import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
+import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
+import {SafeCastLib} from "cozy-safety-module-shared/lib/SafeCastLib.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {IReceiptToken} from "../interfaces/IReceiptToken.sol";
-import {IReceiptTokenFactory} from "../interfaces/IReceiptTokenFactory.sol";
 import {ICommonErrors} from "../interfaces/ICommonErrors.sol";
-import {IConfiguratorErrors} from "../interfaces/IConfiguratorErrors.sol";
-import {ITrigger} from "../interfaces/ITrigger.sol";
+import {ISafetyModule} from "../interfaces/ISafetyModule.sol";
 import {IManager} from "../interfaces/IManager.sol";
 import {ReservePool, RewardPool, IdLookup} from "./structs/Pools.sol";
-import {SafetyModuleState, TriggerState} from "./SafetyModuleStates.sol";
-import {MathConstants} from "./MathConstants.sol";
-import {SafeCastLib} from "./SafeCastLib.sol";
+import {RewardPoolConfig} from "./structs/Rewards.sol";
 
 library ConfiguratorLib {
   using FixedPointMathLib for uint256;
   using SafeCastLib for uint256;
 
-  /// @dev Emitted when a safety module's queued configuration updates are applied.
-  event ConfigUpdatesFinalized(
-    ReservePoolConfig[] reservePoolConfigs,
-    RewardPoolConfig[] rewardPoolConfigs
+  /// @notice Emitted when a reserve pool is created.
+  event ReservePoolCreated(
+    uint16 indexed reservePoolId, address stkReceiptTokenAddress, address safetyModuleReceiptTokenAddress
   );
 
   /// @notice Emitted when an reward pool is created.
   event RewardPoolCreated(uint16 indexed rewardPoolid, address rewardAssetAddress, address depositTokenAddress);
 
-  /// @notice Execute queued updates to safety module configs.
-  /// @param lastConfigUpdate_ Metadata about the most recently queued configuration update.
-  /// @param safetyModuleState_ The state of the safety module.
-  /// @param reservePools_ The array of existing reserve pools.
-  /// @param rewardPools_ The array of existing reward pools.
-  /// @param delays_ The existing delays config.
-  /// @param stkTokenToReservePoolIds_ The mapping of stktokens to reserve pool IDs.
-  /// @param configUpdates_ The new configs. Includes:
-  /// - reservePoolConfigs: The array of new reserve pool configs, sorted by associated ID. The array may also
-  /// include config for new reserve pools.
-  /// - rewardPoolConfigs: The array of new reward pool configs, sorted by associated ID. The
-  /// array may also include config for new reward pools.
-  /// - triggerConfigUpdates: The array of trigger config updates. It only needs to include config for updates to
-  /// existing triggers or new triggers.
-  /// - delaysConfig: The new delays config.
-  function finalizeUpdateConfigs(
-    ConfigUpdateMetadata storage lastConfigUpdate_,
-    SafetyModuleState safetyModuleState_,
-    ReservePool[] storage reservePools_,
-    RewardPool[] storage rewardPools_,
-    mapping(ITrigger => Trigger) storage triggerData_,
-    Delays storage delays_,
-    mapping(IReceiptToken => IdLookup) storage stkTokenToReservePoolIds_,
-    IReceiptTokenFactory receiptTokenFactory_,
-    UpdateConfigsCalldataParams calldata configUpdates_
-  ) external {
-    if (safetyModuleState_ == SafetyModuleState.TRIGGERED) revert ICommonErrors.InvalidState();
-    if (block.timestamp < lastConfigUpdate_.configUpdateTime) revert ICommonErrors.InvalidStateTransition();
-    if (block.timestamp > lastConfigUpdate_.configUpdateDeadline) revert ICommonErrors.InvalidStateTransition();
-    if (
-      keccak256(
-        abi.encode(
-          configUpdates_.reservePoolConfigs,
-          configUpdates_.rewardPoolConfigs,
-          configUpdates_.triggerConfigUpdates,
-          configUpdates_.delaysConfig
-        )
-      ) != lastConfigUpdate_.queuedConfigUpdateHash
-    ) revert IConfiguratorErrors.InvalidConfiguration();
-
-    // Reset the config update hash.
-    lastConfigUpdate_.queuedConfigUpdateHash = 0;
-    applyConfigUpdates(
-      reservePools_,
-      rewardPools_,
-      triggerData_,
-      delays_,
-      stkTokenToReservePoolIds_,
-      receiptTokenFactory_,
-      configUpdates_
-    );
-  }
-
   /// @notice Returns true if the provided configs are valid for the rewards manager, false otherwise.
   function isValidUpdate(
-    RewardsPoolConfig[] calldata rewardPoolConfigs_,
+    RewardPool[] storage rewardPools_,
+    RewardPoolConfig[] calldata rewardPoolConfigs_,
     uint16[] calldata rewardsWeights_,
+    ISafetyModule safetyModule_,
     IManager manager_
   ) internal view returns (bool) {
     // Validate the configuration parameters.
-    if (!isValidConfiguration(rewardPoolConfigs_, rewardsWeights_, manager_.allowedRewardPools())) return false;
+    if (!isValidConfiguration(rewardPoolConfigs_, rewardsWeights_, safetyModule_, manager_.allowedRewardPools())) {
+      return false;
+    }
 
     // Validate number of rewards pools. It is only possible to add new pools, not remove existing ones.
     uint256 numExistingRewardPools_ = rewardPools_.length;
@@ -94,21 +43,25 @@ library ConfiguratorLib {
 
     // Validate existing reward pools.
     for (uint16 i = 0; i < numExistingRewardPools_; i++) {
-      if (rewardPools_[i].asset != configUpdates_.rewardPoolConfigs[i].asset) return false;
+      if (rewardPools_[i].asset != rewardPoolConfigs_[i].asset) return false;
     }
 
     return true;
   }
 
   /// @notice Returns true if the provided configs are generically valid, false otherwise.
-  /// @dev Does not include rewards manager-specific checks, e.g. checks based on existing reserve and reward pools.
+  /// @dev Does not include rewards manager-specific checks, e.g. checks based on its existing reserve and reward pools.
   function isValidConfiguration(
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     uint16[] calldata rewardsWeights_,
+    ISafetyModule safetyModule_,
     uint256 maxRewardPools_
-  ) internal pure returns (bool) {
+  ) internal view returns (bool) {
     // Validate number of reward pools.
     if (rewardPoolConfigs_.length > maxRewardPools_) return false;
+
+    // Validate rewards weights length.
+    if (rewardsWeights_.length != safetyModule_.numReservePools()) return false;
 
     // Validate rewards weights.
     uint16 rewardsWeightSum_ = 0;
@@ -124,9 +77,11 @@ library ConfiguratorLib {
   function applyConfigUpdates(
     ReservePool[] storage reservePools_,
     RewardPool[] storage rewardPools_,
-    mapping(IReceiptToken => IdLookup) storage stkTokenToReservePoolIds_,
+    mapping(IReceiptToken => IdLookup) storage stkReceiptTokenToReservePoolIds_,
     IReceiptTokenFactory receiptTokenFactory_,
-    UpdateConfigsCalldataParams calldata configUpdates_
+    RewardPoolConfig[] calldata rewardPoolConfigs_,
+    uint16[] calldata rewardsWeights_,
+    ISafetyModule safetyModule_
   ) public {
     // Update existing reserve pool weights.
     uint256 numExistingReservePools_ = reservePools_.length;
@@ -136,32 +91,56 @@ library ConfiguratorLib {
     }
 
     // Initialize new reserve pools.
-    for (uint256 i = numExistingReservePools_; i < configUpdates_.reservePoolConfigs.length; i++) {
+    for (uint256 i = numExistingReservePools_; i < rewardsWeights_.length; i++) {
+      (,,,,,,,, IReceiptToken safetyModuleReceiptToken_,,) = safetyModule_.reservePools(i);
       initializeReservePool(
-        reservePools_, stkTokenToReservePoolIds_, receiptTokenFactory_, configUpdates_.reservePoolConfigs[i]
+        reservePools_,
+        stkReceiptTokenToReservePoolIds_,
+        receiptTokenFactory_,
+        safetyModuleReceiptToken_,
+        rewardsWeights_[i]
       );
     }
 
     // Update existing reward pool drip models. No need to update the reward pool asset since it cannot change.
     uint256 numExistingRewardPools_ = rewardPools_.length;
     for (uint256 i = 0; i < numExistingRewardPools_; i++) {
-      rewardPools_[i].dripModel = configUpdates_.rewardPoolConfigs[i].dripModel;
+      rewardPools_[i].dripModel = rewardPoolConfigs_[i].dripModel;
     }
 
     // Initialize new reward pools.
     for (uint256 i = numExistingRewardPools_; i < rewardPoolConfigs_.length; i++) {
       initializeRewardPool(rewardPools_, receiptTokenFactory_, rewardPoolConfigs_[i]);
     }
-
-    emit ConfigUpdatesFinalized(
-      configUpdates_.reservePoolConfigs,
-      configUpdates_.rewardPoolConfigs,
-      configUpdates_.triggerConfigUpdates,
-      configUpdates_.delaysConfig
-    );
   }
 
-  /// @dev Initializes a new reward pool when it is added to the safety module.
+  /// @dev Initializes a new reserve pool when it is added to the rewards manager.
+  function initializeReservePool(
+    ReservePool[] storage reservePools_,
+    mapping(IReceiptToken stkReceiptToken_ => IdLookup reservePoolId_) storage stkReceiptTokenToReservePoolIds_,
+    IReceiptTokenFactory receiptTokenFactory_,
+    IReceiptToken safetyModuleReceiptToken_,
+    uint16 rewardsWeight_
+  ) internal {
+    uint16 reservePoolId_ = uint16(reservePools_.length);
+
+    IReceiptToken stkReceiptToken_ = receiptTokenFactory_.deployReceiptToken(
+      reservePoolId_, IReceiptTokenFactory.PoolType.STAKE, safetyModuleReceiptToken_.decimals()
+    );
+    reservePools_.push(
+      ReservePool({
+        amount: 0,
+        safetyModuleReceiptToken: safetyModuleReceiptToken_,
+        stkReceiptToken: stkReceiptToken_,
+        rewardsWeight: rewardsWeight_
+      })
+    );
+    stkReceiptTokenToReservePoolIds_[stkReceiptToken_] = IdLookup({index: reservePoolId_, exists: true});
+
+    emit ReservePoolCreated(reservePoolId_, address(stkReceiptToken_), address(safetyModuleReceiptToken_));
+  }
+
+  /// @dev Initializes a new reward pool when it is added to the rewards manager.
   function initializeRewardPool(
     RewardPool[] storage rewardPools_,
     IReceiptTokenFactory receiptTokenFactory_,
