@@ -526,9 +526,17 @@ abstract contract DepositorUnitTest is TestBase {
     vm.prank(owner_);
     mockRewardPoolDepositToken.approve(address(component), depositTokenAmount_);
 
+    // 1 * (2 / 3) rounds to zero
     vm.expectRevert(ICommonErrors.RoundsToZero.selector);
     vm.prank(owner_);
     component.redeemUndrippedRewards(0, 2, receiver_, owner_);
+
+    // Set undripped rewards to zero, as if all rewards have dripped.
+    component.mockSetRewardsPoolUndrippedRewards(0, 0);
+    // 0 * (3 / 3) rounds to zero.
+    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
+    vm.prank(owner_);
+    component.redeemUndrippedRewards(0, depositTokenAmount_, receiver_, owner_);
   }
 
   function test_redeemUndrippedRewards_canRedeemAllThroughAllowance() external {
@@ -725,8 +733,15 @@ abstract contract DepositorUnitTest is TestBase {
     assertEq(mockRewardPoolDepositToken.totalSupply(), depositTokenAmount_);
     assertEq(component.getRewardPool(0).undrippedRewards, rewardAssetAmount_);
 
+    // 1 * (2 / 3) rounds to zero.
     vm.expectRevert(ICommonErrors.RoundsToZero.selector);
     component.previewUndrippedRewardsRedemption(0, 2);
+
+    // Set undripped rewards to zero, as if all rewards have dripped.
+    component.mockSetRewardsPoolUndrippedRewards(0, 0);
+    // 0 * (3 / 3) rounds to zero.
+    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
+    component.previewUndrippedRewardsRedemption(0, depositTokenAmount_);
   }
 }
 

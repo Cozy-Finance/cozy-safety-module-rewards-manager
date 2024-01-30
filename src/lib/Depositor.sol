@@ -125,7 +125,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     assetAmount_ = nextTotalPoolAmount_ == 0
       ? 0
       : RewardsManagerCalculationsLib.convertToAssetAmount(
-        receiptTokenAmount_, receiptToken_.totalSupply(), _amountWithFloor(nextTotalPoolAmount_)
+        receiptTokenAmount_, receiptToken_.totalSupply(), nextTotalPoolAmount_
       );
     if (assetAmount_ == 0) revert RoundsToZero(); // Check for rounding error since we round down in conversion.
   }
