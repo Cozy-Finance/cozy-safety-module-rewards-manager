@@ -150,7 +150,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// more historical rewards than they are entitled to as their new balance is larger after the transfer.
   function updateUserRewardsForStkTokenTransfer(address from_, address to_) external {
     // Check that only a registered stkToken can call this function.
-    IdLookup memory idLookup_ = stkTokenToReservePoolIds[IReceiptToken(msg.sender)];
+    IdLookup memory idLookup_ = stkReceiptTokenToReservePoolIds[IReceiptToken(msg.sender)];
     if (!idLookup_.exists) revert Ownable.Unauthorized();
 
     uint16 reservePoolId_ = idLookup_.index;

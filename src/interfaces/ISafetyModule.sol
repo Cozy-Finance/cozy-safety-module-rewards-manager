@@ -51,6 +51,26 @@ interface ISafetyModule {
     external
     returns (uint256 rewardAssetAmount_);
 
+  /// @notice Retrieve accounting and metadata about reserve pools.
+  function reservePools(uint256 id_)
+    external
+    view
+    returns (
+      uint256 stakeAmount,
+      uint256 depositAmount,
+      uint256 pendingUnstakesAmount,
+      uint256 pendingWithdrawalsAmount,
+      uint256 feeAmount,
+      uint256 maxSlashPercentage,
+      IERC20 asset,
+      IReceiptToken stkToken,
+      IReceiptToken depositToken,
+      uint16 rewardsPoolsWeight,
+      uint128 lastFeesDripTime
+    );
+
   /// @notice The state of this SafetyModule.
   function safetyModuleState() external view returns (SafetyModuleState);
+
+  function numReservePools() external view returns (uint16);
 }
