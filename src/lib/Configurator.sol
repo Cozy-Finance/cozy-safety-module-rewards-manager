@@ -9,11 +9,11 @@ import {StakePool, RewardPool} from "./structs/Pools.sol";
 
 abstract contract Configurator is RewardsManagerCommon, Governable {
   /// @notice Execute config update to the rewards manager.
-  /// @param rewardPoolConfigs_  The array of new reward pool configs, sorted by associated reward pool ID. The array
-  /// may also include config for new reward pools.
   /// @param stakePoolConfigs_ The array of new stake pool configs, sorted by associated reward pool ID. The array
   /// may also include config for new stake pools.
-  function updateConfigs(RewardPoolConfig[] calldata rewardPoolConfigs_, StakePoolConfig[] calldata stakePoolConfigs_)
+  /// @param rewardPoolConfigs_  The array of new reward pool configs, sorted by associated reward pool ID. The array
+  /// may also include config for new reward pools.
+  function updateConfigs(StakePoolConfig[] calldata stakePoolConfigs_, RewardPoolConfig[] calldata rewardPoolConfigs_)
     external
     onlyOwner
   {

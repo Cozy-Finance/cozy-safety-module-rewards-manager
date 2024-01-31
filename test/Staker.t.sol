@@ -15,11 +15,10 @@ import {ISafetyModule} from "../src/interfaces/ISafetyModule.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
 import {Staker} from "../src/lib/Staker.sol";
 import {RewardsDistributor} from "../src/lib/RewardsDistributor.sol";
-import {AssetPool, ReservePool} from "../src/lib/structs/Pools.sol";
+import {AssetPool, StakePool} from "../src/lib/structs/Pools.sol";
 import {RewardPool} from "../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
-import {MockSafetyModule} from "./utils/MockSafetyModule.sol";
 import {MockDripModel} from "./utils/MockDripModel.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
@@ -33,8 +32,7 @@ contract StakerUnitTest is TestBase {
   MockERC20 mockSafetyModuleReceiptToken = new MockERC20("Mock SM Asset", "MOCK SM", 6);
   MockERC20 mockStkToken = new MockERC20("Mock Cozy Stake Token", "cozyStk", 6);
   MockERC20 mockDepositToken = new MockERC20("Mock Cozy Deposit Token", "cozyDep", 6);
-  MockSafetyModule mockSafetyModule = new MockSafetyModule(SafetyModuleState.ACTIVE);
-  TestableStaker component = new TestableStaker(mockSafetyModule);
+  TestableStaker component = new TestableStaker();
   uint256 cumulativeDrippedRewards_ = 290e18;
   uint256 cumulativeClaimedRewards_ = 90e18;
   uint256 initialIndexSnapshot_ = 11;
@@ -43,7 +41,7 @@ contract StakerUnitTest is TestBase {
     address indexed caller_,
     address indexed receiver_,
     IReceiptToken indexed stkToken_,
-    uint256 amount_,
+    uint256 assetAmount_,
     uint256 stkTokenAmount_
   );
 
@@ -54,7 +52,7 @@ contract StakerUnitTest is TestBase {
     address indexed owner_,
     IReceiptToken indexed stkReceiptToken_,
     uint256 stkReceiptTokenAmount_,
-    uint256 safetyModuleReceiptTokenAmount_
+    uint256 assetAmount_
   );
 
   event Transfer(address indexed from, address indexed to, uint256 amount);
@@ -63,14 +61,14 @@ contract StakerUnitTest is TestBase {
   uint256 initialStakeAmount = 100e18;
 
   function setUp() public {
-    ReservePool memory initialReservePool_ = ReservePool({
-      safetyModuleReceiptToken: IReceiptToken(address(mockSafetyModuleReceiptToken)),
+    StakePool memory initialStakePool_ = StakePool({
+      asset: IReceiptToken(address(mockSafetyModuleReceiptToken)),
       stkReceiptToken: IReceiptToken(address(mockStkToken)),
       amount: 100e18,
       rewardsWeight: 1e4
     });
     AssetPool memory initialAssetPool_ = AssetPool({amount: 150e18});
-    component.mockAddReservePool(initialReservePool_);
+    component.mockAddStakePool(initialStakePool_);
     component.mockAddAssetPool(IERC20(address(mockSafetyModuleReceiptToken)), initialAssetPool_);
 
     component.mockAddRewardPool(IERC20(address(mockAsset)), cumulativeDrippedRewards_);
@@ -83,8 +81,6 @@ contract StakerUnitTest is TestBase {
   }
 
   function test_stake_StkTokensAndStorageUpdates() external {
-    component.mockSetSafetyModuleState(SafetyModuleState.ACTIVE);
-
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
@@ -107,12 +103,12 @@ contract StakerUnitTest is TestBase {
 
     assertEq(stkTokenAmount_, expectedStkTokenAmount_);
 
-    ReservePool memory finalReservePool_ = component.getReservePool(0);
+    StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
 
     // 100e18 + 20e18
-    assertEq(finalReservePool_.amount, 120e18);
+    assertEq(finalStakePool_.amount, 120e18);
     // 150e18 + 20e18
     assertEq(finalAssetPool_.amount, 170e18);
     assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), 170e18 + initialSafetyModuleBal);
@@ -126,8 +122,6 @@ contract StakerUnitTest is TestBase {
   }
 
   function test_stake_StkTokensAndStorageUpdatesNonZeroSupply() external {
-    component.mockSetSafetyModuleState(SafetyModuleState.ACTIVE);
-
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
@@ -153,12 +147,12 @@ contract StakerUnitTest is TestBase {
 
     assertEq(stkTokenAmount_, expectedStkTokenAmount_);
 
-    ReservePool memory finalReservePool_ = component.getReservePool(0);
+    StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
 
     // 100e18 + 20e18
-    assertEq(finalReservePool_.amount, 120e18);
+    assertEq(finalStakePool_.amount, 120e18);
     // 150e18 + 20e18
     assertEq(finalAssetPool_.amount, 170e18);
     assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), 170e18 + initialSafetyModuleBal);
@@ -176,33 +170,7 @@ contract StakerUnitTest is TestBase {
     assertEq(mockStkToken.balanceOf(receiver_), expectedStkTokenAmount_);
   }
 
-  function testFuzz_stake_RevertSafetyModulePaused(uint256 amountToStake_) external {
-    component.mockSetSafetyModuleState(SafetyModuleState.PAUSED);
-
-    address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
-
-    amountToStake_ = bound(amountToStake_, 1, type(uint216).max);
-
-    // Mint initial safety module receipt token balance for rewards manager.
-    mockSafetyModuleReceiptToken.mint(address(component), 150e18);
-    // Mint initial balance for staker.
-    mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
-    // Mint/burn some stkTokens.
-    uint256 initialStkTokenSupply_ = 50e18;
-    mockStkToken.mint(address(0), initialStkTokenSupply_);
-    // Approve rewards manager to spend safety module receipt token.
-    vm.prank(staker_);
-    mockSafetyModuleReceiptToken.approve(address(component), amountToStake_);
-
-    vm.expectRevert(ICommonErrors.InvalidState.selector);
-    vm.prank(staker_);
-    component.stake(0, amountToStake_, receiver_, staker_);
-  }
-
-  function test_stake_RevertOutOfBoundsReservePoolId() external {
-    component.mockSetSafetyModuleState(SafetyModuleState.ACTIVE);
-
+  function test_stake_RevertOutOfBoundsStakePoolId() external {
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
 
@@ -213,8 +181,6 @@ contract StakerUnitTest is TestBase {
 
   function testFuzz_stake_RevertInsufficientAssetsAvailable(uint256 amountToStake_) external {
     amountToStake_ = bound(amountToStake_, 1, type(uint216).max);
-
-    component.mockSetSafetyModuleState(SafetyModuleState.ACTIVE);
 
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
@@ -231,8 +197,6 @@ contract StakerUnitTest is TestBase {
   }
 
   function test_stakeWithoutTransfer_StkTokensAndStorageUpdates() external {
-    component.mockSetSafetyModuleState(SafetyModuleState.ACTIVE);
-
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
@@ -255,10 +219,10 @@ contract StakerUnitTest is TestBase {
 
     assertEq(stkTokenAmount_, expectedStkTokenAmount_);
 
-    ReservePool memory finalReservePool_ = component.getReservePool(0);
+    StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     // 100e18 + 20e18
-    assertEq(finalReservePool_.amount, 120e18);
+    assertEq(finalStakePool_.amount, 120e18);
     // 150e18 + 20e18
     assertEq(finalAssetPool_.amount, 170e18);
     assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), 170e18 + initialSafetyModuleBal);
@@ -268,8 +232,6 @@ contract StakerUnitTest is TestBase {
   }
 
   function test_stakeWithoutTransfer_StkTokensAndStorageUpdatesNonZeroSupply() external {
-    component.mockSetSafetyModuleState(SafetyModuleState.ACTIVE);
-
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
@@ -295,10 +257,10 @@ contract StakerUnitTest is TestBase {
 
     assertEq(stkTokenAmount_, expectedStkTokenAmount_);
 
-    ReservePool memory finalReservePool_ = component.getReservePool(0);
+    StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     // 100e18 + 20e18
-    assertEq(finalReservePool_.amount, 120e18);
+    assertEq(finalStakePool_.amount, 120e18);
     // 150e18 + 20e18
     assertEq(finalAssetPool_.amount, 170e18);
     assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), 170e18 + initialSafetyModuleBal);
@@ -307,32 +269,7 @@ contract StakerUnitTest is TestBase {
     assertEq(mockStkToken.balanceOf(receiver_), expectedStkTokenAmount_);
   }
 
-  function test_stakeWithoutTransfer_RevertSafetyModulePaused() external {
-    component.mockSetSafetyModuleState(SafetyModuleState.PAUSED);
-
-    uint256 amountToStake_ = 150e18;
-
-    address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
-
-    // Mint initial safety module receipt token balance for rewards manager.
-    mockSafetyModuleReceiptToken.mint(address(component), 150e18);
-    // Mint initial balance for staker.
-    mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
-    // Mint/burn some stkTokens.
-    uint256 initialStkTokenSupply_ = 50e18;
-    mockStkToken.mint(address(0), initialStkTokenSupply_);
-    // Transfer to rewards manager.
-    vm.prank(staker_);
-    mockSafetyModuleReceiptToken.transfer(address(component), amountToStake_);
-
-    vm.expectRevert(ICommonErrors.InvalidState.selector);
-    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
-  }
-
-  function test_stakeWithoutTransfer_RevertOutOfBoundsReservePoolId() external {
-    component.mockSetSafetyModuleState(SafetyModuleState.ACTIVE);
-
+  function test_stakeWithoutTransfer_RevertOutOfBoundsStakePoolId() external {
     address receiver_ = _randomAddress();
 
     _expectPanic(INDEX_OUT_OF_BOUNDS);
@@ -341,8 +278,6 @@ contract StakerUnitTest is TestBase {
 
   function testFuzz_stakeWithoutTransfer_RevertInsufficientAssetsAvailable(uint256 amountToStake_) external {
     amountToStake_ = bound(amountToStake_, 1, type(uint216).max);
-
-    component.mockSetSafetyModuleState(SafetyModuleState.ACTIVE);
 
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
@@ -426,7 +361,7 @@ contract StakerUnitTest is TestBase {
     );
 
     // receiver_ owns the entire supply of stake receipt tokens.
-    uint256 stkTokenSupplyBeforeUnstake_ = component.getReservePool(0).stkReceiptToken.totalSupply();
+    uint256 stkTokenSupplyBeforeUnstake_ = component.getStakePool(0).stkReceiptToken.totalSupply();
     assertEq(stkTokenAmountReceived_, stkTokenSupplyBeforeUnstake_);
 
     vm.prank(receiver_);
@@ -435,10 +370,10 @@ contract StakerUnitTest is TestBase {
     assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_ + initialStakeAmount);
     assertEq(amountStaked_ + initialStakeAmount, safetyModuleReceiptTokenAmount_);
 
-    ReservePool memory finalReservePool_ = component.getReservePool(0);
+    StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     // Entire supply of stake tokens was unstaked
-    assertEq(finalReservePool_.amount, 0);
+    assertEq(finalStakePool_.amount, 0);
     // 150e18 + 20e18 - 120e18
     assertEq(finalAssetPool_.amount, initialSafetyModuleBal + stkTokenAmountReceived_ - safetyModuleReceiptTokenAmount_);
     assertEq(finalAssetPool_.amount, 50e18);
@@ -462,10 +397,10 @@ contract StakerUnitTest is TestBase {
     (, address receiver_, uint256 amountStaked_, uint256 stkTokenAmountReceived_) = _setupDefaultSingleUserFixture();
     address unstakeReceiver_ = _randomAddress();
 
-    ReservePool memory initReservePool_ = component.getReservePool(0);
+    StakePool memory initStakePool_ = component.getStakePool(0);
     AssetPool memory initAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     // 100e18 + 20e18
-    assertEq(initReservePool_.amount, 120e18);
+    assertEq(initStakePool_.amount, 120e18);
     // 150e18 + 20e18
     assertEq(initAssetPool_.amount, 170e18);
     assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), initialSafetyModuleBal + 20e18);
@@ -473,11 +408,11 @@ contract StakerUnitTest is TestBase {
     vm.prank(receiver_);
     mockStkToken.approve(address(component), stkTokenAmountReceived_);
 
-    uint256 stkTokenSupplyBeforeUnstake_ = initReservePool_.stkReceiptToken.totalSupply();
+    uint256 stkTokenSupplyBeforeUnstake_ = initStakePool_.stkReceiptToken.totalSupply();
 
     uint256 stkTokenAmountToUnstake_ = stkTokenAmountReceived_ / 2;
     uint256 safetyModuleReceiptTokenAmountToReceive_ =
-      uint256(initReservePool_.amount).mulDivDown(stkTokenAmountToUnstake_, stkTokenSupplyBeforeUnstake_);
+      uint256(initStakePool_.amount).mulDivDown(stkTokenAmountToUnstake_, stkTokenSupplyBeforeUnstake_);
 
     _expectEmit();
     emit Transfer(address(component), unstakeReceiver_, safetyModuleReceiptTokenAmountToReceive_);
@@ -498,10 +433,10 @@ contract StakerUnitTest is TestBase {
     assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), (amountStaked_ + initialStakeAmount) / 2);
     assertEq(safetyModuleReceiptTokenAmountReceived_, safetyModuleReceiptTokenAmountToReceive_);
 
-    ReservePool memory finalReservePool_ = component.getReservePool(0);
+    StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     // Half of supply was unstaked.
-    assertEq(finalReservePool_.amount, (initialStakeAmount + amountStaked_) / 2);
+    assertEq(finalStakePool_.amount, (initialStakeAmount + amountStaked_) / 2);
     // 150e18 + 20e18 - 60e18
     assertEq(finalAssetPool_.amount, initialSafetyModuleBal + amountStaked_ - safetyModuleReceiptTokenAmountReceived_);
     assertEq(finalAssetPool_.amount, 110e18);
@@ -539,10 +474,10 @@ contract StakerUnitTest is TestBase {
     assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_ + initialStakeAmount);
     assertEq(safetyModuleReceiptTokenAmount_, (amountStaked_ + initialStakeAmount) / 2);
 
-    ReservePool memory finalReservePool_ = component.getReservePool(0);
+    StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     // Entire supply of stake tokens was unstaked
-    assertEq(finalReservePool_.amount, 0);
+    assertEq(finalStakePool_.amount, 0);
     // 150e18 + 100e18
     assertEq(finalAssetPool_.amount, initialSafetyModuleBal - initialStakeAmount);
     assertEq(finalAssetPool_.amount, 50e18);
@@ -610,7 +545,7 @@ contract StakerUnitTest is TestBase {
     component.unstake(0, stkTokenAmountReceived_ + 1, receiver_, receiver_);
   }
 
-  function test_unstake_invalidReservePoolId() external {
+  function test_unstake_invalidStakePoolId() external {
     address staker_ = _randomAddress();
     _expectPanic(PANIC_ARRAY_OUT_OF_BOUNDS);
     vm.prank(staker_);
@@ -689,17 +624,10 @@ contract StakerUnitTest is TestBase {
 contract TestableStaker is Staker, Depositor, RewardsDistributor {
   using SafeCastLib for uint256;
 
-  constructor(MockSafetyModule safetyModule_) Staker() {
-    safetyModule = ISafetyModule(address(safetyModule_));
-  }
-
   // -------- Mock setters --------
-  function mockSetSafetyModuleState(SafetyModuleState safetyModuleState_) external {
-    MockSafetyModule(address(safetyModule)).setSafetyModuleState(safetyModuleState_);
-  }
 
-  function mockAddReservePool(ReservePool memory reservePool_) external {
-    reservePools.push(reservePool_);
+  function mockAddStakePool(StakePool memory stakePool_) external {
+    stakePools.push(stakePool_);
   }
 
   function mockAddAssetPool(IERC20 asset_, AssetPool memory assetPool_) external {
@@ -720,35 +648,35 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor {
   }
 
   function mockSetClaimableRewardsData(
-    uint16 reservePoolId_,
+    uint16 stakePoolId_,
     uint16 rewardPoolid_,
     uint256 indexSnapshot_,
     uint256 cumulativeClaimedRewards_
   ) external {
-    claimableRewards[reservePoolId_][rewardPoolid_] = ClaimableRewardsData({
+    claimableRewards[stakePoolId_][rewardPoolid_] = ClaimableRewardsData({
       indexSnapshot: indexSnapshot_.safeCastTo128(),
       cumulativeClaimedRewards: cumulativeClaimedRewards_
     });
   }
 
   function mockSetStakeAmount(uint256 stakeAmount_) external {
-    reservePools[0].amount = stakeAmount_;
+    stakePools[0].amount = stakeAmount_;
   }
 
   // -------- Mock getters --------
-  function getReservePool(uint16 reservePoolId_) external view returns (ReservePool memory) {
-    return reservePools[reservePoolId_];
+  function getStakePool(uint16 stakePoolId_) external view returns (StakePool memory) {
+    return stakePools[stakePoolId_];
   }
 
   function getAssetPool(IERC20 asset_) external view returns (AssetPool memory) {
     return assetPools[asset_];
   }
 
-  function getClaimableRewardsData(uint16 reservePoolId_, uint16 rewardPoolid_)
+  function getClaimableRewardsData(uint16 stakePoolId_, uint16 rewardPoolid_)
     external
     view
     returns (ClaimableRewardsData memory)
   {
-    return claimableRewards[reservePoolId_][rewardPoolid_];
+    return claimableRewards[stakePoolId_][rewardPoolid_];
   }
 }

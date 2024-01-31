@@ -6,19 +6,11 @@ import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceip
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IConfiguratorErrors} from "../interfaces/IConfiguratorErrors.sol";
+import {IConfiguratorEvents} from "../interfaces/IConfiguratorEvents.sol";
 import {StakePool, RewardPool, IdLookup} from "./structs/Pools.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./structs/Configs.sol";
 
 library ConfiguratorLib {
-  /// @notice Emitted when a stake pool is created.
-  event StakePoolCreated(uint16 indexed stakePoolId, IReceiptToken stkReceiptToken, IERC20 asset);
-
-  /// @notice Emitted when an reward pool is created.
-  event RewardPoolCreated(uint16 indexed rewardPoolId, IERC20 rewardAsset, IReceiptToken depositReceiptToken);
-
-  /// @dev Emitted when a rewards manager's configuration updates are applied.
-  event ConfigUpdatesApplied(RewardPoolConfig[] rewardPoolConfigs, StakePoolConfig[] stakePoolConfigs);
-
   /// @notice Returns true if the provided configs are valid for the rewards manager, false otherwise.
   function isValidUpdate(
     StakePool[] storage stakePools_,
@@ -29,7 +21,7 @@ library ConfiguratorLib {
     uint16 allowedRewardPools_
   ) internal view returns (bool) {
     // Validate the configuration parameters.
-    if (!isValidConfiguration(rewardPoolConfigs_, stakePoolConfigs_, allowedStakePools_, allowedRewardPools_)) {
+    if (!isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_, allowedStakePools_, allowedRewardPools_)) {
       return false;
     }
 
@@ -56,8 +48,8 @@ library ConfiguratorLib {
   /// @notice Returns true if the provided configs are generically valid, false otherwise.
   /// @dev Does not include rewards manager-specific checks, e.g. checks based on its existing stake and reward pools.
   function isValidConfiguration(
-    RewardPoolConfig[] calldata rewardPoolConfigs_,
     StakePoolConfig[] calldata stakePoolConfigs_,
+    RewardPoolConfig[] calldata rewardPoolConfigs_,
     uint16 allowedStakePools_,
     uint16 allowedRewardPools_
   ) internal pure returns (bool) {
@@ -135,7 +127,7 @@ library ConfiguratorLib {
       initializeRewardPool(rewardPools_, receiptTokenFactory_, rewardPoolConfigs_[i]);
     }
 
-    emit ConfigUpdatesApplied(rewardPoolConfigs_, stakePoolConfigs_);
+    emit IConfiguratorEvents.ConfigUpdatesApplied(stakePoolConfigs_, rewardPoolConfigs_);
   }
 
   /// @dev Initializes a new stake pool when it is added to the rewards manager.
@@ -160,7 +152,7 @@ library ConfiguratorLib {
     );
     stkReceiptTokenToStakePoolIds_[stkReceiptToken_] = IdLookup({index: stakePoolId_, exists: true});
 
-    emit StakePoolCreated(stakePoolId_, stkReceiptToken_, stakePoolConfig_.asset);
+    emit IConfiguratorEvents.StakePoolCreated(stakePoolId_, stkReceiptToken_, stakePoolConfig_.asset);
   }
 
   /// @dev Initializes a new reward pool when it is added to the rewards manager.
@@ -186,6 +178,6 @@ library ConfiguratorLib {
       })
     );
 
-    emit RewardPoolCreated(rewardPoolId_, rewardPoolConfig_.asset, rewardDepositReceiptToken_);
+    emit IConfiguratorEvents.RewardPoolCreated(rewardPoolId_, rewardPoolConfig_.asset, rewardDepositReceiptToken_);
   }
 }

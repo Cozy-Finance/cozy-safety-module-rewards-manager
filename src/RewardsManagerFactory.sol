@@ -35,16 +35,15 @@ contract RewardsManagerFactory is IRewardsManagerFactory {
   function deployRewardsManager(
     address owner_,
     address pauser_,
-    address safetyModuleAddress_,
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     bytes32 baseSalt_
   ) public returns (IRewardsManager rewardsManager_) {
     rewardsManager_ = IRewardsManager(address(rewardsManagerLogic).cloneDeterministic(salt(baseSalt_)));
 
-    rewardsManager_.initialize(owner_, pauser_, rewardPoolConfigs_, stakePoolConfigs_);
+    rewardsManager_.initialize(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_);
 
-    emit RewardsManagerDeployed(rewardsManager_, ISafetyModule(safetyModuleAddress_));
+    emit RewardsManagerDeployed(rewardsManager_);
   }
 
   /// @notice Given the `baseSalt_` compute and return the address that Rewards Manager will be deployed to.

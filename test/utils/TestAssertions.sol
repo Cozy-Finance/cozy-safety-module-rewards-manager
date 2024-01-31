@@ -2,7 +2,7 @@
 pragma solidity 0.8.22;
 
 import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
-import {RewardPool, ReservePool} from "../../src/lib/structs/Pools.sol";
+import {RewardPool, StakePool} from "../../src/lib/structs/Pools.sol";
 import {
   UserRewardsData,
   PreviewClaimableRewardsData,
@@ -19,22 +19,18 @@ abstract contract TestAssertions is Test {
     }
   }
 
-  function assertEq(ReservePool[] memory actual_, ReservePool[] memory expected_) internal {
+  function assertEq(StakePool[] memory actual_, StakePool[] memory expected_) internal {
     assertEq(actual_.length, expected_.length);
     for (uint256 i = 0; i < actual_.length; i++) {
       assertEq(actual_[i], expected_[i]);
     }
   }
 
-  function assertEq(ReservePool memory actual_, ReservePool memory expected_) internal {
-    assertEq(
-      address(actual_.safetyModuleReceiptToken),
-      address(expected_.safetyModuleReceiptToken),
-      "ReservePool.safetyModuleReceiptToken"
-    );
-    assertEq(address(actual_.stkReceiptToken), address(expected_.stkReceiptToken), "ReservePool.stkReceiptToken");
-    assertEq(actual_.amount, expected_.amount, "ReservePool.amount");
-    assertEq(actual_.rewardsWeight, expected_.rewardsWeight, "ReservePool.rewardsWeight");
+  function assertEq(StakePool memory actual_, StakePool memory expected_) internal {
+    assertEq(address(actual_.asset), address(expected_.asset), "ReservePool.asset");
+    assertEq(address(actual_.stkReceiptToken), address(expected_.stkReceiptToken), "StakePool.stkReceiptToken");
+    assertEq(actual_.amount, expected_.amount, "StakePool.amount");
+    assertEq(actual_.rewardsWeight, expected_.rewardsWeight, "StakePool.rewardsWeight");
   }
 
   function assertEq(RewardPool[] memory actual_, RewardPool[] memory expected_) internal {
@@ -104,7 +100,7 @@ abstract contract TestAssertions is Test {
   }
 
   function assertEq(PreviewClaimableRewards memory actual_, PreviewClaimableRewards memory expected_) internal {
-    assertEq(actual_.reservePoolId, expected_.reservePoolId, "PreviewClaimableRewards.reservePoolId");
+    assertEq(actual_.stakePoolId, expected_.stakePoolId, "PreviewClaimableRewards.stakePoolId");
     for (uint256 i = 0; i < actual_.claimableRewardsData.length; i++) {
       assertEq(actual_.claimableRewardsData[i], expected_.claimableRewardsData[i]);
     }

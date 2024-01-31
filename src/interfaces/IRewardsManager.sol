@@ -14,14 +14,14 @@ interface IRewardsManager {
   function initialize(
     address owner_,
     address pauser_,
-    RewardPoolConfig[] calldata rewardPoolConfigs_,
-    StakePoolConfig[] calldata stakePoolConfigs_
+    StakePoolConfig[] calldata stakePoolConfigs_,
+    RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external;
 
   function assetPools(IERC20 asset_) external view returns (AssetPool memory assetPool_);
 
-  /// @notice Retrieve accounting and metadata about reserve pools.
-  function reservePools(uint256 id_)
+  /// @notice Retrieve accounting and metadata about stake pools.
+  function stakePools(uint256 id_)
     external
     view
     returns (
@@ -50,8 +50,6 @@ interface IRewardsManager {
 
   /// @notice Updates the reward module's user rewards data prior to a stkToken transfer.
   function updateUserRewardsForStkTokenTransfer(address from_, address to_) external;
-
-  function cozyManager() external view returns (address);
 
   function receiptTokenFactory() external view returns (address);
 

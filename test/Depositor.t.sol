@@ -11,7 +11,7 @@ import {IDepositorErrors} from "../src/interfaces/IDepositorErrors.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {ISafetyModule} from "../src/interfaces/ISafetyModule.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
-import {AssetPool, ReservePool, RewardPool} from "../src/lib/structs/Pools.sol";
+import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {UserRewardsData, ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockSafetyModule} from "./utils/MockSafetyModule.sol";
@@ -20,10 +20,8 @@ import "./utils/Stub.sol";
 
 contract DepositorUnitTest is TestBase {
   MockERC20 mockAsset = new MockERC20("Mock Asset", "MOCK", 6);
-  MockERC20 mockSafetyModuleReceiptToken = new MockERC20("Mock SM Asset", "MOCK SM", 6);
   MockERC20 mockRewardPoolDepositToken = new MockERC20("Mock Cozy Deposit Token", "cozyDep", 6);
-  MockSafetyModule mockSafetyModule = new MockSafetyModule(SafetyModuleState.ACTIVE);
-  TestableDepositor component = new TestableDepositor(mockSafetyModule);
+  TestableDepositor component = new TestableDepositor();
 
   /// @dev Emitted when a user deposits rewards.
   event Deposited(
@@ -89,7 +87,7 @@ contract DepositorUnitTest is TestBase {
     vm.prank(depositor_);
     mockAsset.approve(address(component), amountToDeposit_);
 
-    // `depositToken.totalSupply() == 0`, so should be minted 1-1 with reserve assets deposited.
+    // `depositToken.totalSupply() == 0`, so should be minted 1-1 with stake assets deposited.
     uint256 expectedDepositTokenAmount_ = 10e18;
     _expectEmit();
     emit Deposited(
@@ -158,30 +156,6 @@ contract DepositorUnitTest is TestBase {
     assertEq(mockRewardPoolDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
   }
 
-  function testFuzz_depositReserve_RevertSafetyModulePaused(uint256 amountToDeposit_) external {
-    component.mockSetSafetyModuleState(SafetyModuleState.PAUSED);
-
-    address depositor_ = _randomAddress();
-    address receiver_ = _randomAddress();
-
-    amountToDeposit_ = bound(amountToDeposit_, 1, type(uint216).max);
-
-    // Mint initial asset balance for rewards manager.
-    mockAsset.mint(address(component), 150e18);
-    // Mint initial balance for depositor.
-    mockAsset.mint(depositor_, amountToDeposit_);
-    // Mint/burn some depositTokens.
-    uint256 initialDepositTokenSupply_ = 50e18;
-    mockRewardPoolDepositToken.mint(address(0), initialDepositTokenSupply_);
-    // Approve rewards manager to spend asset.
-    vm.prank(depositor_);
-    mockAsset.approve(address(component), amountToDeposit_);
-
-    vm.expectRevert(ICommonErrors.InvalidState.selector);
-    vm.prank(depositor_);
-    _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
-  }
-
   function test_depositReserve_RevertOutOfBoundsRewardPoolId() external {
     address depositor_ = _randomAddress();
     address receiver_ = _randomAddress();
@@ -219,7 +193,7 @@ contract DepositorUnitTest is TestBase {
     vm.prank(depositor_);
     mockAsset.transfer(address(component), amountToDeposit_);
 
-    // `depositToken.totalSupply() == 0`, so should be minted 1-1 with reserve assets deposited.
+    // `depositToken.totalSupply() == 0`, so should be minted 1-1 with stake assets deposited.
     uint256 expectedDepositTokenAmount_ = 10e18;
     _expectEmit();
     emit Deposited(
@@ -287,28 +261,6 @@ contract DepositorUnitTest is TestBase {
 
     assertEq(mockAsset.balanceOf(depositor_), 0);
     assertEq(mockRewardPoolDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
-  }
-
-  function testFuzz_depositReserveAssetsWithoutTransfer_RevertSafetyModulePaused(uint256 amountToDeposit_) external {
-    component.mockSetSafetyModuleState(SafetyModuleState.PAUSED);
-
-    address depositor_ = _randomAddress();
-    address receiver_ = _randomAddress();
-
-    amountToDeposit_ = bound(amountToDeposit_, 1, type(uint216).max);
-
-    // Mint initial balance for depositor.
-    mockAsset.mint(depositor_, amountToDeposit_);
-    // Mint/burn some depositTokens.
-    uint256 initialDepositTokenSupply_ = 50e18;
-    mockRewardPoolDepositToken.mint(address(0), initialDepositTokenSupply_);
-    // Transfer to rewards manager.
-    vm.prank(depositor_);
-    mockAsset.transfer(address(component), amountToDeposit_);
-
-    vm.expectRevert(ICommonErrors.InvalidState.selector);
-    vm.prank(depositor_);
-    _deposit(true, 0, amountToDeposit_, receiver_, receiver_);
   }
 
   function test_depositReserveAssetsWithoutTransfer_RevertOutOfBoundsRewardPoolId() external {
@@ -630,7 +582,7 @@ contract DepositorUnitTest is TestBase {
     address depositor_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint256 amountToDeposit_ = _randomUint120();
-    uint16 redeemReservePoolId_ = uint16(bound(_randomUint16(), 1, type(uint16).max));
+    uint16 redeemStakePoolId_ = uint16(bound(_randomUint16(), 1, type(uint16).max));
 
     // Mint initial balance for depositor.
     mockAsset.mint(depositor_, amountToDeposit_);
@@ -643,7 +595,7 @@ contract DepositorUnitTest is TestBase {
 
     _expectPanic(PANIC_ARRAY_OUT_OF_BOUNDS);
     vm.prank(depositor_);
-    component.redeemUndrippedRewards(redeemReservePoolId_, depositTokenAmount_, receiver_, depositor_);
+    component.redeemUndrippedRewards(redeemStakePoolId_, depositTokenAmount_, receiver_, depositor_);
   }
 
   function test_redeemUndrippedRewards_previewUndrippedRewardsRedemptionWithDrip() external {
@@ -761,14 +713,7 @@ contract DepositorUnitTest is TestBase {
 contract TestableDepositor is Depositor {
   uint256 internal mockNextRewardsDripAmount;
 
-  constructor(MockSafetyModule safetyModule_) Depositor() {
-    safetyModule = ISafetyModule(address(safetyModule_));
-  }
-
   // -------- Mock setters --------
-  function mockSetSafetyModuleState(SafetyModuleState safetyModuleState_) external {
-    MockSafetyModule(address(safetyModule)).setSafetyModuleState(safetyModuleState_);
-  }
 
   function mockAddRewardPool(RewardPool memory rewardPool_) external {
     rewardPools.push(rewardPool_);
@@ -791,8 +736,8 @@ contract TestableDepositor is Depositor {
   }
 
   // -------- Mock getters --------
-  function getReservePool(uint16 reservePoolId_) external view returns (ReservePool memory) {
-    return reservePools[reservePoolId_];
+  function getStakePool(uint16 stakePoolId_) external view returns (StakePool memory) {
+    return stakePools[stakePoolId_];
   }
 
   function getRewardPool(uint16 rewardPoolid_) external view returns (RewardPool memory) {
@@ -805,7 +750,7 @@ contract TestableDepositor is Depositor {
 
   // -------- Overridden abstract function placeholders --------
 
-  function _claimRewards(uint16, /* reservePoolId_ */ address, /* receiver_ */ address /* owner */ ) internal override {
+  function _claimRewards(uint16, /* stakePoolId_ */ address, /* receiver_ */ address /* owner */ ) internal override {
     __writeStub__();
   }
 
@@ -846,14 +791,14 @@ contract TestableDepositor is Depositor {
   }
 
   function _dripAndApplyPendingDrippedRewards(
-    ReservePool storage, /*reservePool_*/
+    StakePool storage, /*stakePool_*/
     mapping(uint16 => ClaimableRewardsData) storage /*claimableRewards_*/
   ) internal view override {
     __readStub__();
   }
 
   function _dripAndResetCumulativeRewardsValues(
-    ReservePool[] storage, /*reservePools_*/
+    StakePool[] storage, /*stakePools_*/
     RewardPool[] storage /*rewardPools_*/
   ) internal view override {
     __readStub__();

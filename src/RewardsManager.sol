@@ -12,6 +12,8 @@ import {Staker} from "./lib/Staker.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./lib/structs/Configs.sol";
 
 contract RewardsManager is RewardsManagerCommon, Configurator, Depositor, RewardsDistributor, Staker {
+  bool public initialized;
+
   /// @dev Thrown if the contract is already initialized.
   error Initialized();
 
@@ -28,7 +30,7 @@ contract RewardsManager is RewardsManagerCommon, Configurator, Depositor, Reward
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external {
-    if (address(receiptTokenFactory) != address(0)) revert Initialized();
+    if (initialized) revert Initialized();
 
     // Rewards managers are minimal proxies, so the owner and pauser is set to address(0) in the constructor for the
     // logic contract. When the rewards manager is initialized for the minimal proxy, we update the owner and pauser.
@@ -37,5 +39,6 @@ contract RewardsManager is RewardsManagerCommon, Configurator, Depositor, Reward
     ConfiguratorLib.applyConfigUpdates(
       stakePools, rewardPools, stkReceiptTokenToStakePoolIds, receiptTokenFactory, stakePoolConfigs_, rewardPoolConfigs_
     );
+    initialized = true;
   }
 }
