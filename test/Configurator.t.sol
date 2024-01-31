@@ -55,7 +55,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     rewardPool1 = RewardPool({
       asset: IERC20(_randomAddress()),
       dripModel: IDripModel(_randomAddress()),
-      depositToken: IReceiptToken(address(new ReceiptToken())),
+      depositReceiptToken: IReceiptToken(address(new ReceiptToken())),
       undrippedRewards: _randomUint256(),
       cumulativeDrippedRewards: 0,
       lastDripTime: uint128(block.timestamp)
@@ -63,7 +63,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     rewardPool2 = RewardPool({
       asset: IERC20(_randomAddress()),
       dripModel: IDripModel(_randomAddress()),
-      depositToken: IReceiptToken(address(new ReceiptToken())),
+      depositReceiptToken: IReceiptToken(address(new ReceiptToken())),
       undrippedRewards: _randomUint256(),
       cumulativeDrippedRewards: 0,
       lastDripTime: uint128(block.timestamp)

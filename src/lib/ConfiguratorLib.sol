@@ -185,7 +185,7 @@ library ConfiguratorLib {
   ) internal {
     uint16 rewardPoolid_ = uint16(rewardPools_.length);
 
-    IReceiptToken rewardDepositToken_ = receiptTokenFactory_.deployReceiptToken(
+    IReceiptToken rewardDepositReceiptToken_ = receiptTokenFactory_.deployReceiptToken(
       rewardPoolid_, IReceiptTokenFactory.PoolType.REWARD, rewardPoolConfig_.asset.decimals()
     );
 
@@ -195,11 +195,11 @@ library ConfiguratorLib {
         undrippedRewards: 0,
         cumulativeDrippedRewards: 0,
         dripModel: rewardPoolConfig_.dripModel,
-        depositToken: rewardDepositToken_,
+        depositReceiptToken: rewardDepositReceiptToken_,
         lastDripTime: uint128(block.timestamp)
       })
     );
 
-    emit RewardPoolCreated(rewardPoolid_, rewardPoolConfig_.asset, rewardDepositToken_);
+    emit RewardPoolCreated(rewardPoolid_, rewardPoolConfig_.asset, rewardDepositReceiptToken_);
   }
 }
