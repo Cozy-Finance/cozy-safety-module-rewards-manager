@@ -46,7 +46,13 @@ contract RewardsManagerFactoryTest is TestBase {
     );
 
     rewardsManagerLogic = new RewardsManager(mockManager, receiptTokenFactory);
-    rewardsManagerLogic.initialize(address(0), address(0), address(0), new RewardPoolConfig[](0), new uint16[](0));
+    rewardsManagerLogic.initialize(
+      address(0),
+      address(0),
+      address(new MockSafetyModule(SafetyModuleState.ACTIVE)),
+      new RewardPoolConfig[](0),
+      new uint16[](0)
+    );
 
     rewardsManagerFactory = new RewardsManagerFactory(mockManager, IRewardsManager(address(rewardsManagerLogic)));
   }

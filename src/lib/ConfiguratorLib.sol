@@ -7,6 +7,7 @@ import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {SafeCastLib} from "cozy-safety-module-shared/lib/SafeCastLib.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
+import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
 import {ICommonErrors} from "../interfaces/ICommonErrors.sol";
 import {ISafetyModule} from "../interfaces/ISafetyModule.sol";
 import {IManager} from "../interfaces/IManager.sol";
@@ -113,6 +114,8 @@ library ConfiguratorLib {
     uint16[] calldata rewardsWeights_,
     ISafetyModule safetyModule_
   ) public {
+    if (safetyModule_.safetyModuleState() == SafetyModuleState.TRIGGERED) revert ICommonErrors.InvalidState();
+
     // Update existing reserve pool weights.
     uint256 numExistingReservePools_ = reservePools_.length;
     for (uint256 i = 0; i < numExistingReservePools_; i++) {
