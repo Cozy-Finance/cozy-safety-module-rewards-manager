@@ -131,10 +131,10 @@ abstract contract Staker is RewardsManagerCommon {
     // TODO: Should we revert if the safety module is paused?
     if (safetyModule.safetyModuleState() == SafetyModuleState.PAUSED) revert InvalidState();
 
-    IReceiptToken stkToken_ = reservePool_.stkReceiptToken;
+    IReceiptToken stkReceiptToken_ = reservePool_.stkReceiptToken;
 
     stkReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToReceiptTokenAmount(
-      safetyModuleReceiptTokenAmount_, stkToken_.totalSupply(), reservePool_.amount
+      safetyModuleReceiptTokenAmount_, stkReceiptToken_.totalSupply(), reservePool_.amount
     );
     if (stkReceiptTokenAmount_ == 0) revert RoundsToZero();
 
@@ -145,9 +145,9 @@ abstract contract Staker is RewardsManagerCommon {
     // Update user rewards before minting any new stkTokens.
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[reservePoolId_];
     _dripAndApplyPendingDrippedRewards(reservePool_, claimableRewards_);
-    _updateUserRewards(stkToken_.balanceOf(receiver_), claimableRewards_, userRewards[reservePoolId_][receiver_]);
+    _updateUserRewards(stkReceiptToken_.balanceOf(receiver_), claimableRewards_, userRewards[reservePoolId_][receiver_]);
 
-    stkToken_.mint(receiver_, stkReceiptTokenAmount_);
-    emit Staked(msg.sender, receiver_, stkToken_, safetyModuleReceiptTokenAmount_, stkReceiptTokenAmount_);
+    stkReceiptToken_.mint(receiver_, stkReceiptTokenAmount_);
+    emit Staked(msg.sender, receiver_, stkReceiptToken_, safetyModuleReceiptTokenAmount_, stkReceiptTokenAmount_);
   }
 }
