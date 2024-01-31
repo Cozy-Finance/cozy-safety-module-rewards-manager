@@ -56,16 +56,12 @@ interface ISafetyModule {
     external
     view
     returns (
-      uint256 stakeAmount,
-      uint256 depositAmount,
-      uint256 pendingUnstakesAmount,
+      uint256 amount,
       uint256 pendingWithdrawalsAmount,
       uint256 feeAmount,
       uint256 maxSlashPercentage,
       IERC20 asset,
-      IReceiptToken stkToken,
-      IReceiptToken depositToken,
-      uint16 rewardsPoolsWeight,
+      IReceiptToken receiptToken,
       uint128 lastFeesDripTime
     );
 
