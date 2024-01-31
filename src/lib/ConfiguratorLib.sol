@@ -127,7 +127,7 @@ library ConfiguratorLib {
     for (uint256 i = numExistingReservePools_; i < rewardsWeights_.length; i++) {
       // This will revert if `i > safetyModule_.numReservePools()`.
       // TODO: Change this after we have fixed the reserve pool struct in the core protocol.
-      (,,,,,,,, IReceiptToken safetyModuleReceiptToken_,,) = safetyModule_.reservePools(i);
+      (,,,,, IReceiptToken safetyModuleReceiptToken_,) = safetyModule_.reservePools(i);
       initializeReservePool(
         reservePools_,
         stkReceiptTokenToReservePoolIds_,

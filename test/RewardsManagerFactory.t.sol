@@ -87,7 +87,7 @@ contract RewardsManagerFactoryTest is TestBase {
     MockSafetyModule safetyModule_ = new MockSafetyModule(SafetyModuleState.ACTIVE);
     safetyModule_.setNumReservePools(1);
     IReceiptToken safetyModuleReceiptToken_ = IReceiptToken(address(new ReceiptToken()));
-    safetyModule_.setReservePoolStkReceiptToken(0, safetyModuleReceiptToken_);
+    safetyModule_.setReservePoolReceiptToken(0, safetyModuleReceiptToken_);
 
     bytes32 baseSalt_ = _randomBytes32();
     address computedRewardsManagerAddress_ = rewardsManagerFactory.computeAddress(baseSalt_);

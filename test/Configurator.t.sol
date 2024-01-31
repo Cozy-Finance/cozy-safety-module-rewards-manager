@@ -98,8 +98,8 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     rewardsWeights_[0] = uint16(MathConstants.ZOC / 2);
     rewardsWeights_[1] = uint16(MathConstants.ZOC / 2);
 
-    mockSafetyModule.setReservePoolStkReceiptToken(0, reservePool1.safetyModuleReceiptToken);
-    mockSafetyModule.setReservePoolStkReceiptToken(1, reservePool2.safetyModuleReceiptToken);
+    mockSafetyModule.setReservePoolReceiptToken(0, reservePool1.safetyModuleReceiptToken);
+    mockSafetyModule.setReservePoolReceiptToken(1, reservePool2.safetyModuleReceiptToken);
     mockSafetyModule.setNumReservePools(2);
 
     return (rewardPoolConfigs_, rewardsWeights_);
@@ -214,8 +214,8 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     // Add two existing reserve pools.
     component.mockAddReservePool(reservePool1);
     component.mockAddReservePool(reservePool2);
-    mockSafetyModule.setReservePoolStkReceiptToken(0, reservePool1.safetyModuleReceiptToken);
-    mockSafetyModule.setReservePoolStkReceiptToken(1, reservePool2.safetyModuleReceiptToken);
+    mockSafetyModule.setReservePoolReceiptToken(0, reservePool1.safetyModuleReceiptToken);
+    mockSafetyModule.setReservePoolReceiptToken(1, reservePool2.safetyModuleReceiptToken);
     mockSafetyModule.setNumReservePools(2);
 
     // Add two existing reward pools.

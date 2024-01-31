@@ -8,7 +8,7 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 contract MockSafetyModule {
   SafetyModuleState public safetyModuleState;
   uint16 public numReservePools;
-  mapping(uint256 => IReceiptToken) public reservePoolToStkReceiptToken;
+  mapping(uint256 => IReceiptToken) public reservePoolToReceiptToken;
 
   constructor(SafetyModuleState _safetyModuleState) {
     safetyModuleState = _safetyModuleState;
@@ -22,27 +22,23 @@ contract MockSafetyModule {
     numReservePools = _numReservePools;
   }
 
-  function setReservePoolStkReceiptToken(uint256 _reservePoolId, IReceiptToken _stkReceiptToken) public {
-    reservePoolToStkReceiptToken[_reservePoolId] = _stkReceiptToken;
+  function setReservePoolReceiptToken(uint256 _reservePoolId, IReceiptToken _receiptToken) public {
+    reservePoolToReceiptToken[_reservePoolId] = _receiptToken;
   }
 
   function reservePools(uint256 _id)
     external
     view
     returns (
-      uint256 stakeAmount,
-      uint256 depositAmount,
-      uint256 pendingUnstakesAmount,
+      uint256 amount,
       uint256 pendingWithdrawalsAmount,
       uint256 feeAmount,
       uint256 maxSlashPercentage,
       IERC20 asset,
-      IReceiptToken stkToken,
-      IReceiptToken depositToken,
-      uint16 rewardsPoolsWeight,
+      IReceiptToken receiptToken,
       uint128 lastFeesDripTime
     )
   {
-    return (0, 0, 0, 0, 0, 0, IERC20(address(0)), IReceiptToken(address(0)), reservePoolToStkReceiptToken[_id], 0, 0);
+    return (0, 0, 0, 0, IERC20(address(0)), reservePoolToReceiptToken[_id], 0);
   }
 }
