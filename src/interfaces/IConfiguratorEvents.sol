@@ -3,13 +3,11 @@ pragma solidity ^0.8.0;
 
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {RewardPoolConfig} from "../lib/structs/Rewards.sol";
+import {RewardPoolConfig} from "../lib/structs/Configs.sol";
 
 interface IConfiguratorEvents {
-  /// @notice Emitted when a reserve pool is created.
-  event ReservePoolCreated(
-    uint16 indexed reservePoolId, IReceiptToken stkReceiptToken, IReceiptToken safetyModuleReceiptToken
-  );
+  /// @notice Emitted when a stake pool is created.
+  event StakePoolCreated(uint16 indexed stakePoolId, IReceiptToken stkReceiptToken, IERC20 asset);
 
   /// @notice Emitted when an reward pool is created.
   event RewardPoolCreated(uint16 indexed rewardPoolid, IERC20 rewardAsset, IReceiptToken depositReceiptToken);

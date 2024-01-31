@@ -10,42 +10,33 @@ import {RewardsManagerCommon} from "./lib/RewardsManagerCommon.sol";
 import {Depositor} from "./lib/Depositor.sol";
 import {RewardsDistributor} from "./lib/RewardsDistributor.sol";
 import {Staker} from "./lib/Staker.sol";
-import {RewardPoolConfig} from "./lib/structs/Rewards.sol";
+import {RewardPoolConfig, StakePoolConfig} from "./lib/structs/Configs.sol";
 
 contract RewardsManager is RewardsManagerCommon, Configurator, Depositor, RewardsDistributor, Staker {
   /// @dev Thrown if the contract is already initialized.
   error Initialized();
 
-  constructor(IManager manager_, IReceiptTokenFactory receiptTokenFactory_) {
-    _assertAddressNotZero(address(manager_));
+  constructor(IReceiptTokenFactory receiptTokenFactory_, uint8 allowedStakePools_, uint8 allowedRewardPools_) {
     _assertAddressNotZero(address(receiptTokenFactory_));
-    cozyManager = manager_;
     receiptTokenFactory = receiptTokenFactory_;
+    allowedStakePools = allowedStakePools_;
+    allowedRewardPools = allowedRewardPools_;
   }
 
   function initialize(
     address owner_,
     address pauser_,
-    address safetyModuleAddress_,
-    RewardPoolConfig[] calldata rewardPoolConfigs_,
-    uint16[] calldata rewardsWeights_
+    StakePoolConfig[] calldata stakePoolConfigs_,
+    RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external {
-    if (address(safetyModule) != address(0)) revert Initialized();
+    if (address(receiptTokenFactory) != address(0)) revert Initialized();
 
     // Rewards managers are minimal proxies, so the owner and pauser is set to address(0) in the constructor for the
     // logic contract. When the rewards manager is initialized for the minimal proxy, we update the owner and pauser.
     __initGovernable(owner_, pauser_);
 
-    ISafetyModule safetyModule_ = ISafetyModule(safetyModuleAddress_);
     ConfiguratorLib.applyConfigUpdates(
-      reservePools,
-      rewardPools,
-      stkReceiptTokenToReservePoolIds,
-      receiptTokenFactory,
-      rewardPoolConfigs_,
-      rewardsWeights_,
-      safetyModule_
+      stakePools, rewardPools, stkReceiptTokenToStakePoolIds, receiptTokenFactory, stakePoolConfigs_, rewardPoolConfigs_
     );
-    safetyModule = safetyModule_;
   }
 }

@@ -4,11 +4,10 @@ pragma solidity 0.8.22;
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {SafeERC20} from "cozy-safety-module-shared/lib/SafeERC20.sol";
-import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
 import {IDepositorErrors} from "../interfaces/IDepositorErrors.sol";
 import {IDepositorEvents} from "../interfaces/IDepositorEvents.sol";
 import {IDripModel} from "../interfaces/IDripModel.sol";
-import {ReservePool, AssetPool, RewardPool} from "./structs/Pools.sol";
+import {RewardPool} from "./structs/Pools.sol";
 import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 
@@ -95,7 +94,6 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     address receiver_,
     RewardPool storage rewardPool_
   ) internal returns (uint256 depositReceiptTokenAmount_) {
-    if (safetyModule.safetyModuleState() == SafetyModuleState.PAUSED) revert InvalidState();
     _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
 
     IReceiptToken depositReceiptToken_ = rewardPool_.depositReceiptToken;

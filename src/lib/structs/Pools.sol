@@ -12,9 +12,9 @@ struct AssetPool {
   uint256 amount;
 }
 
-struct ReservePool {
+struct StakePool {
   uint256 amount;
-  IReceiptToken safetyModuleReceiptToken;
+  IERC20 asset;
   IReceiptToken stkReceiptToken;
   /// @dev The weighting of each stkToken's claim to all reward pools in terms of a ZOC. Must sum to 1.
   /// e.g. stkTokenA = 10%, means they're eligible for up to 10% of each pool, scaled to their balance of stkTokenA

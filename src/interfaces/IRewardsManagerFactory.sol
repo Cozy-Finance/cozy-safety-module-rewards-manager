@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IManager} from "./IManager.sol";
 import {ISafetyModule} from "./ISafetyModule.sol";
 import {IRewardsManager} from "./IRewardsManager.sol";
-import {RewardPoolConfig} from "../lib/structs/Rewards.sol";
+import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 
 interface IRewardsManagerFactory {
   /// @dev Emitted when a new Rewards Manager is deployed.
@@ -16,12 +16,10 @@ interface IRewardsManagerFactory {
     address owner_,
     address pauser_,
     address safetyModuleAddress_,
+    StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_,
-    uint16[] calldata rewardsWeights_,
     bytes32 baseSalt_
   ) external returns (IRewardsManager rewardsManager_);
-
-  function cozyManager() external view returns (IManager);
 
   function salt(bytes32 baseSalt_) external view returns (bytes32);
 
