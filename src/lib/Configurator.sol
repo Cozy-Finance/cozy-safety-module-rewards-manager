@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.22;
 
-import {Governable} from "cozy-safety-module-shared/lib/Governable.sol";
+import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
 import {ConfiguratorLib} from "./ConfiguratorLib.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./structs/Configs.sol";
 import {StakePool, RewardPool} from "./structs/Pools.sol";
 
-abstract contract Configurator is RewardsManagerCommon, Governable {
+abstract contract Configurator is RewardsManagerCommon, Ownable {
   /// @notice Execute config update to the rewards manager.
   /// @param stakePoolConfigs_ The array of new stake pool configs, sorted by associated reward pool ID. The array
   /// may also include config for new stake pools.

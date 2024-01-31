@@ -324,7 +324,7 @@ contract TestableConfigurator is Configurator, TestableConfiguratorEvents {
     uint8 allowedStakePools_,
     uint8 allowedRewardPools_
   ) {
-    __initGovernable(owner_, owner_);
+    __initOwnable(owner_);
     receiptTokenFactory = receiptTokenFactory_;
     allowedStakePools = allowedStakePools_;
     allowedRewardPools = allowedRewardPools_;

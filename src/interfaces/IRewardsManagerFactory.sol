@@ -12,7 +12,6 @@ interface IRewardsManagerFactory {
 
   function deployRewardsManager(
     address owner_,
-    address pauser_,
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     bytes32 baseSalt_

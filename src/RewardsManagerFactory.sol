@@ -29,18 +29,16 @@ contract RewardsManagerFactory is IRewardsManagerFactory {
 
   /// @notice Creates a new Rewards Manager contract with the specified configuration.
   /// @param owner_ The owner of the rewards manager.
-  /// @param pauser_ The pauser of the rewards manager.
   /// @param baseSalt_ Used to compute the resulting address of the rewards manager.
   function deployRewardsManager(
     address owner_,
-    address pauser_,
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     bytes32 baseSalt_
   ) public returns (IRewardsManager rewardsManager_) {
     rewardsManager_ = IRewardsManager(address(rewardsManagerLogic).cloneDeterministic(salt(baseSalt_)));
 
-    rewardsManager_.initialize(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_);
+    rewardsManager_.initialize(owner_, stakePoolConfigs_, rewardPoolConfigs_);
 
     emit RewardsManagerDeployed(rewardsManager_);
   }

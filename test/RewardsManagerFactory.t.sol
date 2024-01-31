@@ -41,7 +41,7 @@ contract RewardsManagerFactoryTest is TestBase {
     );
 
     rewardsManagerLogic = new RewardsManager(receiptTokenFactory, 30, 25);
-    rewardsManagerLogic.initialize(address(0), address(0), new StakePoolConfig[](0), new RewardPoolConfig[](0));
+    rewardsManagerLogic.initialize(address(0), new StakePoolConfig[](0), new RewardPoolConfig[](0));
 
     rewardsManagerFactory = new RewardsManagerFactory(IRewardsManager(address(rewardsManagerLogic)));
   }
@@ -57,7 +57,6 @@ contract RewardsManagerFactoryTest is TestBase {
 
   function test_deployRewardsManager1() public {
     address owner_ = _randomAddress();
-    address pauser_ = _randomAddress();
     IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6)));
 
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
@@ -74,12 +73,11 @@ contract RewardsManagerFactoryTest is TestBase {
     _expectEmit();
     emit RewardsManagerDeployed(IRewardsManager(computedRewardsManagerAddress_));
     IRewardsManager rewardsManager_ =
-      rewardsManagerFactory.deployRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, baseSalt_);
+      rewardsManagerFactory.deployRewardsManager(owner_, stakePoolConfigs_, rewardPoolConfigs_, baseSalt_);
 
     assertEq(address(rewardsManager_), computedRewardsManagerAddress_);
     assertEq(address(rewardsManager_.receiptTokenFactory()), address(receiptTokenFactory));
     assertEq(address(rewardsManager_.owner()), owner_);
-    assertEq(address(rewardsManager_.pauser()), pauser_);
 
     // Loosely validate config applied.
     RewardPool memory rewardPool_ = getRewardPool(rewardsManager_, 0);
@@ -92,6 +90,6 @@ contract RewardsManagerFactoryTest is TestBase {
 
     // Cannot call initialize again on the rewards manager.
     vm.expectRevert(RewardsManager.Initialized.selector);
-    rewardsManager_.initialize(_randomAddress(), _randomAddress(), stakePoolConfigs_, rewardPoolConfigs_);
+    rewardsManager_.initialize(_randomAddress(), stakePoolConfigs_, rewardPoolConfigs_);
   }
 }
