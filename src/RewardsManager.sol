@@ -2,7 +2,6 @@
 pragma solidity ^0.8.22;
 
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
-import {ISafetyModule} from "./interfaces/ISafetyModule.sol";
 import {Configurator} from "./lib/Configurator.sol";
 import {ConfiguratorLib} from "./lib/ConfiguratorLib.sol";
 import {RewardsManagerCommon} from "./lib/RewardsManagerCommon.sol";

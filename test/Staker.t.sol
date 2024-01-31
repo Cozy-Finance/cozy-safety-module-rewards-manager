@@ -11,7 +11,6 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
 import {IDepositorErrors} from "../src/interfaces/IDepositorErrors.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
-import {ISafetyModule} from "../src/interfaces/ISafetyModule.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
 import {Staker} from "../src/lib/Staker.sol";
 import {RewardsDistributor} from "../src/lib/RewardsDistributor.sol";

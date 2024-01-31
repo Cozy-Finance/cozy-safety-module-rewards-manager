@@ -18,7 +18,6 @@ import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
 import {ConfiguratorLib} from "../src/lib/ConfiguratorLib.sol";
 import {Configurator} from "../src/lib/Configurator.sol";
 import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
-import {ISafetyModule} from "../src/interfaces/ISafetyModule.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {IConfiguratorEvents} from "../src/interfaces/IConfiguratorEvents.sol";
