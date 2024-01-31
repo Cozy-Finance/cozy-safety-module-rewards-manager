@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity ^0.8.0;
 
-import {IManager} from "./IManager.sol";
 import {ISafetyModule} from "./ISafetyModule.sol";
 import {IRewardsManager} from "./IRewardsManager.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";

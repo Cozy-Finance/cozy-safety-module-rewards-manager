@@ -2,7 +2,6 @@
 pragma solidity 0.8.22;
 
 import {Clones} from "openzeppelin-contracts/contracts/proxy/Clones.sol";
-import {IManager} from "./interfaces/IManager.sol";
 import {ISafetyModule} from "./interfaces/ISafetyModule.sol";
 import {IRewardsManager} from "./interfaces/IRewardsManager.sol";
 import {IRewardsManagerFactory} from "./interfaces/IRewardsManagerFactory.sol";

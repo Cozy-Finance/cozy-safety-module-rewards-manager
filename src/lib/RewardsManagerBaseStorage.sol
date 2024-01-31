@@ -4,8 +4,6 @@ pragma solidity 0.8.22;
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
-import {IManager} from "../interfaces/IManager.sol";
-import {ISafetyModule} from "../interfaces/ISafetyModule.sol";
 import {AssetPool, StakePool, IdLookup, RewardPool} from "./structs/Pools.sol";
 import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";
 
