@@ -18,7 +18,7 @@ abstract contract RewardsManagerBaseStorage {
   RewardPool[] public rewardPools;
 
   /// @dev Used for doing aggregate accounting of stake pool assets.
-  mapping(IERC20 reserveAsset_ => AssetPool assetPool_) public assetPools;
+  mapping(IERC20 asset_ => AssetPool assetPool_) public assetPools;
 
   /// @notice Maps a stake pool id to an reward pool id to claimable reward index
   mapping(uint16 => mapping(uint16 => ClaimableRewardsData)) public claimableRewards;
