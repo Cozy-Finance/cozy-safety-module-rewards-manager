@@ -10,15 +10,14 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
 import {StkToken} from "../src/StkToken.sol";
-import {ReservePool, RewardPool, IdLookup} from "../src/lib/structs/Pools.sol";
-import {RewardPoolConfig, ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
+import {RewardPoolConfig, StakePoolConfig} from "../src/lib/structs/Configs.sol";
+import {StakePool, RewardPool, IdLookup} from "../src/lib/structs/Pools.sol";
+import {ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
 import {ConfiguratorLib} from "../src/lib/ConfiguratorLib.sol";
 import {Configurator} from "../src/lib/Configurator.sol";
 import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
-import {IManager} from "../src/interfaces/IManager.sol";
-import {ISafetyModule} from "../src/interfaces/ISafetyModule.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {IConfiguratorEvents} from "../src/interfaces/IConfiguratorEvents.sol";
@@ -30,27 +29,18 @@ import "./utils/Stub.sol";
 
 contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
   TestableConfigurator component;
-  ReservePool reservePool1;
-  ReservePool reservePool2;
+  StakePool stakePool1;
+  StakePool stakePool2;
   RewardPool rewardPool1;
   RewardPool rewardPool2;
 
-  MockManager mockManager = new MockManager();
-  MockSafetyModule mockSafetyModule = new MockSafetyModule(SafetyModuleState.ACTIVE);
-
   function setUp() public {
-    mockManager.initGovernable(address(0xBEEF), address(0xABCD));
-    mockManager.setAllowedReservePools(30);
-    mockManager.setAllowedRewardPools(25);
-
     ReceiptToken receiptTokenLogic_ = new ReceiptToken();
     receiptTokenLogic_.initialize(address(0), "", "", 0);
     ReceiptTokenFactory receiptTokenFactory =
       new ReceiptTokenFactory(IReceiptToken(address(receiptTokenLogic_)), IReceiptToken(address(receiptTokenLogic_)));
 
-    component = new TestableConfigurator(
-      address(this), IManager(address(mockManager)), receiptTokenFactory, ISafetyModule(address(mockSafetyModule))
-    );
+    component = new TestableConfigurator(address(this), receiptTokenFactory, 3, 3);
 
     rewardPool1 = RewardPool({
       asset: IERC20(_randomAddress()),
@@ -69,15 +59,15 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
       lastDripTime: uint128(block.timestamp)
     });
 
-    reservePool1 = ReservePool({
+    stakePool1 = StakePool({
       amount: _randomUint256(),
-      safetyModuleReceiptToken: IReceiptToken(address(new ReceiptToken())),
+      asset: IERC20(address(new MockERC20("Mock Asset 1", "cozyMock1", 6))),
       stkReceiptToken: IReceiptToken(_randomAddress()),
       rewardsWeight: uint16(MathConstants.ZOC / 2)
     });
-    reservePool2 = ReservePool({
+    stakePool2 = StakePool({
       amount: _randomUint256(),
-      safetyModuleReceiptToken: IReceiptToken(address(new ReceiptToken())),
+      asset: IERC20(address(new MockERC20("Mock Asset 2", "cozyMock2", 18))),
       stkReceiptToken: IReceiptToken(_randomAddress()),
       rewardsWeight: uint16(MathConstants.ZOC / 2)
     });
@@ -85,24 +75,27 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
 
   function _generateValidRewardPoolConfig() private returns (RewardPoolConfig memory) {
     return RewardPoolConfig({
-      asset: IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6))),
+      asset: IERC20(address(new MockERC20("Mock Reward Asset", "cozyMock", 6))),
       dripModel: IDripModel(_randomAddress())
     });
   }
 
-  function _setBasicConfigs() private returns (RewardPoolConfig[] memory, uint16[] memory) {
+  function _generateValidStakePoolConfig(uint16 weight_) private returns (StakePoolConfig memory) {
+    return StakePoolConfig({
+      asset: IERC20(address(new MockERC20("Mock Stake Asset", "cozyMock", 6))),
+      rewardsWeight: weight_
+    });
+  }
+
+  function _setBasicConfigs() private returns (StakePoolConfig[] memory, RewardPoolConfig[] memory) {
+    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](2);
+    stakePoolConfigs_[0] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 2));
+    stakePoolConfigs_[1] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 2));
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](2);
     rewardPoolConfigs_[0] = _generateValidRewardPoolConfig();
     rewardPoolConfigs_[1] = _generateValidRewardPoolConfig();
-    uint16[] memory rewardsWeights_ = new uint16[](2);
-    rewardsWeights_[0] = uint16(MathConstants.ZOC / 2);
-    rewardsWeights_[1] = uint16(MathConstants.ZOC / 2);
 
-    mockSafetyModule.setReservePoolReceiptToken(0, reservePool1.safetyModuleReceiptToken);
-    mockSafetyModule.setReservePoolReceiptToken(1, reservePool2.safetyModuleReceiptToken);
-    mockSafetyModule.setNumReservePools(2);
-
-    return (rewardPoolConfigs_, rewardsWeights_);
+    return (stakePoolConfigs_, rewardPoolConfigs_);
   }
 
   function _assertRewardPoolUpdatesApplied(RewardPool memory rewardPool_, RewardPoolConfig memory rewardPoolConfig_)
@@ -112,111 +105,130 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     assertEq(address(rewardPool_.dripModel), address(rewardPoolConfig_.dripModel));
   }
 
-  function _assertReservePoolRewardsWeightApplied(ReservePool memory reservePool_, uint16 rewardsWeight_) private {
-    assertEq(reservePool_.rewardsWeight, rewardsWeight_);
+  function _assertStakePoolUpdatesApplied(StakePool memory stakePool_, StakePoolConfig memory stakePoolConfig_) private {
+    assertEq(address(stakePool_.asset), address(stakePoolConfig_.asset));
+    assertEq(stakePool_.rewardsWeight, stakePoolConfig_.rewardsWeight);
   }
 
   function test_updateConfigs_basicSetup() external {
-    (RewardPoolConfig[] memory rewardPoolConfigs_, uint16[] memory rewardsWeights_) = _setBasicConfigs();
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
 
     _expectEmit();
     emit TestableConfiguratorEvents.DripAndResetCumulativeRewardsValuesCalled();
     _expectEmit();
-    emit ConfigUpdatesApplied(rewardPoolConfigs_, rewardsWeights_);
+    emit ConfigUpdatesApplied(stakePoolConfigs_, rewardPoolConfigs_);
 
-    component.updateConfigs(rewardPoolConfigs_, rewardsWeights_);
+    component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
 
     _assertRewardPoolUpdatesApplied(component.getRewardPool(0), rewardPoolConfigs_[0]);
     _assertRewardPoolUpdatesApplied(component.getRewardPool(1), rewardPoolConfigs_[1]);
-    _assertReservePoolRewardsWeightApplied(component.getReservePool(0), rewardsWeights_[0]);
-    _assertReservePoolRewardsWeightApplied(component.getReservePool(1), rewardsWeights_[1]);
+    _assertStakePoolUpdatesApplied(component.getStakePool(0), stakePoolConfigs_[0]);
+    _assertStakePoolUpdatesApplied(component.getStakePool(1), stakePoolConfigs_[1]);
   }
 
   function test_updateConfigs_revertNonOwner() external {
-    (RewardPoolConfig[] memory rewardPoolConfigs_, uint16[] memory rewardsWeights_) = _setBasicConfigs();
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
 
     vm.expectRevert(Ownable.Unauthorized.selector);
     vm.prank(_randomAddress());
-    component.updateConfigs(rewardPoolConfigs_, rewardsWeights_);
-  }
-
-  function test_updateConfigs_revertSafetyModuleTriggered() external {
-    (RewardPoolConfig[] memory rewardPoolConfigs_, uint16[] memory rewardsWeights_) = _setBasicConfigs();
-    mockSafetyModule.setSafetyModuleState(SafetyModuleState.TRIGGERED);
-
-    vm.expectRevert(ICommonErrors.InvalidState.selector);
-    component.updateConfigs(rewardPoolConfigs_, rewardsWeights_);
+    component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
   }
 
   function test_isValidConfiguration_TrueValidConfig() external {
-    (RewardPoolConfig[] memory rewardPoolConfigs_, uint16[] memory rewardsWeights_) = _setBasicConfigs();
-    assertTrue(component.isValidConfiguration(rewardPoolConfigs_, rewardsWeights_));
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+    assertTrue(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
+  }
+
+  function test_isValidConfiguration_FalseTooManyStakePools() external {
+    (, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+    // Only 3 stake pools are allowed.
+    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](4);
+    stakePoolConfigs_[0] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
+    stakePoolConfigs_[1] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
+    stakePoolConfigs_[2] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
+    stakePoolConfigs_[3] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
+
+    assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
+  }
+
+  function test_isValidConfiguration_OnlyRewardPools() external {
+    (, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+    // No stake pools.
+    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](0);
+    assertTrue(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
   function test_isValidConfiguration_FalseTooManyRewardsPools() external {
-    (RewardPoolConfig[] memory rewardPoolConfigs_, uint16[] memory rewardsWeights_) = _setBasicConfigs();
-    mockManager.setAllowedRewardPools(1);
-    assertFalse(component.isValidConfiguration(rewardPoolConfigs_, rewardsWeights_));
-  }
+    (StakePoolConfig[] memory stakePoolConfigs_,) = _setBasicConfigs();
+    // Only 3 reward pools are allowed.
+    RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](4);
+    rewardPoolConfigs_[0] = _generateValidRewardPoolConfig();
+    rewardPoolConfigs_[1] = _generateValidRewardPoolConfig();
+    rewardPoolConfigs_[2] = _generateValidRewardPoolConfig();
+    rewardPoolConfigs_[3] = _generateValidRewardPoolConfig();
 
-  function test_isValidConfiguration_FalseRewardsWeightReservePoolMismatch() external {
-    (RewardPoolConfig[] memory rewardPoolConfigs_, uint16[] memory rewardsWeights_) = _setBasicConfigs();
-    mockSafetyModule.setNumReservePools(3);
-    assertFalse(component.isValidConfiguration(rewardPoolConfigs_, rewardsWeights_));
+    assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
   function test_isValidConfiguration_FalseInvalidWeightSum() external {
-    (RewardPoolConfig[] memory rewardPoolConfigs_, uint16[] memory rewardsWeights_) = _setBasicConfigs();
-    rewardsWeights_[0] = 0;
-    assertFalse(component.isValidConfiguration(rewardPoolConfigs_, rewardsWeights_));
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+    stakePoolConfigs_[0].rewardsWeight = 0;
+    assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
   function test_isValidUpdate_IsValidConfiguration() external {
-    (RewardPoolConfig[] memory rewardPoolConfigs_, uint16[] memory rewardsWeights_) = _setBasicConfigs();
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
 
-    assertTrue(component.isValidUpdate(rewardPoolConfigs_, rewardsWeights_));
+    assertTrue(component.isValidUpdate(stakePoolConfigs_, rewardPoolConfigs_));
 
-    rewardsWeights_[0] = 0; // Invalid weight sum
-    assertFalse(component.isValidUpdate(rewardPoolConfigs_, rewardsWeights_));
+    stakePoolConfigs_[0].rewardsWeight = 0; // Invalid weight sum
+    assertFalse(component.isValidUpdate(stakePoolConfigs_, rewardPoolConfigs_));
+  }
+
+  function test_isValidUpdate_ExistingStakePoolsChecks() external {
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+    component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
+
+    // Invalid update because `invalidStakePoolConfigs_.length < numExistingStakePools`.
+    StakePoolConfig[] memory invalidStakePoolConfigs_ = new StakePoolConfig[](1);
+    invalidStakePoolConfigs_[0] = stakePoolConfigs_[0];
+    assertFalse(component.isValidUpdate(invalidStakePoolConfigs_, rewardPoolConfigs_));
+
+    // Invalid update because `stakePool2.asset != invalidStakePoolConfigs_[1].asset`.
+    invalidStakePoolConfigs_ = new StakePoolConfig[](2);
+    invalidStakePoolConfigs_[0] = stakePoolConfigs_[0];
+    invalidStakePoolConfigs_[1] =
+      StakePoolConfig({asset: stakePoolConfigs_[0].asset, rewardsWeight: stakePoolConfigs_[1].rewardsWeight});
+    assertFalse(component.isValidUpdate(invalidStakePoolConfigs_, rewardPoolConfigs_));
+
+    // Valid update.
+    assertTrue(component.isValidUpdate(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
   function test_isValidUpdate_ExistingRewardPoolsChecks() external {
-    (RewardPoolConfig[] memory rewardPoolConfigs_, uint16[] memory rewardsWeights_) = _setBasicConfigs();
-    component.updateConfigs(rewardPoolConfigs_, rewardsWeights_);
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+    component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
 
     // Invalid update because `invalidRewardPoolConfigs_.length < numExistingRewardPools`.
     RewardPoolConfig[] memory invalidRewardPoolConfigs_ = new RewardPoolConfig[](1);
     invalidRewardPoolConfigs_[0] = rewardPoolConfigs_[0];
-    assertFalse(component.isValidUpdate(invalidRewardPoolConfigs_, rewardsWeights_));
+    assertFalse(component.isValidUpdate(stakePoolConfigs_, invalidRewardPoolConfigs_));
 
     // Invalid update because `rewardPool2.asset != invalidRewardPoolConfigs_[1].asset`.
     invalidRewardPoolConfigs_ = new RewardPoolConfig[](2);
     invalidRewardPoolConfigs_[0] = rewardPoolConfigs_[0];
     invalidRewardPoolConfigs_[1] =
       RewardPoolConfig({asset: rewardPoolConfigs_[0].asset, dripModel: rewardPoolConfigs_[1].dripModel});
-    assertFalse(component.isValidUpdate(invalidRewardPoolConfigs_, rewardsWeights_));
+    assertFalse(component.isValidUpdate(stakePoolConfigs_, invalidRewardPoolConfigs_));
 
     // Valid update.
-    assertTrue(component.isValidUpdate(rewardPoolConfigs_, rewardsWeights_));
+    assertTrue(component.isValidUpdate(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function test_updateConfigsActive() external {
-    _test_updateConfigs(SafetyModuleState.ACTIVE);
-  }
-
-  function test_updateConfigsPaused() external {
-    _test_updateConfigs(SafetyModuleState.PAUSED);
-  }
-
-  function _test_updateConfigs(SafetyModuleState state_) internal {
-    mockSafetyModule.setSafetyModuleState(state_);
-
-    // Add two existing reserve pools.
-    component.mockAddReservePool(reservePool1);
-    component.mockAddReservePool(reservePool2);
-    mockSafetyModule.setReservePoolReceiptToken(0, reservePool1.safetyModuleReceiptToken);
-    mockSafetyModule.setReservePoolReceiptToken(1, reservePool2.safetyModuleReceiptToken);
-    mockSafetyModule.setNumReservePools(2);
+  function test_updateConfigs() external {
+    // Add two existing stake pools.
+    component.mockAddStakePool(stakePool1);
+    component.mockAddStakePool(stakePool2);
 
     // Add two existing reward pools.
     component.mockAddRewardPool(rewardPool1);
@@ -228,23 +240,25 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     rewardPoolConfigs_[1] = RewardPoolConfig({asset: rewardPool2.asset, dripModel: IDripModel(_randomAddress())});
     rewardPoolConfigs_[2] = _generateValidRewardPoolConfig();
 
-    // Changes the rewards weights of the existing reserve pools from 50%-50% to 0%-100%.
-    uint16[] memory rewardsWeights_ = new uint16[](2);
-    rewardsWeights_[0] = 0;
-    rewardsWeights_[1] = uint16(MathConstants.ZOC);
+    // Changes the rewards weights of the existing stake pools from 50%-50% to 0%-100%.
+    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](2);
+    stakePoolConfigs_[0].rewardsWeight = 0;
+    stakePoolConfigs_[0].asset = stakePool1.asset;
+    stakePoolConfigs_[1].rewardsWeight = uint16(MathConstants.ZOC);
+    stakePoolConfigs_[1].asset = stakePool2.asset;
 
     _expectEmit();
     emit TestableConfiguratorEvents.DripAndResetCumulativeRewardsValuesCalled();
     _expectEmit();
-    emit ConfigUpdatesApplied(rewardPoolConfigs_, rewardsWeights_);
+    emit ConfigUpdatesApplied(stakePoolConfigs_, rewardPoolConfigs_);
 
-    component.updateConfigs(rewardPoolConfigs_, rewardsWeights_);
+    component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
 
-    // Reserve pool config updates applied.
-    ReservePool[] memory reservePools_ = component.getReservePools();
-    assertEq(reservePools_.length, 2);
-    _assertReservePoolRewardsWeightApplied(reservePools_[0], rewardsWeights_[0]);
-    _assertReservePoolRewardsWeightApplied(reservePools_[1], rewardsWeights_[1]);
+    // Stake pool config updates applied.
+    StakePool[] memory stakePools_ = component.getStakePools();
+    assertEq(stakePools_.length, 2);
+    _assertStakePoolUpdatesApplied(stakePools_[0], stakePoolConfigs_[0]);
+    _assertStakePoolUpdatesApplied(stakePools_[1], stakePoolConfigs_[1]);
 
     // Reward pool config updates applied.
     RewardPool[] memory rewardPools_ = component.getRewardPools();
@@ -254,31 +268,32 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     _assertRewardPoolUpdatesApplied(rewardPools_[2], rewardPoolConfigs_[2]);
   }
 
-  function test_initializeReservePool() external {
-    // One existing reserve pool.
-    component.mockAddReservePool(reservePool1);
-    // New reserve pool config.
-    IReceiptToken newSafetyModuleReceiptToken_ = IReceiptToken(address(new ReceiptToken()));
-    uint16 newRewardsWeight_ = uint16(_randomUint16());
+  function test_initializeStakePool() external {
+    // One existing stake pool.
+    component.mockAddStakePool(stakePool1);
+    // New stake pool config.
+    IReceiptToken asset_ = IReceiptToken(address(new ReceiptToken()));
+    StakePoolConfig memory newStakePoolConfig_ =
+      StakePoolConfig({asset: asset_, rewardsWeight: uint16(_randomUint16())});
 
     IReceiptTokenFactory receiptTokenFactory_ = component.getReceiptTokenFactory();
     address stkReceiptTokenAddress_ =
       receiptTokenFactory_.computeAddress(address(component), 1, IReceiptTokenFactory.PoolType.STAKE);
 
     _expectEmit();
-    emit ReservePoolCreated(1, IReceiptToken(stkReceiptTokenAddress_), newSafetyModuleReceiptToken_);
-    component.initializeReservePool(newSafetyModuleReceiptToken_, newRewardsWeight_);
+    emit StakePoolCreated(1, IReceiptToken(stkReceiptTokenAddress_), asset_);
+    component.initializeStakePool(newStakePoolConfig_);
 
-    // One reserve pool was added, so two total reserve pools.
-    assertEq(component.getReservePools().length, 2);
-    // Check that the new reserve pool was initialized correctly.
-    ReservePool memory newReservePool_ = component.getReservePool(1);
-    _assertReservePoolRewardsWeightApplied(newReservePool_, newRewardsWeight_);
-    assertEq(address(newReservePool_.safetyModuleReceiptToken), address(newSafetyModuleReceiptToken_));
-    assertEq(address(newReservePool_.stkReceiptToken), stkReceiptTokenAddress_);
-    assertEq(newReservePool_.amount, 0);
+    // One stake pool was added, so two total stake pools.
+    assertEq(component.getStakePools().length, 2);
+    // Check that the new stake pool was initialized correctly.
+    StakePool memory newStakePool_ = component.getStakePool(1);
+    _assertStakePoolUpdatesApplied(newStakePool_, newStakePoolConfig_);
+    assertEq(address(newStakePool_.asset), address(asset_));
+    assertEq(address(newStakePool_.stkReceiptToken), stkReceiptTokenAddress_);
+    assertEq(newStakePool_.amount, 0);
 
-    IdLookup memory idLookup_ = component.getStkReceiptTokenToReservePoolId(stkReceiptTokenAddress_);
+    IdLookup memory idLookup_ = component.getStkReceiptTokenToStakePoolId(stkReceiptTokenAddress_);
     assertEq(idLookup_.exists, true);
     assertEq(idLookup_.index, 1);
   }
@@ -312,19 +327,19 @@ interface TestableConfiguratorEvents {
 contract TestableConfigurator is Configurator, TestableConfiguratorEvents {
   constructor(
     address owner_,
-    IManager manager_,
     IReceiptTokenFactory receiptTokenFactory_,
-    ISafetyModule safetyModule_
+    uint8 allowedStakePools_,
+    uint8 allowedRewardPools_
   ) {
-    __initGovernable(owner_, owner_);
-    cozyManager = manager_;
+    __initOwnable(owner_);
     receiptTokenFactory = receiptTokenFactory_;
-    safetyModule = safetyModule_;
+    allowedStakePools = allowedStakePools_;
+    allowedRewardPools = allowedRewardPools_;
   }
 
   // -------- Mock setters --------
-  function mockAddReservePool(ReservePool memory reservePool_) external {
-    reservePools.push(reservePool_);
+  function mockAddStakePool(StakePool memory stakePool_) external {
+    stakePools.push(stakePool_);
   }
 
   function mockAddRewardPool(RewardPool memory rewardPool_) external {
@@ -332,16 +347,16 @@ contract TestableConfigurator is Configurator, TestableConfiguratorEvents {
   }
 
   // -------- Mock getters --------
-  function getReservePools() external view returns (ReservePool[] memory) {
-    return reservePools;
+  function getStakePools() external view returns (StakePool[] memory) {
+    return stakePools;
   }
 
   function getRewardPools() external view returns (RewardPool[] memory) {
     return rewardPools;
   }
 
-  function getReservePool(uint16 reservePoolId_) external view returns (ReservePool memory) {
-    return reservePools[reservePoolId_];
+  function getStakePool(uint16 stakePoolId_) external view returns (StakePool memory) {
+    return stakePools[stakePoolId_];
   }
 
   function getRewardPool(uint16 rewardPoolId_) external view returns (RewardPool memory) {
@@ -352,32 +367,32 @@ contract TestableConfigurator is Configurator, TestableConfiguratorEvents {
     return receiptTokenFactory;
   }
 
-  function getStkReceiptTokenToReservePoolId(address stkReceiptTokenAddress_) external view returns (IdLookup memory) {
-    return stkReceiptTokenToReservePoolIds[IReceiptToken(stkReceiptTokenAddress_)];
+  function getStkReceiptTokenToStakePoolId(address stkReceiptTokenAddress_) external view returns (IdLookup memory) {
+    return stkReceiptTokenToStakePoolIds[IReceiptToken(stkReceiptTokenAddress_)];
   }
 
   // -------- Internal function wrappers for testing --------
-  function isValidConfiguration(RewardPoolConfig[] calldata rewardPoolConfigs_, uint16[] calldata rewardsWeights_)
+  function isValidConfiguration(
+    StakePoolConfig[] calldata stakePoolConfigs_,
+    RewardPoolConfig[] calldata rewardPoolConfigs_
+  ) external view returns (bool) {
+    return
+      ConfiguratorLib.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_, allowedStakePools, allowedRewardPools);
+  }
+
+  function isValidUpdate(StakePoolConfig[] calldata stakePoolConfigs_, RewardPoolConfig[] calldata rewardPoolConfigs_)
     external
     view
     returns (bool)
   {
-    return ConfiguratorLib.isValidConfiguration(
-      rewardPoolConfigs_, rewardsWeights_, safetyModule, cozyManager.allowedRewardPools()
+    return ConfiguratorLib.isValidUpdate(
+      stakePools, rewardPools, stakePoolConfigs_, rewardPoolConfigs_, allowedStakePools, allowedRewardPools
     );
   }
 
-  function isValidUpdate(RewardPoolConfig[] calldata rewardPoolConfigs_, uint16[] calldata rewardsWeights_)
-    external
-    view
-    returns (bool)
-  {
-    return ConfiguratorLib.isValidUpdate(rewardPools, rewardPoolConfigs_, rewardsWeights_, safetyModule, cozyManager);
-  }
-
-  function initializeReservePool(IReceiptToken safetyModuleReceiptToken_, uint16 rewardsWeight_) external {
-    ConfiguratorLib.initializeReservePool(
-      reservePools, stkReceiptTokenToReservePoolIds, receiptTokenFactory, safetyModuleReceiptToken_, rewardsWeight_
+  function initializeStakePool(StakePoolConfig calldata stakePoolConfig_) external {
+    ConfiguratorLib.initializeStakePool(
+      stakePools, stkReceiptTokenToStakePoolIds, receiptTokenFactory, stakePoolConfig_
     );
   }
 
@@ -386,7 +401,7 @@ contract TestableConfigurator is Configurator, TestableConfiguratorEvents {
   }
 
   function _dripAndResetCumulativeRewardsValues(
-    ReservePool[] storage, /* reservePools_ */
+    StakePool[] storage, /* stakePools_ */
     RewardPool[] storage /* rewardPools_ */
   ) internal override {
     emit DripAndResetCumulativeRewardsValuesCalled();
@@ -394,7 +409,7 @@ contract TestableConfigurator is Configurator, TestableConfiguratorEvents {
 
   // -------- Overridden abstract function placeholders --------
 
-  function _claimRewards(uint16, /* reservePoolId_ */ address, /* receiver_ */ address /* owner */ ) internal override {
+  function _claimRewards(uint16, /* stakePoolId_ */ address, /* receiver_ */ address /* owner */ ) internal override {
     __writeStub__();
   }
 
@@ -433,7 +448,7 @@ contract TestableConfigurator is Configurator, TestableConfiguratorEvents {
   }
 
   function _dripAndApplyPendingDrippedRewards(
-    ReservePool storage, /*reservePool_*/
+    StakePool storage, /*stakePool_*/
     mapping(uint16 => ClaimableRewardsData) storage /*claimableRewards_*/
   ) internal view override {
     __readStub__();

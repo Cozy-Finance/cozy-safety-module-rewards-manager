@@ -6,11 +6,11 @@ import {RewardsManagerBaseStorage} from "./RewardsManagerBaseStorage.sol";
 import {ICommonErrors} from "../interfaces/ICommonErrors.sol";
 import {IDripModel} from "../interfaces/IDripModel.sol";
 import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";
-import {ReservePool, RewardPool} from "./structs/Pools.sol";
+import {StakePool, RewardPool} from "./structs/Pools.sol";
 
 abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErrors {
-  /// @notice Claim staking rewards for a given reserve pool.
-  function _claimRewards(uint16 reservePoolId_, address receiver_, address owner_) internal virtual;
+  /// @notice Claim staking rewards for a given stake pool.
+  function _claimRewards(uint16 stakePoolId_, address receiver_, address owner_) internal virtual;
 
   /// @notice Updates the balances for each reward pool by applying a drip factor on them, and increment the
   /// claimable rewards index for each claimable rewards pool.
@@ -47,11 +47,11 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
   function _dripRewardPool(RewardPool storage rewardPool_) internal virtual;
 
   function _dripAndApplyPendingDrippedRewards(
-    ReservePool storage reservePool_,
+    StakePool storage stakePool_,
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_
   ) internal virtual;
 
-  function _dripAndResetCumulativeRewardsValues(ReservePool[] storage reservePools_, RewardPool[] storage rewardPools_)
+  function _dripAndResetCumulativeRewardsValues(StakePool[] storage stakePools_, RewardPool[] storage rewardPools_)
     internal
     virtual;
 }

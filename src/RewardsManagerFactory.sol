@@ -2,20 +2,15 @@
 pragma solidity 0.8.22;
 
 import {Clones} from "openzeppelin-contracts/contracts/proxy/Clones.sol";
-import {IManager} from "./interfaces/IManager.sol";
-import {ISafetyModule} from "./interfaces/ISafetyModule.sol";
 import {IRewardsManager} from "./interfaces/IRewardsManager.sol";
 import {IRewardsManagerFactory} from "./interfaces/IRewardsManagerFactory.sol";
-import {RewardPoolConfig} from "./lib/structs/Rewards.sol";
+import {RewardPoolConfig, StakePoolConfig} from "./lib/structs/Configs.sol";
 
 /**
  * @notice Deploys new Rewards Managers.
  */
 contract RewardsManagerFactory is IRewardsManagerFactory {
   using Clones for address;
-
-  /// @notice Address of the Cozy protocol manager.
-  IManager public immutable cozyManager;
 
   /// @notice Address of the Rewards Manager logic contract used to deploy new Rewards Managers.
   IRewardsManager public immutable rewardsManagerLogic;
@@ -26,34 +21,26 @@ contract RewardsManagerFactory is IRewardsManagerFactory {
   /// @dev Thrown if an address parameter is invalid.
   error InvalidAddress();
 
-  /// @param manager_ Cozy protocol Manager.
   /// @param rewardsManagerLogic_ Logic contract for deploying new Rewards Managers.
-  constructor(IManager manager_, IRewardsManager rewardsManagerLogic_) {
-    _assertAddressNotZero(address(manager_));
+  constructor(IRewardsManager rewardsManagerLogic_) {
     _assertAddressNotZero(address(rewardsManagerLogic_));
-    cozyManager = manager_;
     rewardsManagerLogic = rewardsManagerLogic_;
   }
 
   /// @notice Creates a new Rewards Manager contract with the specified configuration.
   /// @param owner_ The owner of the rewards manager.
-  /// @param pauser_ The pauser of the rewards manager.
   /// @param baseSalt_ Used to compute the resulting address of the rewards manager.
   function deployRewardsManager(
     address owner_,
-    address pauser_,
-    address safetyModuleAddress_,
+    StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_,
-    uint16[] calldata rewardsWeights_,
     bytes32 baseSalt_
   ) public returns (IRewardsManager rewardsManager_) {
-    // It'd be harmless to let anyone deploy rewards managers, but to make it more clear where the proper entry
-    // point for rewards manager creation is, we restrict this to being called by the Cozy manager.
-    if (msg.sender != address(cozyManager)) revert Unauthorized();
+    _assertAddressNotZero(owner_);
 
     rewardsManager_ = IRewardsManager(address(rewardsManagerLogic).cloneDeterministic(salt(baseSalt_)));
-    rewardsManager_.initialize(owner_, pauser_, safetyModuleAddress_, rewardPoolConfigs_, rewardsWeights_);
-    emit RewardsManagerDeployed(rewardsManager_, ISafetyModule(safetyModuleAddress_));
+    rewardsManager_.initialize(owner_, stakePoolConfigs_, rewardPoolConfigs_);
+    emit RewardsManagerDeployed(rewardsManager_);
   }
 
   /// @notice Given the `baseSalt_` compute and return the address that Rewards Manager will be deployed to.

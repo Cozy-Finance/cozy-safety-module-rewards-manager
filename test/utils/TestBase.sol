@@ -5,8 +5,7 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IDripModel} from "../../src/interfaces/IDripModel.sol";
 import {IRewardsManager} from "../../src/interfaces/IRewardsManager.sol";
-import {ISafetyModule} from "../../src/interfaces/ISafetyModule.sol";
-import {RewardPool, ReservePool} from "../../src/lib/structs/Pools.sol";
+import {RewardPool, StakePool} from "../../src/lib/structs/Pools.sol";
 import {Test} from "forge-std/Test.sol";
 import {TestAssertions} from "./TestAssertions.sol";
 
@@ -88,19 +87,10 @@ contract TestBase is Test, TestAssertions {
     vm.expectRevert(abi.encodeWithSelector(PANIC_SELECTOR, code_));
   }
 
-  function getReservePool(IRewardsManager rewardsManager_, uint256 reservePoolId_)
-    internal
-    view
-    returns (ReservePool memory)
-  {
-    (uint256 amount, IReceiptToken safetyModuleReceiptToken, IReceiptToken stkReceiptToken, uint16 rewardsWeight) =
-      rewardsManager_.reservePools(reservePoolId_);
-    return ReservePool({
-      amount: amount,
-      safetyModuleReceiptToken: safetyModuleReceiptToken,
-      stkReceiptToken: stkReceiptToken,
-      rewardsWeight: rewardsWeight
-    });
+  function getStakePool(IRewardsManager rewardsManager_, uint256 stakePoolId_) internal view returns (StakePool memory) {
+    (uint256 amount, IERC20 asset, IReceiptToken stkReceiptToken, uint16 rewardsWeight) =
+      rewardsManager_.stakePools(stakePoolId_);
+    return StakePool({amount: amount, asset: asset, stkReceiptToken: stkReceiptToken, rewardsWeight: rewardsWeight});
   }
 
   function getRewardPool(IRewardsManager rewardsManager_, uint256 rewardPoolid_)
@@ -126,8 +116,8 @@ contract TestBase is Test, TestAssertions {
     });
   }
 
-  function copyReservePool(ReservePool memory original_) internal pure returns (ReservePool memory copied_) {
-    copied_.safetyModuleReceiptToken = original_.safetyModuleReceiptToken;
+  function copyReservePool(StakePool memory original_) internal pure returns (StakePool memory copied_) {
+    copied_.asset = original_.asset;
     copied_.stkReceiptToken = original_.stkReceiptToken;
     copied_.rewardsWeight = original_.rewardsWeight;
     copied_.amount = original_.amount;
