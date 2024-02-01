@@ -9,6 +9,7 @@ import {Depositor} from "./lib/Depositor.sol";
 import {RewardsDistributor} from "./lib/RewardsDistributor.sol";
 import {Staker} from "./lib/Staker.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./lib/structs/Configs.sol";
+import {IConfiguratorErrors} from "./interfaces/IConfiguratorErrors.sol";
 
 contract RewardsManager is RewardsManagerCommon, Configurator, Depositor, RewardsDistributor, Staker {
   bool public initialized;
@@ -29,6 +30,9 @@ contract RewardsManager is RewardsManagerCommon, Configurator, Depositor, Reward
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external {
     if (initialized) revert Initialized();
+    if (
+      !ConfiguratorLib.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_, allowedStakePools, allowedRewardPools)
+    ) revert IConfiguratorErrors.InvalidConfiguration();
 
     // Rewards managers are minimal proxies, so the owner is set to address(0) in the constructor for the
     // logic contract. When the rewards manager is initialized for the minimal proxy, we update the owner.

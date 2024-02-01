@@ -60,11 +60,13 @@ library ConfiguratorLib {
     if (rewardPoolConfigs_.length > allowedRewardPools_) return false;
 
     // Validate rewards weights.
-    uint16 rewardsWeightSum_ = 0;
-    for (uint16 i = 0; i < stakePoolConfigs_.length; i++) {
-      rewardsWeightSum_ += stakePoolConfigs_[i].rewardsWeight;
+    if (stakePoolConfigs_.length != 0) {
+      uint16 rewardsWeightSum_ = 0;
+      for (uint16 i = 0; i < stakePoolConfigs_.length; i++) {
+        rewardsWeightSum_ += stakePoolConfigs_[i].rewardsWeight;
+      }
+      if (rewardsWeightSum_ != MathConstants.ZOC) return false;
     }
-    if (rewardsWeightSum_ != MathConstants.ZOC) return false;
 
     return true;
   }

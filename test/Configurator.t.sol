@@ -151,6 +151,13 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
+  function test_isValidConfiguration_OnlyRewardPools() external {
+    (, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+    // No stake pools.
+    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](0);
+    assertTrue(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
+  }
+
   function test_isValidConfiguration_FalseTooManyRewardsPools() external {
     (StakePoolConfig[] memory stakePoolConfigs_,) = _setBasicConfigs();
     // Only 3 reward pools are allowed.

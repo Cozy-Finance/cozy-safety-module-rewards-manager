@@ -36,10 +36,10 @@ contract RewardsManagerFactory is IRewardsManagerFactory {
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     bytes32 baseSalt_
   ) public returns (IRewardsManager rewardsManager_) {
+    _assertAddressNotZero(owner_);
+
     rewardsManager_ = IRewardsManager(address(rewardsManagerLogic).cloneDeterministic(salt(baseSalt_)));
-
     rewardsManager_.initialize(owner_, stakePoolConfigs_, rewardPoolConfigs_);
-
     emit RewardsManagerDeployed(rewardsManager_);
   }
 

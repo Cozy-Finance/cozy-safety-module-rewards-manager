@@ -5,6 +5,7 @@ import {ReceiptToken} from "cozy-safety-module-shared/ReceiptToken.sol";
 import {ReceiptTokenFactory} from "cozy-safety-module-shared/ReceiptTokenFactory.sol";
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
+import {IConfiguratorErrors} from "../src/interfaces/IConfiguratorErrors.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
@@ -55,7 +56,7 @@ contract RewardsManagerFactoryTest is TestBase {
     new RewardsManagerFactory(IRewardsManager(address(0)));
   }
 
-  function test_deployRewardsManager1() public {
+  function test_deployRewardsManager() public {
     address owner_ = _randomAddress();
     IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6)));
 
@@ -91,5 +92,36 @@ contract RewardsManagerFactoryTest is TestBase {
     // Cannot call initialize again on the rewards manager.
     vm.expectRevert(RewardsManager.Initialized.selector);
     rewardsManager_.initialize(_randomAddress(), stakePoolConfigs_, rewardPoolConfigs_);
+  }
+
+  function test_deployRewardsManager_invalidConfiguration() public {
+    address owner_ = _randomAddress();
+    IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6)));
+
+    // Invalid configuration, rewards weight must sum to zoc.
+    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
+    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: 1});
+    RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
+    rewardPoolConfigs_[0] = RewardPoolConfig({asset: asset_, dripModel: IDripModel(address(_randomAddress()))});
+
+    bytes32 baseSalt_ = _randomBytes32();
+
+    vm.expectRevert(IConfiguratorErrors.InvalidConfiguration.selector);
+    rewardsManagerFactory.deployRewardsManager(owner_, stakePoolConfigs_, rewardPoolConfigs_, baseSalt_);
+  }
+
+  function test_deployRewardsManager_invalidAddress() public {
+    address owner_ = address(0);
+    IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6)));
+
+    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
+    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: uint16(MathConstants.ZOC)});
+    RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
+    rewardPoolConfigs_[0] = RewardPoolConfig({asset: asset_, dripModel: IDripModel(address(_randomAddress()))});
+
+    bytes32 baseSalt_ = _randomBytes32();
+
+    vm.expectRevert(RewardsManagerFactory.InvalidAddress.selector);
+    rewardsManagerFactory.deployRewardsManager(owner_, stakePoolConfigs_, rewardPoolConfigs_, baseSalt_);
   }
 }
