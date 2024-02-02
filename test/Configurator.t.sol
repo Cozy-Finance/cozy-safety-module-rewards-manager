@@ -204,7 +204,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     invalidRewardPoolConfigs_[0] = rewardPoolConfigs_[0];
     assertFalse(component.isValidUpdate(stakePoolConfigs_, invalidRewardPoolConfigs_));
 
-    // Invalid update because `rewardPool2.asset != invalidRewardPoolConfigs_[1].asset`.
+    // Invalid update because `rewardPoolB_.asset != invalidRewardPoolConfigs_[1].asset`.
     invalidRewardPoolConfigs_ = new RewardPoolConfig[](2);
     invalidRewardPoolConfigs_[0] = rewardPoolConfigs_[0];
     invalidRewardPoolConfigs_[1] =
@@ -216,32 +216,32 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
   }
 
   function test_updateConfigs() external {
-    RewardPool memory rewardPool1 = _generateRewardPool();
-    RewardPool memory rewardPool2 = _generateRewardPool();
+    RewardPool memory rewardPoolA_ = _generateRewardPool();
+    RewardPool memory rewardPoolB_ = _generateRewardPool();
     StakePool[] memory mockStakePools_ = _generateStakePools(2);
-    StakePool memory stakePool1 = mockStakePools_[0];
-    StakePool memory stakePool2 = mockStakePools_[1];
+    StakePool memory stakePoolA_ = mockStakePools_[0];
+    StakePool memory stakePoolB_ = mockStakePools_[1];
 
     // Add two existing stake pools.
-    component.mockAddStakePool(stakePool1);
-    component.mockAddStakePool(stakePool2);
+    component.mockAddStakePool(stakePoolA_);
+    component.mockAddStakePool(stakePoolB_);
 
     // Add two existing reward pools.
-    component.mockAddRewardPool(rewardPool1);
-    component.mockAddRewardPool(rewardPool2);
+    component.mockAddRewardPool(rewardPoolA_);
+    component.mockAddRewardPool(rewardPoolB_);
 
     // Create valid config update. Adds a new reward pool and chnages the drip model of the existing reward pools.
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](3);
-    rewardPoolConfigs_[0] = RewardPoolConfig({asset: rewardPool1.asset, dripModel: IDripModel(_randomAddress())});
-    rewardPoolConfigs_[1] = RewardPoolConfig({asset: rewardPool2.asset, dripModel: IDripModel(_randomAddress())});
+    rewardPoolConfigs_[0] = RewardPoolConfig({asset: rewardPoolA_.asset, dripModel: IDripModel(_randomAddress())});
+    rewardPoolConfigs_[1] = RewardPoolConfig({asset: rewardPoolB_.asset, dripModel: IDripModel(_randomAddress())});
     rewardPoolConfigs_[2] = _generateValidRewardPoolConfig();
 
     // Changes the rewards weights of the existing stake pools from 50%-50% to 0%-100%.
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](2);
     stakePoolConfigs_[0].rewardsWeight = 0;
-    stakePoolConfigs_[0].asset = stakePool1.asset;
+    stakePoolConfigs_[0].asset = stakePoolA_.asset;
     stakePoolConfigs_[1].rewardsWeight = uint16(MathConstants.ZOC);
-    stakePoolConfigs_[1].asset = stakePool2.asset;
+    stakePoolConfigs_[1].asset = stakePoolB_.asset;
 
     _expectEmit();
     emit TestableConfiguratorEvents.DripAndResetCumulativeRewardsValuesCalled();
@@ -296,9 +296,9 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
   }
 
   function test_initializeRewardPool() external {
-    RewardPool memory rewardPool1 = _generateRewardPool();
+    RewardPool memory rewardPoolA_ = _generateRewardPool();
     // One existing reward pool.
-    component.mockAddRewardPool(rewardPool1);
+    component.mockAddRewardPool(rewardPoolA_);
     // New reward pool config.
     RewardPoolConfig memory newRewardPoolConfig_ = _generateValidRewardPoolConfig();
 

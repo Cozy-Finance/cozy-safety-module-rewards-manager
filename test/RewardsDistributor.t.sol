@@ -6,6 +6,7 @@ import {DripModelExponential} from "cozy-safety-module-models/DripModelExponenti
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
+import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
@@ -103,7 +104,7 @@ contract RewardsDistributorUnitTest is TestBase {
   }
 
   function _setUpConcrete() internal {
-    // Set-up two reserve pools.
+    // Set-up two stake pools.
     MockERC20 mockStakeAssetA_ = new MockERC20("Mock Stake Asset A", "MockStakeAssetA", 6);
     IReceiptToken stkReceiptTokenA_ =
       IReceiptToken(address(new MockStkToken(address(component), "Mock StkReceiptToken A", "MockStkReceiptTokenA", 6)));
@@ -142,7 +143,7 @@ contract RewardsDistributorUnitTest is TestBase {
     component.mockAddAssetPool(IERC20(address(mockStakeAssetB_)), AssetPool({amount: stakeAmountB_}));
     stkReceiptTokenB_.mint(address(0), stkReceiptTokenSupplyB_);
 
-    // Set-up three reserve pools.
+    // Set-up three reward pools.
     {
       MockERC20 mockRewardAssetA_ = new MockERC20("Mock Reward Asset A", "MockRewardAssetA", 6);
       uint256 undrippedRewardsA_ = 100_000;
@@ -196,6 +197,20 @@ contract RewardsDistributorUnitTest is TestBase {
       mockRewardAssetC_.mint(address(component), undrippedRewardsC_);
       component.mockAddAssetPool(IERC20(address(mockRewardAssetC_)), AssetPool({amount: undrippedRewardsC_}));
     }
+  }
+
+  function _stake(uint16 stakePoolId_, uint256 amount_, address user_, address receiver_)
+    internal
+    returns (uint256 stkReceiptTokenAmount_)
+  {
+    StakePool memory stakePool_ = component.getStakePool(stakePoolId_);
+    MockERC20 mockStakeAsset_ = MockERC20(address(stakePool_.asset));
+    mockStakeAsset_.mint(user_, amount_);
+
+    vm.prank(user_);
+    mockStakeAsset_.approve(address(component), amount_);
+    stkReceiptTokenAmount_ = component.stake(stakePoolId_, amount_, user_, receiver_);
+    vm.stopPrank();
   }
 
   function _getUserClaimRewardsFixture() internal returns (address user_, uint16 stakePoolId_, address receiver_) {
@@ -352,20 +367,6 @@ contract RewardsDepositorDripUnitTest is RewardsDistributorUnitTest {
 
 contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
   using FixedPointMathLib for uint256;
-
-  function _stake(uint16 stakePoolId_, uint256 amount_, address user_, address receiver_)
-    internal
-    returns (uint256 stkReceiptTokenAmount_)
-  {
-    StakePool memory stakePool_ = component.getStakePool(stakePoolId_);
-    MockERC20 mockStakeAsset_ = MockERC20(address(stakePool_.asset));
-    mockStakeAsset_.mint(user_, amount_);
-
-    vm.prank(user_);
-    mockStakeAsset_.approve(address(component), amount_);
-    stkReceiptTokenAmount_ = component.stake(stakePoolId_, amount_, user_, receiver_);
-    vm.stopPrank();
-  }
 
   function test_claimRewardsConcrete() public {
     _setUpConcrete();
@@ -631,7 +632,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
     IReceiptToken stkReceiptToken_ = component.getStakePool(stakePoolId_).stkReceiptToken;
     uint256 userStkReceiptTokenBalance_ = stkReceiptToken_.balanceOf(user_);
-    uint256 userStkReceiptTokenSupply_ = stkReceiptToken_.totalSupply();
+    uint256 totalStkReceiptTokenSupply_ = stkReceiptToken_.totalSupply();
 
     RewardPool[] memory oldRewardPools_ = component.getRewardPools();
     ClaimableRewardsData[] memory oldClaimableRewards_ = component.getClaimableRewards(stakePoolId_);
@@ -790,6 +791,211 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
   }
 }
 
+contract RewardsDistributorStkTokenTransferUnitTest is RewardsDistributorUnitTest {
+  function test_stkTokenTransferRewardsAccounting() public {
+    _test_stkTokenTransferFuncRewardsAccounting(false);
+  }
+
+  function test_stkTokenTransferFromRewardsAccounting() public {
+    _test_stkTokenTransferFuncRewardsAccounting(true);
+  }
+
+  function _test_stkTokenTransferFuncRewardsAccounting(bool useTransferFrom) internal {
+    _setUpConcrete();
+    address user_ = _randomAddress();
+    address receiver_ = _randomAddress();
+
+    // User stakes 100e6, increasing stkTokenSupply to 0.2e18. User owns 50% of total stake, 200e6.
+    uint256 userStkReceiptTokenBalance_ = _stake(0, 100e6, user_, user_);
+    StakePool memory stakePool_ = component.getStakePool(0);
+
+    // User transfers 25% the stkTokens.
+    if (!useTransferFrom) {
+      vm.prank(user_);
+      stakePool_.stkReceiptToken.transfer(receiver_, userStkReceiptTokenBalance_ / 4);
+    } else {
+      address approvedAddress_ = _randomAddress();
+      vm.prank(user_);
+      stakePool_.stkReceiptToken.approve(approvedAddress_, type(uint256).max);
+
+      vm.prank(approvedAddress_);
+      stakePool_.stkReceiptToken.transferFrom(user_, receiver_, userStkReceiptTokenBalance_ / 4);
+    }
+
+    // Check stkReceiptToken balances.
+    uint256 receiverStkReceiptTokenBalance_ = userStkReceiptTokenBalance_ / 4;
+    assertEq(stakePool_.stkReceiptToken.balanceOf(user_), userStkReceiptTokenBalance_ - receiverStkReceiptTokenBalance_);
+    assertEq(stakePool_.stkReceiptToken.balanceOf(receiver_), receiverStkReceiptTokenBalance_);
+
+    skip(ONE_YEAR);
+
+    // User claims rewards.
+    vm.prank(user_);
+    component.claimRewards(0, user_);
+
+    // Check user rewards balances.
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+
+    IERC20 rewardAssetA_ = rewardPools_[0].asset;
+    IERC20 rewardAssetB_ = rewardPools_[1].asset;
+    IERC20 rewardAssetC_ = rewardPools_[2].asset;
+
+    // Reward amounts received by `user_` are calculated as: rewardPool.amount * dripRate *
+    // rewardsPoolWeight * (userStkTokenBalance / totalStkTokenSupply).
+    assertApproxEqAbs(rewardAssetA_.balanceOf(user_), 37, 1); // 100_000 * 0.01 * 0.1 * (0.5 * 0.75)
+    assertApproxEqAbs(rewardAssetB_.balanceOf(user_), 9_375_000, 1); // 1_000_000_000 * 0.25 * 0.1 *
+      // (0.5 * 0.75)
+    assertApproxEqAbs(rewardAssetC_.balanceOf(user_), 370, 1); // 9_999 * 0.99 * 0.1 * (0.5 * 0.75)
+
+    UserRewardsData[] memory userRewardsData_ = component.getUserRewards(0, user_);
+    UserRewardsData[] memory expectedUserRewardsData_ = new UserRewardsData[](3);
+    for (uint16 i = 0; i < 3; i++) {
+      expectedUserRewardsData_[i] =
+        UserRewardsData({accruedRewards: 0, indexSnapshot: component.getClaimableRewardsData(0, i).indexSnapshot});
+    }
+    assertEq(userRewardsData_, expectedUserRewardsData_);
+
+    skip(ONE_YEAR); // Will induce another drip of rewards
+    vm.startPrank(receiver_);
+    // Receiver claims rewards.
+    component.claimRewards(0, receiver_);
+    vm.stopPrank();
+
+    assertApproxEqAbs(rewardAssetA_.balanceOf(receiver_), 24, 1); // (100_000 + 99_000) * 0.01 * 0.1 * (0.5 * 0.25)
+    assertApproxEqAbs(rewardAssetB_.balanceOf(receiver_), 5_468_750, 1); // (1_000_000_000 + 750_000_000) * 0.25 * 0.1 *
+      // (0.5 * 0.25)
+    assertApproxEqAbs(rewardAssetC_.balanceOf(receiver_), 124, 1); // (9_999 + 0) * 1.0 * 0.1 * (0.5 * 0.25)
+
+    UserRewardsData[] memory receiverRewardsData_ = component.getUserRewards(0, receiver_);
+    UserRewardsData[] memory expectedReceiverRewardsData_ = new UserRewardsData[](3);
+    for (uint16 i = 0; i < 3; i++) {
+      expectedReceiverRewardsData_[i] =
+        UserRewardsData({accruedRewards: 0, indexSnapshot: component.getClaimableRewardsData(0, i).indexSnapshot});
+    }
+    assertEq(receiverRewardsData_, expectedReceiverRewardsData_);
+  }
+
+  function test_multipleStkTokenTransfersRewardsAccounting() public {
+    _setUpConcrete();
+    address user_ = _randomAddress();
+    address receiver_ = _randomAddress();
+
+    // User stakes 100e6, increasing stkTokenSupply to 0.2e18. User owns 50% of total stake, 200e6.
+    uint256 userStkReceiptTokenBalance_ = _stake(0, 100e6, user_, user_);
+    StakePool memory stakePool_ = component.getStakePool(0);
+
+    // User transfers the stkTokens to receiver.
+    vm.prank(user_);
+    stakePool_.stkReceiptToken.transfer(receiver_, userStkReceiptTokenBalance_);
+
+    // Time passes, but no rewards drip.
+    skip(ONE_YEAR);
+
+    // Receiver transfers the stkTokens back to user.
+    vm.prank(receiver_);
+    stakePool_.stkReceiptToken.transfer(user_, userStkReceiptTokenBalance_);
+
+    vm.prank(user_);
+    component.claimRewards(0, user_);
+
+    vm.prank(receiver_);
+    component.claimRewards(0, receiver_);
+
+    // Reward amounts received by `user_` are calculated as: rewardPool.amount * dripRate *
+    // rewardsPoolWeight * (userStkTokenBalance / totalStkTokenSupply).
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    IERC20 rewardAssetA_ = rewardPools_[0].asset;
+    IERC20 rewardAssetB_ = rewardPools_[1].asset;
+    IERC20 rewardAssetC_ = rewardPools_[2].asset;
+
+    assertApproxEqAbs(rewardAssetA_.balanceOf(user_), 50, 1); // 100_000 * 0.01 * 0.1 * 0.5
+    assertApproxEqAbs(rewardAssetB_.balanceOf(user_), 12_500_000, 1); // 1_000_000_000 * 0.25 * 0.1 * 0.5
+    assertApproxEqAbs(rewardAssetC_.balanceOf(user_), 494, 1); // 9_999 * 0.99 * 0.1 * 0.5
+
+    // Receiver should receive no rewards.
+    assertEq(rewardAssetA_.balanceOf(receiver_), 0);
+    assertEq(rewardAssetB_.balanceOf(receiver_), 0);
+    assertEq(rewardAssetC_.balanceOf(receiver_), 0);
+  }
+
+  function test_revertsOnUnauthorizedUserRewardsUpdate() public {
+    vm.startPrank(_randomAddress());
+    vm.expectRevert(Ownable.Unauthorized.selector);
+    component.updateUserRewardsForStkTokenTransfer(_randomAddress(), _randomAddress());
+    vm.stopPrank();
+  }
+}
+
+contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistributorUnitTest {
+  function _expectedClaimableRewardsData(uint128 indexSnapshot) internal pure returns (ClaimableRewardsData memory) {
+    return ClaimableRewardsData({indexSnapshot: indexSnapshot, cumulativeClaimedRewards: 0});
+  }
+
+  function testFuzz_dripAndResetCumulativeRewardsValuesZeroStkTokenSupply() public {
+    _setUpStakePools(1, false);
+    _setUpRewardPools(1);
+    _setUpClaimableRewards(1, 1);
+    skip(_randomUint64());
+
+    ClaimableRewardsData[][] memory initialClaimableRewards_ = component.getClaimableRewards();
+    RewardPool[] memory expectedRewardPools_ = component.getRewardPools();
+
+    component.dripAndResetCumulativeRewardsValues();
+
+    ClaimableRewardsData[][] memory claimableRewards_ = component.getClaimableRewards();
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    expectedRewardPools_[0].lastDripTime = uint128(block.timestamp);
+    expectedRewardPools_[0].undrippedRewards -=
+      _calculateExpectedDripQuantity(expectedRewardPools_[0].undrippedRewards, 0.1e18);
+
+    assertEq(claimableRewards_[0][0], _expectedClaimableRewardsData(initialClaimableRewards_[0][0].indexSnapshot));
+    assertEq(expectedRewardPools_, rewardPools_);
+  }
+
+  function test_dripAndResetCumulativeRewardsValuesConcrete() public {
+    _setUpConcrete();
+    skip(ONE_YEAR);
+    component.dripAndResetCumulativeRewardsValues();
+
+    ClaimableRewardsData[][] memory claimableRewards_ = component.getClaimableRewards();
+    // Claimable reward indices should be updated as [(drippedRewards * rewardsPoolWeight) / stkTokenSupply] * WAD.
+    // Cumulative claimed rewards should be the drippedRewards. Cumulative claimed rewards should be reset to 0.
+    assertEq(claimableRewards_[0][0], _expectedClaimableRewardsData(1000)); // [(100_000 * 0.01 * 0.1) / 0.1e18] * WAD
+    assertEq(claimableRewards_[0][1], _expectedClaimableRewardsData(250_000_000)); // [(1_000_000_000 * 0.25 * 0.1) /
+      // 0.1e18] * WAD
+    assertEq(claimableRewards_[0][2], _expectedClaimableRewardsData(9890)); // [(9999 * 0.99 * 0.1) / 0.1e18] * WAD
+    assertEq(claimableRewards_[1][0], _expectedClaimableRewardsData(90e18)); // [(100_000 * 0.01 * 0.9) / 10] * WAD
+    assertEq(claimableRewards_[1][1], _expectedClaimableRewardsData(2.25e25)); // [(1_000_000_000 * 0.25 *  0.9) / 10] *
+      // WAD
+    assertEq(claimableRewards_[1][2], _expectedClaimableRewardsData(8.909e20)); // [(9999 * 0.99 * 0.9) / 10] * WAD
+
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    for (uint16 i = 0; i < rewardPools_.length; i++) {
+      assertEq(rewardPools_[i].cumulativeDrippedRewards, 0);
+    }
+  }
+
+  function testFuzz_dripAndResetCumulativeValues() public {
+    _setUpDefault();
+    component.dripAndResetCumulativeRewardsValues();
+
+    ClaimableRewardsData[][] memory claimableRewards_ = component.getClaimableRewards();
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    StakePool[] memory stakePools_ = component.getStakePools();
+
+    // Check that cumulative claimed rewards here match the sum of the cumulative claimed rewards.
+    uint256 numRewardPools_ = rewardPools_.length;
+    uint256 numStakePools_ = stakePools_.length;
+
+    for (uint16 i = 0; i < numRewardPools_; i++) {
+      assertEq(rewardPools_[i].cumulativeDrippedRewards, 0);
+      for (uint16 j = 0; j < numStakePools_; j++) {
+        assertEq(claimableRewards_[j][i].cumulativeClaimedRewards, 0);
+      }
+    }
+  }
+}
+
 contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor {
   // -------- Mock setters --------
   function mockAddStakePool(StakePool memory stakePool_) external {
@@ -889,6 +1095,4 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor {
   function dripAndResetCumulativeRewardsValues() external {
     _dripAndResetCumulativeRewardsValues(stakePools, rewardPools);
   }
-
-  // -------- Overridden abstract function placeholders --------
 }
