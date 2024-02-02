@@ -29,10 +29,6 @@ import "./utils/Stub.sol";
 
 contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
   TestableConfigurator component;
-  StakePool stakePool1;
-  StakePool stakePool2;
-  RewardPool rewardPool1;
-  RewardPool rewardPool2;
 
   function setUp() public {
     ReceiptToken receiptTokenLogic_ = new ReceiptToken();
@@ -41,36 +37,30 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
       new ReceiptTokenFactory(IReceiptToken(address(receiptTokenLogic_)), IReceiptToken(address(receiptTokenLogic_)));
 
     component = new TestableConfigurator(address(this), receiptTokenFactory, 3, 3);
+  }
 
-    rewardPool1 = RewardPool({
-      asset: IERC20(_randomAddress()),
+  function _generateRewardPool() private returns (RewardPool memory) {
+    return RewardPool({
+      asset: IERC20(address(new MockERC20("Mock Reward Asset", "cozyMock", 6))),
       dripModel: IDripModel(_randomAddress()),
       depositReceiptToken: IReceiptToken(address(new ReceiptToken())),
       undrippedRewards: _randomUint256(),
       cumulativeDrippedRewards: 0,
       lastDripTime: uint128(block.timestamp)
     });
-    rewardPool2 = RewardPool({
-      asset: IERC20(_randomAddress()),
-      dripModel: IDripModel(_randomAddress()),
-      depositReceiptToken: IReceiptToken(address(new ReceiptToken())),
-      undrippedRewards: _randomUint256(),
-      cumulativeDrippedRewards: 0,
-      lastDripTime: uint128(block.timestamp)
-    });
+  }
 
-    stakePool1 = StakePool({
-      amount: _randomUint256(),
-      asset: IERC20(address(new MockERC20("Mock Asset 1", "cozyMock1", 6))),
-      stkReceiptToken: IReceiptToken(_randomAddress()),
-      rewardsWeight: uint16(MathConstants.ZOC / 2)
-    });
-    stakePool2 = StakePool({
-      amount: _randomUint256(),
-      asset: IERC20(address(new MockERC20("Mock Asset 2", "cozyMock2", 18))),
-      stkReceiptToken: IReceiptToken(_randomAddress()),
-      rewardsWeight: uint16(MathConstants.ZOC / 2)
-    });
+  function _generateStakePools(uint256 numPools_) private returns (StakePool[] memory) {
+    StakePool[] memory stakePools_ = new StakePool[](numPools_);
+    for (uint256 i = 0; i < numPools_; i++) {
+      stakePools_[i] = StakePool({
+        amount: _randomUint256(),
+        asset: IERC20(address(new MockERC20("Mock Stake Asset", "cozyMock", 6))),
+        stkReceiptToken: IReceiptToken(_randomAddress()),
+        rewardsWeight: uint16(MathConstants.ZOC / numPools_)
+      });
+    }
+    return stakePools_;
   }
 
   function _generateValidRewardPoolConfig() private returns (RewardPoolConfig memory) {
@@ -226,6 +216,12 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
   }
 
   function test_updateConfigs() external {
+    RewardPool memory rewardPool1 = _generateRewardPool();
+    RewardPool memory rewardPool2 = _generateRewardPool();
+    StakePool[] memory mockStakePools_ = _generateStakePools(2);
+    StakePool memory stakePool1 = mockStakePools_[0];
+    StakePool memory stakePool2 = mockStakePools_[1];
+
     // Add two existing stake pools.
     component.mockAddStakePool(stakePool1);
     component.mockAddStakePool(stakePool2);
@@ -269,8 +265,9 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
   }
 
   function test_initializeStakePool() external {
+    StakePool[] memory mockStakePools_ = _generateStakePools(1);
     // One existing stake pool.
-    component.mockAddStakePool(stakePool1);
+    component.mockAddStakePool(mockStakePools_[0]);
     // New stake pool config.
     IReceiptToken asset_ = IReceiptToken(address(new ReceiptToken()));
     StakePoolConfig memory newStakePoolConfig_ =
@@ -299,6 +296,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
   }
 
   function test_initializeRewardPool() external {
+    RewardPool memory rewardPool1 = _generateRewardPool();
     // One existing reward pool.
     component.mockAddRewardPool(rewardPool1);
     // New reward pool config.
