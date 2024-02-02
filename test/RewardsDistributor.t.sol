@@ -632,7 +632,6 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
     IReceiptToken stkReceiptToken_ = component.getStakePool(stakePoolId_).stkReceiptToken;
     uint256 userStkReceiptTokenBalance_ = stkReceiptToken_.balanceOf(user_);
-    uint256 totalStkReceiptTokenSupply_ = stkReceiptToken_.totalSupply();
 
     RewardPool[] memory oldRewardPools_ = component.getRewardPools();
     ClaimableRewardsData[] memory oldClaimableRewards_ = component.getClaimableRewards(stakePoolId_);
@@ -957,17 +956,19 @@ contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistri
     skip(ONE_YEAR);
     component.dripAndResetCumulativeRewardsValues();
 
-    ClaimableRewardsData[][] memory claimableRewards_ = component.getClaimableRewards();
+    ClaimableRewardsData[] memory claimableRewardsPoolA_ = component.getClaimableRewards(0);
     // Claimable reward indices should be updated as [(drippedRewards * rewardsPoolWeight) / stkTokenSupply] * WAD.
     // Cumulative claimed rewards should be the drippedRewards. Cumulative claimed rewards should be reset to 0.
-    assertEq(claimableRewards_[0][0], _expectedClaimableRewardsData(1000)); // [(100_000 * 0.01 * 0.1) / 0.1e18] * WAD
-    assertEq(claimableRewards_[0][1], _expectedClaimableRewardsData(250_000_000)); // [(1_000_000_000 * 0.25 * 0.1) /
+    assertEq(claimableRewardsPoolA_[0], _expectedClaimableRewardsData(1000)); // [(100_000 * 0.01 * 0.1) / 0.1e18] * WAD
+    assertEq(claimableRewardsPoolA_[1], _expectedClaimableRewardsData(250_000_000)); // [(1_000_000_000 * 0.25 * 0.1) /
       // 0.1e18] * WAD
-    assertEq(claimableRewards_[0][2], _expectedClaimableRewardsData(9890)); // [(9999 * 0.99 * 0.1) / 0.1e18] * WAD
-    assertEq(claimableRewards_[1][0], _expectedClaimableRewardsData(90e18)); // [(100_000 * 0.01 * 0.9) / 10] * WAD
-    assertEq(claimableRewards_[1][1], _expectedClaimableRewardsData(2.25e25)); // [(1_000_000_000 * 0.25 *  0.9) / 10] *
-      // WAD
-    assertEq(claimableRewards_[1][2], _expectedClaimableRewardsData(8.909e20)); // [(9999 * 0.99 * 0.9) / 10] * WAD
+    assertEq(claimableRewardsPoolA_[2], _expectedClaimableRewardsData(9890)); // [(9999 * 0.99 * 0.1) / 0.1e18] * WAD
+
+    ClaimableRewardsData[] memory claimableRewardsPoolB_ = component.getClaimableRewards(1);
+    assertEq(claimableRewardsPoolB_[0], _expectedClaimableRewardsData(90e18)); // [(100_000 * 0.01 * 0.9) / 10] * WAD
+    assertEq(claimableRewardsPoolB_[1], _expectedClaimableRewardsData(2.25e25)); // [(1_000_000_000 * 0.25 *  0.9) / 10]
+      // * WAD
+    assertEq(claimableRewardsPoolB_[2], _expectedClaimableRewardsData(8.909e20)); // [(9999 * 0.99 * 0.9) / 10] * WAD
 
     RewardPool[] memory rewardPools_ = component.getRewardPools();
     for (uint16 i = 0; i < rewardPools_.length; i++) {
