@@ -11,6 +11,7 @@ import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
 import {RewardsDistributor} from "../src/lib/RewardsDistributor.sol";
+import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {Staker} from "../src/lib/Staker.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {
@@ -711,18 +712,22 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     component.claimRewards(stakePoolId_, receiver_);
 
     // Make sure receiver received rewards from new reward asset pool.
-    uint256 userShare_ = userStkReceiptTokenBalance_.divWadDown(totalStkReceiptTokenBalance_);
-    uint256 totalDrippedRewards_ = 900; // 90_000 * 0.01
-    uint256 drippedRewards_ = totalDrippedRewards_.mulDivDown(stakePool_.rewardsWeight, MathConstants.ZOC);
-    assertApproxEqAbs(mockRewardAsset_.balanceOf(receiver_), drippedRewards_.mulWadDown(userShare_), 1);
+    {
+      uint256 userShare_ = userStkReceiptTokenBalance_.divWadDown(totalStkReceiptTokenBalance_);
+      uint256 totalDrippedRewards_ = 900; // 90_000 * 0.01
+      uint256 drippedRewards_ = totalDrippedRewards_.mulDivDown(stakePool_.rewardsWeight, MathConstants.ZOC);
+      assertApproxEqAbs(mockRewardAsset_.balanceOf(receiver_), drippedRewards_.mulWadDown(userShare_), 1);
+    }
 
     // Make sure user rewards data reflects new reward asset pool.
-    UserRewardsData[] memory userRewardsData_ = component.getUserRewards(stakePoolId_, user_);
-    assertEq(userRewardsData_[numRewardsPools_].accruedRewards, 0);
-    assertEq(
-      userRewardsData_[numRewardsPools_].indexSnapshot,
-      component.getClaimableRewardsData(stakePoolId_, uint16(numRewardsPools_)).indexSnapshot
-    );
+    {
+      UserRewardsData[] memory userRewardsData_ = component.getUserRewards(stakePoolId_, user_);
+      assertEq(userRewardsData_[numRewardsPools_].accruedRewards, 0);
+      assertEq(
+        userRewardsData_[numRewardsPools_].indexSnapshot,
+        component.getClaimableRewardsData(stakePoolId_, uint16(numRewardsPools_)).indexSnapshot
+      );
+    }
   }
 
   function test_claimRewardsTwice() public {
@@ -997,7 +1002,7 @@ contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistri
   }
 }
 
-contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor {
+contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, RewardsManagerInspector {
   // -------- Mock setters --------
   function mockAddStakePool(StakePool memory stakePool_) external {
     stakePools.push(stakePool_);

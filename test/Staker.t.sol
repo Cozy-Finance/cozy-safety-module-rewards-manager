@@ -14,6 +14,7 @@ import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
 import {Staker} from "../src/lib/Staker.sol";
 import {RewardsDistributor} from "../src/lib/RewardsDistributor.sol";
+import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {AssetPool, StakePool} from "../src/lib/structs/Pools.sol";
 import {RewardPool} from "../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
@@ -620,7 +621,7 @@ contract StakerUnitTest is TestBase {
   }
 }
 
-contract TestableStaker is Staker, Depositor, RewardsDistributor {
+contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManagerInspector {
   using SafeCastLib for uint256;
 
   // -------- Mock setters --------
