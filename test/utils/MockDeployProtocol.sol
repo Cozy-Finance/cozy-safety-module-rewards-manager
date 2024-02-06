@@ -22,14 +22,12 @@ contract MockDeployer is TestBase {
 
   address owner = address(this);
 
-  uint8 constant ALLOWED_STAKE_POOLS = 30;
-  uint8 constant ALLOWED_REWARD_POOLS = 25;
+  uint8 constant ALLOWED_STAKE_POOLS = 100;
+  uint8 constant ALLOWED_REWARD_POOLS = 100;
 
   function deployMockProtocol() public virtual {
     uint256 nonce_ = vm.getNonce(address(this));
     IRewardsManager computedAddrRewardsManagerLogic_ = IRewardsManager(vm.computeCreateAddress(address(this), nonce_));
-    IRewardsManagerFactory computedAddrRewardsManagerFactory_ =
-      IRewardsManagerFactory(vm.computeCreateAddress(address(this), nonce_ + 1));
     IReceiptToken depositTokenLogic_ = IReceiptToken(vm.computeCreateAddress(address(this), nonce_ + 2));
     IReceiptToken stkTokenLogic_ = IReceiptToken(vm.computeCreateAddress(address(this), nonce_ + 3));
     IReceiptTokenFactory computedAddrReceiptTokenFactory_ =
