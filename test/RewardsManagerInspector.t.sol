@@ -38,141 +38,132 @@ contract RewardsManagerInspectorTest is TestBase {
     component.mockAddStakePool(initialStakePool_);
   }
 
-  function test_convertRewardAssetAmountToRewardDepositReceiptTokenAmount_zeroTotalSupply(uint256 rewardAssetAmount_)
-    external
-  {
-    uint256 rewardDepositReceiptTokenAmount =
-      component.convertRewardAssetAmountToRewardDepositReceiptTokenAmount(0, rewardAssetAmount_);
+  function test_convertRewardAssetToReceiptTokenAmount_zeroTotalSupply(uint256 rewardAssetAmount_) external {
+    uint256 rewardDepositReceiptTokenAmount = component.convertRewardAssetToReceiptTokenAmount(0, rewardAssetAmount_);
     assertEq(rewardDepositReceiptTokenAmount, rewardAssetAmount_); // 1:1 exchange rate.
   }
 
-  function test_convertRewardAssetAmountToRewardDepositReceiptTokenAmount_totalSupplyGtZero() public {
+  function test_convertRewardAssetToReceiptTokenAmount_totalSupplyGtZero() public {
     component.setRewardPoolUndrippedRewards(0, 100);
     mockRewardPoolReceiptToken.mint(address(0), 50);
     uint256 rewardAssetAmount_ = 100;
-    uint256 rewardDepositReceiptTokenAmount =
-      component.convertRewardAssetAmountToRewardDepositReceiptTokenAmount(0, rewardAssetAmount_);
+    uint256 rewardDepositReceiptTokenAmount = component.convertRewardAssetToReceiptTokenAmount(0, rewardAssetAmount_);
     assertEq(rewardDepositReceiptTokenAmount, 50); // 100 * 50 / 100
 
     mockRewardPoolReceiptToken.mint(address(0), 950);
-    rewardDepositReceiptTokenAmount =
-      component.convertRewardAssetAmountToRewardDepositReceiptTokenAmount(0, rewardAssetAmount_);
+    rewardDepositReceiptTokenAmount = component.convertRewardAssetToReceiptTokenAmount(0, rewardAssetAmount_);
     assertEq(rewardDepositReceiptTokenAmount, 1000); // 100 * 1000 / 100
 
     mockRewardPoolReceiptToken.burn(address(0), 999);
-    rewardDepositReceiptTokenAmount =
-      component.convertRewardAssetAmountToRewardDepositReceiptTokenAmount(0, rewardAssetAmount_);
+    rewardDepositReceiptTokenAmount = component.convertRewardAssetToReceiptTokenAmount(0, rewardAssetAmount_);
     assertEq(rewardDepositReceiptTokenAmount, 1); // 100 * 1 / 100
   }
 
-  function test_convertRewardAssetAmountToRewardDepositReceiptTokenAmount_zeroUndrippedRewards() public {
+  function test_convertRewardAssetToReceiptTokenAmount_zeroUndrippedRewards() public {
     component.setRewardPoolUndrippedRewards(0, 0);
     mockRewardPoolReceiptToken.mint(address(0), 50);
     uint256 rewardAssetAmount_ = 100;
-    uint256 rewardDepositReceiptTokenAmount =
-      component.convertRewardAssetAmountToRewardDepositReceiptTokenAmount(0, rewardAssetAmount_);
+    uint256 rewardDepositReceiptTokenAmount = component.convertRewardAssetToReceiptTokenAmount(0, rewardAssetAmount_);
     // The undripped rewards amount is floored to 1.
     assertEq(rewardDepositReceiptTokenAmount, 5000); // 100 * 50 / 1
   }
 
-  function test_convertRewardAssetAmountToRewardDepositReceiptTokenAmount_zeroRewardAssetAmount() public {
+  function test_convertRewardAssetToReceiptTokenAmount_zeroRewardAssetAmount() public {
     component.setRewardPoolUndrippedRewards(0, 100);
     mockRewardPoolReceiptToken.mint(address(0), 50);
     uint256 rewardAssetAmount_ = 0;
-    uint256 rewardDepositReceiptTokenAmount =
-      component.convertRewardAssetAmountToRewardDepositReceiptTokenAmount(0, rewardAssetAmount_);
+    uint256 rewardDepositReceiptTokenAmount = component.convertRewardAssetToReceiptTokenAmount(0, rewardAssetAmount_);
     assertEq(rewardDepositReceiptTokenAmount, 0);
 
     // The undripped rewards amount is floored to 1, and the result is still 0.
     component.setRewardPoolUndrippedRewards(0, 0);
-    rewardDepositReceiptTokenAmount =
-      component.convertRewardAssetAmountToRewardDepositReceiptTokenAmount(0, rewardAssetAmount_);
+    rewardDepositReceiptTokenAmount = component.convertRewardAssetToReceiptTokenAmount(0, rewardAssetAmount_);
     assertEq(rewardDepositReceiptTokenAmount, 0);
   }
 
-  function test_convertRewardDepositReceiptTokenToRewardAssetAmount_zeroTotalSupply(uint256 receiptTokenAmount_) public {
-    uint256 rewardAssetAmount_ = component.convertRewardDepositReceiptTokenToRewardAssetAmount(0, receiptTokenAmount_);
+  function test_convertRewardReceiptTokenToAssetAmount_zeroTotalSupply(uint256 receiptTokenAmount_) public {
+    uint256 rewardAssetAmount_ = component.convertRewardReceiptTokenToAssetAmount(0, receiptTokenAmount_);
     assertEq(rewardAssetAmount_, 0);
   }
 
-  function test_convertRewardDepositReceiptTokenToRewardAssetAmount_totalSupplyGtZero() public {
+  function test_convertRewardReceiptTokenToAssetAmount_totalSupplyGtZero() public {
     component.setRewardPoolUndrippedRewards(0, 100);
     mockRewardPoolReceiptToken.mint(address(0), 50);
-    uint256 rewardAssetAmount_ = component.convertRewardDepositReceiptTokenToRewardAssetAmount(0, 50);
+    uint256 rewardAssetAmount_ = component.convertRewardReceiptTokenToAssetAmount(0, 50);
     assertEq(rewardAssetAmount_, 100); // 50 * 100 / 50
 
     mockRewardPoolReceiptToken.mint(address(0), 950);
-    rewardAssetAmount_ = component.convertRewardDepositReceiptTokenToRewardAssetAmount(0, 3000);
+    rewardAssetAmount_ = component.convertRewardReceiptTokenToAssetAmount(0, 3000);
     assertEq(rewardAssetAmount_, 300); // 3000 * 100 / 1000
 
     mockRewardPoolReceiptToken.burn(address(0), 999);
-    rewardAssetAmount_ = component.convertRewardDepositReceiptTokenToRewardAssetAmount(0, 2);
+    rewardAssetAmount_ = component.convertRewardReceiptTokenToAssetAmount(0, 2);
     assertEq(rewardAssetAmount_, 200); // 2 * 100 / 1
   }
 
-  function test_convertRewardDepositReceiptTokenToRewardAssetAmount_zeroUndrippedRewards() public {
+  function test_convertRewardReceiptTokenToAssetAmount_zeroUndrippedRewards() public {
     component.setRewardPoolUndrippedRewards(0, 0);
     mockRewardPoolReceiptToken.mint(address(0), 50);
-    uint256 rewardAssetAmount_ = component.convertRewardDepositReceiptTokenToRewardAssetAmount(0, 50);
+    uint256 rewardAssetAmount_ = component.convertRewardReceiptTokenToAssetAmount(0, 50);
     // The undripped rewards amount is floored to 1.
     assertEq(rewardAssetAmount_, 1); // 50 * 1 / 50
   }
 
-  function test_convertRewardDepositReceiptTokenToRewardAssetAmount_zeroReceiptTokenAmount() public {
+  function test_convertRewardReceiptTokenToAssetAmount_zeroReceiptTokenAmount() public {
     component.setRewardPoolUndrippedRewards(0, 100);
     mockRewardPoolReceiptToken.mint(address(0), 50);
-    uint256 rewardAssetAmount_ = component.convertRewardDepositReceiptTokenToRewardAssetAmount(0, 0);
+    uint256 rewardAssetAmount_ = component.convertRewardReceiptTokenToAssetAmount(0, 0);
     assertEq(rewardAssetAmount_, 0);
 
     // The undripped rewards amount is floored to 1, and the result is still 0.
     component.setRewardPoolUndrippedRewards(0, 0);
-    rewardAssetAmount_ = component.convertRewardDepositReceiptTokenToRewardAssetAmount(0, 0);
+    rewardAssetAmount_ = component.convertRewardReceiptTokenToAssetAmount(0, 0);
     assertEq(rewardAssetAmount_, 0);
   }
 
-  function test_convertStakeAssetAmountToStakeReceiptTokenAmount_zeroTotalSupply(uint256 stakeAssetAmount_) public {
-    uint256 stakeReceiptTokenAmount = component.convertStakeAssetAmountToStakeReceiptTokenAmount(0, stakeAssetAmount_);
+  function test_convertStakeAssetToReceiptTokenAmount_zeroTotalSupply(uint256 stakeAssetAmount_) public {
+    uint256 stakeReceiptTokenAmount = component.convertStakeAssetToReceiptTokenAmount(0, stakeAssetAmount_);
     assertEq(stakeReceiptTokenAmount, stakeAssetAmount_); // 1:1 exchange rate.
   }
 
-  function test_convertStakeAssetAmountToStakeReceiptTokenAmount_totalSupplyGtZero() public {
+  function test_convertStakeAssetToReceiptTokenAmount_totalSupplyGtZero() public {
     mockStakePoolReceiptToken.mint(address(0), 50);
     component.setStakePoolAmount(0, 100);
     uint256 stakeAssetAmount_ = 100;
-    uint256 stakeReceiptTokenAmount = component.convertStakeAssetAmountToStakeReceiptTokenAmount(0, stakeAssetAmount_);
+    uint256 stakeReceiptTokenAmount = component.convertStakeAssetToReceiptTokenAmount(0, stakeAssetAmount_);
     assertEq(stakeReceiptTokenAmount, 50); // 100 * 50 / 100
 
     mockStakePoolReceiptToken.mint(address(0), 950);
-    stakeReceiptTokenAmount = component.convertStakeAssetAmountToStakeReceiptTokenAmount(0, 100);
+    stakeReceiptTokenAmount = component.convertStakeAssetToReceiptTokenAmount(0, 100);
     assertEq(stakeReceiptTokenAmount, 1000); // 100 * 1000 / 100
 
     mockStakePoolReceiptToken.burn(address(0), 999);
-    stakeReceiptTokenAmount = component.convertStakeAssetAmountToStakeReceiptTokenAmount(0, 100);
+    stakeReceiptTokenAmount = component.convertStakeAssetToReceiptTokenAmount(0, 100);
     assertEq(stakeReceiptTokenAmount, 1); // 100 * 1 / 100
   }
 
-  function test_convertStakeReceiptTokenToStakeAssetAmount_zeroTotalSupply(uint256 stakeReceiptTokenAmount_) public {
-    uint256 stakeAssetAmount_ = component.convertStakeReceiptTokenToStakeAssetAmount(0, stakeReceiptTokenAmount_);
+  function test_convertStakeReceiptTokenToAssetAmount_zeroTotalSupply(uint256 stakeReceiptTokenAmount_) public {
+    uint256 stakeAssetAmount_ = component.convertStakeReceiptTokenToAssetAmount(0, stakeReceiptTokenAmount_);
     assertEq(stakeAssetAmount_, 0);
   }
 
-  function test_convertStakeReceiptTokenToStakeAssetAmount_totalSupplyGtZero() public {
+  function test_convertStakeReceiptTokenToAssetAmount_totalSupplyGtZero() public {
     component.setStakePoolAmount(0, 100);
     mockStakePoolReceiptToken.mint(address(0), 50);
-    uint256 stakeAssetAmount_ = component.convertStakeReceiptTokenToStakeAssetAmount(0, 50);
+    uint256 stakeAssetAmount_ = component.convertStakeReceiptTokenToAssetAmount(0, 50);
     assertEq(stakeAssetAmount_, 100); // 50 * 100 / 50
 
     mockStakePoolReceiptToken.mint(address(0), 950);
-    stakeAssetAmount_ = component.convertStakeReceiptTokenToStakeAssetAmount(0, 3000);
+    stakeAssetAmount_ = component.convertStakeReceiptTokenToAssetAmount(0, 3000);
     assertEq(stakeAssetAmount_, 300); // 3000 * 100 / 1000
 
     mockStakePoolReceiptToken.burn(address(0), 999);
-    stakeAssetAmount_ = component.convertStakeReceiptTokenToStakeAssetAmount(0, 2);
+    stakeAssetAmount_ = component.convertStakeReceiptTokenToAssetAmount(0, 2);
     assertEq(stakeAssetAmount_, 200); // 2 * 100 / 1
   }
 
-  function test_convertStakeReceiptTokenToStakeAssetAmount_zeroReceiptTokenAmount() public {
-    uint256 stakeAssetAmount_ = component.convertStakeReceiptTokenToStakeAssetAmount(0, 0);
+  function test_convertStakeReceiptTokenToAssetAmount_zeroReceiptTokenAmount() public {
+    uint256 stakeAssetAmount_ = component.convertStakeReceiptTokenToAssetAmount(0, 0);
     assertEq(stakeAssetAmount_, 0);
   }
 }

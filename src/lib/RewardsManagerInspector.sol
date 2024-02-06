@@ -9,7 +9,7 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
   uint256 internal constant POOL_AMOUNT_FLOOR = 1;
 
   /// @notice Converts a reward pool's reward asset amount to the corresponding reward deposit receipt token amount.
-  function convertRewardAssetAmountToRewardDepositReceiptTokenAmount(uint256 rewardPoolId_, uint256 rewardAssetAmount_)
+  function convertRewardAssetToReceiptTokenAmount(uint256 rewardPoolId_, uint256 rewardAssetAmount_)
     external
     view
     returns (uint256 depositReceiptTokenAmount_)
@@ -24,10 +24,11 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
   }
 
   /// @notice Converts a reward pool's reward deposit receipt token amount to the corresponding reward asset amount.
-  function convertRewardDepositReceiptTokenToRewardAssetAmount(
-    uint256 rewardPoolId_,
-    uint256 depositReceiptTokenAmount_
-  ) external view returns (uint256 rewardAssetAmount_) {
+  function convertRewardReceiptTokenToAssetAmount(uint256 rewardPoolId_, uint256 depositReceiptTokenAmount_)
+    external
+    view
+    returns (uint256 rewardAssetAmount_)
+  {
     rewardAssetAmount_ = RewardsManagerCalculationsLib.convertToAssetAmount(
       depositReceiptTokenAmount_,
       rewardPools[rewardPoolId_].depositReceiptToken.totalSupply(),
@@ -38,7 +39,7 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
   }
 
   /// @notice Converts a stake pool's stake asset amount to the corresponding stake receipt token amount.
-  function convertStakeAssetAmountToStakeReceiptTokenAmount(uint256 stakePoolId_, uint256 stakeAssetAmount_)
+  function convertStakeAssetToReceiptTokenAmount(uint256 stakePoolId_, uint256 stakeAssetAmount_)
     external
     view
     returns (uint256 stakeReceiptTokenAmount_)
@@ -50,7 +51,7 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
   }
 
   /// @notice Converts a stake pool's stake receipt token amount to the corresponding stake asset amount.
-  function convertStakeReceiptTokenToStakeAssetAmount(uint256 stakePoolId_, uint256 stakeReceiptTokenAmount_)
+  function convertStakeReceiptTokenToAssetAmount(uint256 stakePoolId_, uint256 stakeReceiptTokenAmount_)
     external
     view
     returns (uint256 stakeAssetAmount_)
