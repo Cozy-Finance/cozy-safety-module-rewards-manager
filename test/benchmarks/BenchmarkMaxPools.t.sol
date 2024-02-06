@@ -114,7 +114,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
   {
     _stake(stakePoolId_, stakeAssetAmount_, receiver_);
 
-    // TODO: stkReceiptTokenAmount_ = rewardsManager.convertToStakeTokenAmount(stakePoolId_, stakeAssetAmount_);
+    stkReceiptTokenAmount_ = rewardsManager.convertStakeAssetToReceiptTokenAmount(stakePoolId_, stakeAssetAmount_);
     vm.startPrank(receiver_);
     getStakePool(IRewardsManager(address(rewardsManager)), stakePoolId_).stkReceiptToken.approve(
       address(rewardsManager), stkReceiptTokenAmount_
