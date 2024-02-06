@@ -15,6 +15,7 @@ import {StakePool, RewardPool, IdLookup} from "../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
+import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {ConfiguratorLib} from "../src/lib/ConfiguratorLib.sol";
 import {Configurator} from "../src/lib/Configurator.sol";
 import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
@@ -322,7 +323,7 @@ interface TestableConfiguratorEvents {
   event DripAndResetCumulativeRewardsValuesCalled();
 }
 
-contract TestableConfigurator is Configurator, TestableConfiguratorEvents {
+contract TestableConfigurator is Configurator, RewardsManagerInspector, TestableConfiguratorEvents {
   constructor(
     address owner_,
     IReceiptTokenFactory receiptTokenFactory_,

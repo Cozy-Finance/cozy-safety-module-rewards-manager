@@ -5,13 +5,21 @@ import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceip
 import {Configurator} from "./lib/Configurator.sol";
 import {ConfiguratorLib} from "./lib/ConfiguratorLib.sol";
 import {RewardsManagerCommon} from "./lib/RewardsManagerCommon.sol";
+import {RewardsManagerInspector} from "./lib/RewardsManagerInspector.sol";
 import {Depositor} from "./lib/Depositor.sol";
 import {RewardsDistributor} from "./lib/RewardsDistributor.sol";
 import {Staker} from "./lib/Staker.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./lib/structs/Configs.sol";
 import {IConfiguratorErrors} from "./interfaces/IConfiguratorErrors.sol";
 
-contract RewardsManager is RewardsManagerCommon, Configurator, Depositor, RewardsDistributor, Staker {
+contract RewardsManager is
+  RewardsManagerCommon,
+  RewardsManagerInspector,
+  Configurator,
+  Depositor,
+  RewardsDistributor,
+  Staker
+{
   bool public initialized;
 
   /// @dev Thrown if the contract is already initialized.
