@@ -10,6 +10,7 @@ import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
 import {IDepositorErrors} from "../src/interfaces/IDepositorErrors.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
+import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {UserRewardsData, ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
@@ -709,7 +710,7 @@ contract DepositorUnitTest is TestBase {
   }
 }
 
-contract TestableDepositor is Depositor {
+contract TestableDepositor is Depositor, RewardsManagerInspector {
   uint256 internal mockNextRewardsDripAmount;
 
   // -------- Mock setters --------

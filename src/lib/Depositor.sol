@@ -99,7 +99,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     IReceiptToken depositReceiptToken_ = rewardPool_.depositReceiptToken;
 
     depositReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToReceiptTokenAmount(
-      rewardAssetAmount_, depositReceiptToken_.totalSupply(), _amountWithFloor(rewardPool_.undrippedRewards)
+      rewardAssetAmount_, depositReceiptToken_.totalSupply(), _poolAmountWithFloor(rewardPool_.undrippedRewards)
     );
     if (depositReceiptTokenAmount_ == 0) revert RoundsToZero();
 
@@ -134,12 +134,5 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     override
   {
     if (token_.balanceOf(address(this)) - assetPoolBalance_ < depositAmount_) revert InvalidDeposit();
-  }
-
-  /// @notice The rewards pool amount for the purposes of performing conversions. We set a floor once
-  /// deposit receipt tokens have been initialized to avoid divide-by-zero errors that would occur when the supply
-  /// of deposit receipt tokens > 0, but the `poolAmount` = 0, which can occur due to drip.
-  function _amountWithFloor(uint256 poolAmount_) private pure returns (uint256) {
-    return poolAmount_ > REWARDS_POOL_FLOOR ? poolAmount_ : REWARDS_POOL_FLOOR;
   }
 }
