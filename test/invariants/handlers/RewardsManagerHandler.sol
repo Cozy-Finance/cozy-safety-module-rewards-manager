@@ -369,7 +369,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   function _depositRewardAssets(uint256 assetAmount_, string memory callName_) internal {
-    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint64).max));
+    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint72).max));
     IERC20 asset_ = getRewardPool(rewardsManager, currentRewardPoolId).asset;
     deal(address(asset_), currentActor, asset_.balanceOf(currentActor) + assetAmount_, true);
 
@@ -385,7 +385,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   function _depositRewardAssetsWithoutTransfer(uint256 assetAmount_, string memory callName_) internal {
-    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint64).max));
+    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint72).max));
     IERC20 asset_ = getRewardPool(rewardsManager, currentRewardPoolId).asset;
     _simulateTransferToRewardsManager(asset_, assetAmount_);
 
@@ -400,7 +400,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   function _stake(uint256 assetAmount_, string memory callName_) internal {
-    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint64).max));
+    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint72).max));
     IERC20 asset_ = getStakePool(rewardsManager, currentStakePoolId).asset;
     deal(address(asset_), currentActor, asset_.balanceOf(currentActor) + assetAmount_, true);
 
@@ -417,7 +417,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   function _stakeWithoutTransfer(uint256 assetAmount_, string memory callName_) internal {
-    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint64).max));
+    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint72).max));
     IERC20 asset_ = getStakePool(rewardsManager, currentStakePoolId).asset;
     _simulateTransferToRewardsManager(asset_, assetAmount_);
 

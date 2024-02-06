@@ -105,8 +105,8 @@ abstract contract InvariantTestWithSingleStakePoolAndSingleRewardPool is Invaria
 }
 
 abstract contract InvariantTestWithMultipleStakePoolsAndMultipleRewardPools is InvariantBaseDeploy {
-  uint16 internal constant MAX_STAKE_POOLS = 2;
-  uint16 internal constant MAX_REWARD_POOLS = 3;
+  uint16 internal constant MAX_STAKE_POOLS = 10;
+  uint16 internal constant MAX_REWARD_POOLS = 15;
 
   function _initRewardsManager() internal override {
     uint256 numStakePools_ = _randomUint256InRange(1, MAX_STAKE_POOLS);
