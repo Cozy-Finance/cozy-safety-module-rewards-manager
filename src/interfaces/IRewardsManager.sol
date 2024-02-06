@@ -53,4 +53,38 @@ interface IRewardsManager {
   function receiptTokenFactory() external view returns (address);
 
   function owner() external view returns (address);
+
+  function redeemUndrippedRewards(
+    uint16 rewardPoolId_,
+    uint256 depositReceiptTokenAmount_,
+    address receiver_,
+    address owner_
+  ) external returns (uint256 rewardAssetAmount_);
+
+  function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_)
+    external
+    returns (uint256 assetAmount_);
+
+  function claimRewards(uint16 stakePoolId_, address receiver_) external;
+
+  function previewClaimableRewards(uint16[] calldata stakePoolIds_, address owner_)
+    external
+    view
+    returns (PreviewClaimableRewards[] memory previewClaimableRewards_);
+
+  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_, address from_)
+    external
+    returns (uint256 depositReceiptTokenAmount_);
+
+  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_)
+    external
+    returns (uint256 depositReceiptTokenAmount_);
+
+  function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_, address from_)
+    external
+    returns (uint256 stkReceiptTokenAmount_);
+
+  function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_)
+    external
+    returns (uint256 stkReceiptTokenAmount_);
 }
