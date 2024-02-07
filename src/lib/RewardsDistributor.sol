@@ -56,6 +56,53 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     _claimRewards(stakePoolId_, receiver_, msg.sender);
   }
 
+  function previewClaimableRewards(uint16[] calldata stakePoolIds_, address owner_)
+    external
+    view
+    returns (PreviewClaimableRewards[] memory previewClaimableRewards_)
+  {
+    uint256 numRewardAssets_ = rewardPools.length;
+
+    RewardDrip[] memory nextRewardDrips_ = new RewardDrip[](numRewardAssets_);
+    for (uint16 i = 0; i < numRewardAssets_; i++) {
+      nextRewardDrips_[i] = _previewNextRewardDrip(rewardPools[i]);
+    }
+
+    previewClaimableRewards_ = new PreviewClaimableRewards[](stakePoolIds_.length);
+    for (uint256 i = 0; i < stakePoolIds_.length; i++) {
+      previewClaimableRewards_[i] = _previewClaimableRewards(stakePoolIds_[i], owner_, nextRewardDrips_);
+    }
+  }
+
+  /// @notice stkTokens are expected to call this before the actual underlying ERC-20 transfer (e.g.
+  /// `super.transfer(address to, uint256 amount_)`). Otherwise, the `from_` user will not accrue less historical
+  /// rewards they are entitled to as their new balance is smaller after the transfer. Also, the `to_` user will accure
+  /// more historical rewards than they are entitled to as their new balance is larger after the transfer.
+  function updateUserRewardsForStkTokenTransfer(address from_, address to_) external {
+    // Check that only a registered stkToken can call this function.
+    IdLookup memory idLookup_ = stkReceiptTokenToStakePoolIds[IReceiptToken(msg.sender)];
+    if (!idLookup_.exists) revert Ownable.Unauthorized();
+
+    uint16 stakePoolId_ = idLookup_.index;
+    IReceiptToken stkToken_ = stakePools[stakePoolId_].stkReceiptToken;
+    mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[stakePoolId_];
+
+    // Fully accure historical rewards for both users given their current stkToken balances. Moving forward all rewards
+    // will accrue based on: (1) the stkToken balances of the `from_` and `to_` address after the transfer, (2) the
+    // current claimable reward index snapshots.
+    _updateUserRewards(stkToken_.balanceOf(from_), claimableRewards_, userRewards[stakePoolId_][from_]);
+    _updateUserRewards(stkToken_.balanceOf(to_), claimableRewards_, userRewards[stakePoolId_][to_]);
+  }
+
+  function _dripRewardPool(RewardPool storage rewardPool_) internal override {
+    RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
+    if (rewardDrip_.amount > 0) {
+      rewardPool_.undrippedRewards -= rewardDrip_.amount;
+      rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
+    }
+    rewardPool_.lastDripTime = uint128(block.timestamp);
+  }
+
   function _claimRewards(uint16 stakePoolId_, address receiver_, address owner_) internal override {
     StakePool storage stakePool_ = stakePools[stakePoolId_];
     IReceiptToken stkToken_ = stakePool_.stkReceiptToken;
@@ -117,53 +164,6 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
         );
       }
     }
-  }
-
-  function previewClaimableRewards(uint16[] calldata stakePoolIds_, address owner_)
-    external
-    view
-    returns (PreviewClaimableRewards[] memory previewClaimableRewards_)
-  {
-    uint256 numRewardAssets_ = rewardPools.length;
-
-    RewardDrip[] memory nextRewardDrips_ = new RewardDrip[](numRewardAssets_);
-    for (uint16 i = 0; i < numRewardAssets_; i++) {
-      nextRewardDrips_[i] = _previewNextRewardDrip(rewardPools[i]);
-    }
-
-    previewClaimableRewards_ = new PreviewClaimableRewards[](stakePoolIds_.length);
-    for (uint256 i = 0; i < stakePoolIds_.length; i++) {
-      previewClaimableRewards_[i] = _previewClaimableRewards(stakePoolIds_[i], owner_, nextRewardDrips_);
-    }
-  }
-
-  /// @notice stkTokens are expected to call this before the actual underlying ERC-20 transfer (e.g.
-  /// `super.transfer(address to, uint256 amount_)`). Otherwise, the `from_` user will not accrue less historical
-  /// rewards they are entitled to as their new balance is smaller after the transfer. Also, the `to_` user will accure
-  /// more historical rewards than they are entitled to as their new balance is larger after the transfer.
-  function updateUserRewardsForStkTokenTransfer(address from_, address to_) external {
-    // Check that only a registered stkToken can call this function.
-    IdLookup memory idLookup_ = stkReceiptTokenToStakePoolIds[IReceiptToken(msg.sender)];
-    if (!idLookup_.exists) revert Ownable.Unauthorized();
-
-    uint16 stakePoolId_ = idLookup_.index;
-    IReceiptToken stkToken_ = stakePools[stakePoolId_].stkReceiptToken;
-    mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[stakePoolId_];
-
-    // Fully accure historical rewards for both users given their current stkToken balances. Moving forward all rewards
-    // will accrue based on: (1) the stkToken balances of the `from_` and `to_` address after the transfer, (2) the
-    // current claimable reward index snapshots.
-    _updateUserRewards(stkToken_.balanceOf(from_), claimableRewards_, userRewards[stakePoolId_][from_]);
-    _updateUserRewards(stkToken_.balanceOf(to_), claimableRewards_, userRewards[stakePoolId_][to_]);
-  }
-
-  function _dripRewardPool(RewardPool storage rewardPool_) internal override {
-    RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
-    if (rewardDrip_.amount > 0) {
-      rewardPool_.undrippedRewards -= rewardDrip_.amount;
-      rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
-    }
-    rewardPool_.lastDripTime = uint128(block.timestamp);
   }
 
   function _previewNextClaimableRewardsData(

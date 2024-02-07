@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
-import {AssetPool} from "../lib/structs/Pools.sol";
+import {StakePool, RewardPool, AssetPool} from "../lib/structs/Pools.sol";
 import {ClaimableRewardsData, PreviewClaimableRewards} from "../lib/structs/Rewards.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 import {IDripModel} from "./IDripModel.sol";
@@ -20,32 +20,18 @@ interface IRewardsManager {
   function assetPools(IERC20 asset_) external view returns (AssetPool memory assetPool_);
 
   /// @notice Retrieve accounting and metadata about stake pools.
-  function stakePools(uint256 id_)
-    external
-    view
-    returns (
-      uint256 amount,
-      IERC20 asset,
-      IReceiptToken stkReceiptToken,
-      /// @dev The weighting of each stkToken's claim to all reward pools in terms of a ZOC. Must sum to 1.
-      /// e.g. stkTokenA = 10%, means they're eligible for up to 10% of each pool, scaled to their balance of stkTokenA
-      /// wrt totalSupply.
-      uint16 rewardsWeight
-    );
+  function stakePools(uint256 id_) external view returns (StakePool memory stakePool_);
 
   /// @notice Retrieve accounting and metadata about reward pools.
   /// @dev Claimable reward pool IDs are mapped 1:1 with reward pool IDs.
-  function rewardPools(uint256 id_)
+  function rewardPools(uint256 id_) external view returns (RewardPool memory rewardPool_);
+
+  function claimableRewards(uint16 stakePoolId_, uint16 rewardPoolId_)
     external
     view
-    returns (
-      uint256 amount,
-      uint256 cumulativeDrippedRewards,
-      uint128 lastDripTime,
-      IERC20 asset,
-      IDripModel dripModel,
-      IReceiptToken depositToken
-    );
+    returns (ClaimableRewardsData memory);
+
+  function claimableRewards(uint16 stakePoolId_) external view returns (ClaimableRewardsData[] memory);
 
   /// @notice Updates the reward module's user rewards data prior to a stkToken transfer.
   function updateUserRewardsForStkTokenTransfer(address from_, address to_) external;
@@ -87,4 +73,8 @@ interface IRewardsManager {
   function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_)
     external
     returns (uint256 stkReceiptTokenAmount_);
+
+  function dripRewards() external;
+
+  function dripRewardPool(uint16 rewardPoolId_) external;
 }

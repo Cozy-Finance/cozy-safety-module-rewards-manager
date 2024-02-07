@@ -262,6 +262,30 @@ contract RewardsManagerHandler is TestBase {
     ghost_stakePoolCumulative[currentStakePoolId].unstakeSharesAmount += stkTokenUnstakeAmount_;
   }
 
+  function dripRewards(uint256 seed_) public virtual countCall("dripRewards") advanceTime(seed_) {
+    rewardsManager.dripRewards();
+  }
+
+  function dripRewardPool(uint256 seed_)
+    public
+    virtual
+    countCall("dripRewardPool")
+    useValidRewardPoolId(seed_)
+    advanceTime(seed_)
+  {
+    rewardsManager.dripRewardPool(currentRewardPoolId);
+  }
+
+  function updateUserRewardsForStkTokenTransfer(address to_, uint256 seed_)
+    public
+    virtual
+    useActorWithStakes(seed_)
+    countCall("updateUserRewardsForStkTokenTransfer")
+    advanceTime(seed_)
+  {
+    rewardsManager.updateUserRewardsForStkTokenTransfer(currentActor, to_);
+  }
+
   function claimRewards(address receiver_, uint256 seed_)
     public
     useActorWithStakes(seed_)

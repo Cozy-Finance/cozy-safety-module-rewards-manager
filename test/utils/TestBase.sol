@@ -88,9 +88,7 @@ contract TestBase is Test, TestAssertions {
   }
 
   function getStakePool(IRewardsManager rewardsManager_, uint256 stakePoolId_) internal view returns (StakePool memory) {
-    (uint256 amount, IERC20 asset, IReceiptToken stkReceiptToken, uint16 rewardsWeight) =
-      rewardsManager_.stakePools(stakePoolId_);
-    return StakePool({amount: amount, asset: asset, stkReceiptToken: stkReceiptToken, rewardsWeight: rewardsWeight});
+    return rewardsManager_.stakePools(stakePoolId_);
   }
 
   function getRewardPool(IRewardsManager rewardsManager_, uint256 rewardPoolid_)
@@ -98,22 +96,7 @@ contract TestBase is Test, TestAssertions {
     view
     returns (RewardPool memory)
   {
-    (
-      uint256 undrippedRewards,
-      uint256 cumulativeDrippedRewards,
-      uint128 lastDripTime,
-      IERC20 asset,
-      IDripModel dripModel,
-      IReceiptToken depositReceiptToken
-    ) = rewardsManager_.rewardPools(rewardPoolid_);
-    return RewardPool({
-      undrippedRewards: undrippedRewards,
-      asset: asset,
-      dripModel: dripModel,
-      depositReceiptToken: depositReceiptToken,
-      cumulativeDrippedRewards: cumulativeDrippedRewards,
-      lastDripTime: lastDripTime
-    });
+    return rewardsManager_.rewardPools(rewardPoolid_);
   }
 
   function copyReservePool(StakePool memory original_) internal pure returns (StakePool memory copied_) {
