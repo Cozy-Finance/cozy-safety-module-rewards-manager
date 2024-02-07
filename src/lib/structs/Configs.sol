@@ -11,5 +11,6 @@ struct RewardPoolConfig {
 
 struct StakePoolConfig {
   IERC20 asset;
+  uint16 poolId;
   uint16 rewardsWeight;
 }

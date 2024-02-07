@@ -89,7 +89,7 @@ abstract contract InvariantTestWithSingleStakePoolAndSingleRewardPool is Invaria
     assets.push(asset_);
 
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
-    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: uint16(MathConstants.ZOC)});
+    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: uint16(MathConstants.ZOC), poolId: 0});
 
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
     rewardPoolConfigs_[0] = RewardPoolConfig({asset: asset_, dripModel: dripModel});
@@ -129,7 +129,8 @@ abstract contract InvariantTestWithMultipleStakePoolsAndMultipleRewardPools is I
 
       stakePoolConfigs_[i_] = StakePoolConfig({
         asset: assets[_randomUint256InRange(0, uniqueNumAssets_ - 1)],
-        rewardsWeight: uint16(rewardsWeight_)
+        rewardsWeight: uint16(rewardsWeight_),
+        poolId: uint16(i_)
       });
     }
 

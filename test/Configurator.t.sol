@@ -71,17 +71,19 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     });
   }
 
-  function _generateValidStakePoolConfig(uint16 weight_) private returns (StakePoolConfig memory) {
+  function _generateValidStakePoolConfig(uint16 weight_, uint16 poolId_) private returns (StakePoolConfig memory) {
     return StakePoolConfig({
       asset: IERC20(address(new MockERC20("Mock Stake Asset", "cozyMock", 6))),
-      rewardsWeight: weight_
+      rewardsWeight: weight_,
+      poolId: poolId_
     });
   }
 
   function _setBasicConfigs() private returns (StakePoolConfig[] memory, RewardPoolConfig[] memory) {
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](2);
-    stakePoolConfigs_[0] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 2));
-    stakePoolConfigs_[1] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 2));
+    stakePoolConfigs_[0] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 2), 0);
+    stakePoolConfigs_[1] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 2), 1);
+    sortStakePoolConfigs(stakePoolConfigs_);
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](2);
     rewardPoolConfigs_[0] = _generateValidRewardPoolConfig();
     rewardPoolConfigs_[1] = _generateValidRewardPoolConfig();
@@ -134,10 +136,10 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     (, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
     // Only 3 stake pools are allowed.
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](4);
-    stakePoolConfigs_[0] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
-    stakePoolConfigs_[1] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
-    stakePoolConfigs_[2] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
-    stakePoolConfigs_[3] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
+    stakePoolConfigs_[0] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4), 0);
+    stakePoolConfigs_[1] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4), 1);
+    stakePoolConfigs_[2] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4), 2);
+    stakePoolConfigs_[3] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4), 3);
 
     assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
@@ -189,7 +191,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     invalidStakePoolConfigs_ = new StakePoolConfig[](2);
     invalidStakePoolConfigs_[0] = stakePoolConfigs_[0];
     invalidStakePoolConfigs_[1] =
-      StakePoolConfig({asset: stakePoolConfigs_[0].asset, rewardsWeight: stakePoolConfigs_[1].rewardsWeight});
+      StakePoolConfig({asset: IERC20(_randomAddress()), rewardsWeight: stakePoolConfigs_[1].rewardsWeight, poolId: 0});
     assertFalse(component.isValidUpdate(invalidStakePoolConfigs_, rewardPoolConfigs_));
 
     // Valid update.
@@ -214,6 +216,13 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
 
     // Valid update.
     assertTrue(component.isValidUpdate(stakePoolConfigs_, rewardPoolConfigs_));
+  }
+
+  function test_isValidUpdate_NonUniqueAssets() external {
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+    stakePoolConfigs_[1].asset = stakePoolConfigs_[0].asset;
+
+    assertFalse(component.isValidUpdate(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
   function test_updateConfigs() external {
@@ -241,8 +250,11 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](2);
     stakePoolConfigs_[0].rewardsWeight = 0;
     stakePoolConfigs_[0].asset = stakePoolA_.asset;
+    stakePoolConfigs_[0].poolId = 0;
     stakePoolConfigs_[1].rewardsWeight = uint16(MathConstants.ZOC);
     stakePoolConfigs_[1].asset = stakePoolB_.asset;
+    stakePoolConfigs_[1].poolId = 1;
+    sortStakePoolConfigs(stakePoolConfigs_);
 
     _expectEmit();
     emit TestableConfiguratorEvents.DripAndResetCumulativeRewardsValuesCalled();
@@ -254,8 +266,8 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     // Stake pool config updates applied.
     StakePool[] memory stakePools_ = component.getStakePools();
     assertEq(stakePools_.length, 2);
-    _assertStakePoolUpdatesApplied(stakePools_[0], stakePoolConfigs_[0]);
-    _assertStakePoolUpdatesApplied(stakePools_[1], stakePoolConfigs_[1]);
+    _assertStakePoolUpdatesApplied(stakePools_[0], pickStakePoolConfig(stakePoolConfigs_, 0));
+    _assertStakePoolUpdatesApplied(stakePools_[1], pickStakePoolConfig(stakePoolConfigs_, 1));
 
     // Reward pool config updates applied.
     RewardPool[] memory rewardPools_ = component.getRewardPools();
@@ -272,7 +284,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     // New stake pool config.
     IReceiptToken asset_ = IReceiptToken(address(new ReceiptToken()));
     StakePoolConfig memory newStakePoolConfig_ =
-      StakePoolConfig({asset: asset_, rewardsWeight: uint16(_randomUint16())});
+      StakePoolConfig({asset: asset_, rewardsWeight: uint16(_randomUint16()), poolId: 0});
 
     IReceiptTokenFactory receiptTokenFactory_ = component.getReceiptTokenFactory();
     address stkReceiptTokenAddress_ =

@@ -33,8 +33,10 @@ library ConfiguratorLib {
     }
 
     // Validate existing stake pools.
-    for (uint16 i = 0; i < numExistingStakePools_; i++) {
-      if (stakePools_[i].asset != stakePoolConfigs_[i].asset) return false;
+    for (uint16 i = 0; i < stakePoolConfigs_.length; i++) {
+      if (stakePoolConfigs_[i].poolId < numExistingStakePools_) {
+        if (stakePools_[stakePoolConfigs_[i].poolId].asset != stakePoolConfigs_[i].asset) return false;
+      }
     }
 
     // Validate existing reward pools.
@@ -59,11 +61,14 @@ library ConfiguratorLib {
     // Validate number of reward pools.
     if (rewardPoolConfigs_.length > allowedRewardPools_) return false;
 
-    // Validate rewards weights.
+    // Validate rewards weights and assets.
     if (stakePoolConfigs_.length != 0) {
       uint16 rewardsWeightSum_ = 0;
       for (uint16 i = 0; i < stakePoolConfigs_.length; i++) {
         rewardsWeightSum_ += stakePoolConfigs_[i].rewardsWeight;
+
+        // Array not sorted by asset or includes duplicates.
+        if (i > 0 && address(stakePoolConfigs_[i].asset) <= address(stakePoolConfigs_[i - 1].asset)) return false; //
       }
       if (rewardsWeightSum_ != MathConstants.ZOC) return false;
     }
@@ -106,16 +111,14 @@ library ConfiguratorLib {
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) public {
-    // Update existing stake pool weights. No need to update the stake pool asset since it cannot change.
+    // Update existing stake pool weights and initialize new stake pools.
     uint256 numExistingStakePools_ = stakePools_.length;
-    for (uint256 i = 0; i < numExistingStakePools_; i++) {
-      StakePool storage stakePool_ = stakePools_[i];
-      stakePool_.rewardsWeight = stakePoolConfigs_[i].rewardsWeight;
-    }
-
-    // Initialize new stake pools.
-    for (uint256 i = numExistingStakePools_; i < stakePoolConfigs_.length; i++) {
-      initializeStakePool(stakePools_, stkReceiptTokenToStakePoolIds_, receiptTokenFactory_, stakePoolConfigs_[i]);
+    for (uint256 i = 0; i < stakePoolConfigs_.length; i++) {
+      if (stakePoolConfigs_[i].poolId < numExistingStakePools_) {
+        stakePools_[stakePoolConfigs_[i].poolId].rewardsWeight = stakePoolConfigs_[i].rewardsWeight;
+      } else {
+        initializeStakePool(stakePools_, stkReceiptTokenToStakePoolIds_, receiptTokenFactory_, stakePoolConfigs_[i]);
+      }
     }
 
     // Update existing reward pool drip models. No need to update the reward pool asset since it cannot change.

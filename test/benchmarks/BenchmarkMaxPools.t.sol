@@ -48,10 +48,12 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     for (uint256 i = 0; i < numPools; i++) {
       stakePoolConfigs_[i] = StakePoolConfig({
         asset: IERC20(address(new MockERC20("Mock Stake Asset", "cozyStk", 18))),
-        rewardsWeight: i == numPools - 1 ? uint16(MathConstants.ZOC - weightSum_) : uint16(MathConstants.ZOC / numPools)
+        rewardsWeight: i == numPools - 1 ? uint16(MathConstants.ZOC - weightSum_) : uint16(MathConstants.ZOC / numPools),
+        poolId: uint16(i)
       });
       weightSum_ += stakePoolConfigs_[i].rewardsWeight;
     }
+    sortStakePoolConfigs(stakePoolConfigs_);
     return stakePoolConfigs_;
   }
 
@@ -148,7 +150,8 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
         asset: asset_,
         rewardsWeight: i == numStakePools
           ? uint16(MathConstants.ZOC - weightSum_)
-          : uint16(MathConstants.ZOC / (numStakePools + 1))
+          : uint16(MathConstants.ZOC / (numStakePools + 1)),
+        poolId: uint16(i)
       });
       weightSum_ += stakePoolConfigs_[i].rewardsWeight;
     }
@@ -164,7 +167,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
         });
       }
     }
-
+    sortStakePoolConfigs(stakePoolConfigs_);
     return (stakePoolConfigs_, rewardPoolConfigs_);
   }
 
@@ -254,7 +257,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     vm.stopPrank();
   }
 
-  function test_updateConfigs() public {
+  function test_updateConfigs1() public {
     (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setUpConfigUpdate();
 
     vm.startPrank(owner);

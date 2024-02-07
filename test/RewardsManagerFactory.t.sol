@@ -61,7 +61,7 @@ contract RewardsManagerFactoryTest is TestBase {
     IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6)));
 
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
-    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: uint16(MathConstants.ZOC)});
+    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: uint16(MathConstants.ZOC), poolId: 0});
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
     rewardPoolConfigs_[0] = RewardPoolConfig({asset: asset_, dripModel: IDripModel(address(_randomAddress()))});
 
@@ -100,7 +100,7 @@ contract RewardsManagerFactoryTest is TestBase {
 
     // Invalid configuration, rewards weight must sum to zoc.
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
-    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: 1});
+    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: 1, poolId: 0});
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
     rewardPoolConfigs_[0] = RewardPoolConfig({asset: asset_, dripModel: IDripModel(address(_randomAddress()))});
 
@@ -115,7 +115,7 @@ contract RewardsManagerFactoryTest is TestBase {
     IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6)));
 
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
-    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: uint16(MathConstants.ZOC)});
+    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: uint16(MathConstants.ZOC), poolId: 0});
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
     rewardPoolConfigs_[0] = RewardPoolConfig({asset: asset_, dripModel: IDripModel(address(_randomAddress()))});
 

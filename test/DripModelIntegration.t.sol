@@ -28,7 +28,8 @@ abstract contract DripModelIntegrationTestSetup is MockDeployProtocol {
     rewardAsset = IERC20(address(new MockERC20("MockRewardAsset", "MOCK", 18)));
 
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
-    stakePoolConfigs_[0] = StakePoolConfig({asset: stakeAsset, rewardsWeight: uint16(MathConstants.ZOC)}); // 100% of
+    stakePoolConfigs_[0] = StakePoolConfig({asset: stakeAsset, rewardsWeight: uint16(MathConstants.ZOC), poolId: 0}); // 100%
+      // of
       // rewards for the only stake pool
 
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
