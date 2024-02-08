@@ -6,7 +6,6 @@ import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.
 import {IDripModel} from "../../src/interfaces/IDripModel.sol";
 import {IRewardsManager} from "../../src/interfaces/IRewardsManager.sol";
 import {RewardPool, StakePool} from "../../src/lib/structs/Pools.sol";
-import {UserRewardsData} from "../../src/lib/structs/Rewards.sol";
 import {Test} from "forge-std/Test.sol";
 import {TestAssertions} from "./TestAssertions.sol";
 
