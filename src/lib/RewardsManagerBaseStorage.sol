@@ -5,13 +5,13 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
-import {IManager} from "../interfaces/IManager.sol";
+import {ICozyManager} from "../interfaces/ICozyManager.sol";
 import {AssetPool, StakePool, IdLookup, RewardPool} from "./structs/Pools.sol";
 import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";
 
 abstract contract RewardsManagerBaseStorage {
   /// @notice Address of the Cozy protocol manager.
-  IManager public immutable cozyManager;
+  ICozyManager public immutable cozyManager;
 
   /// @notice Address of the Cozy protocol ReceiptTokenFactory.
   IReceiptTokenFactory public immutable receiptTokenFactory;

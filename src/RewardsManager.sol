@@ -11,7 +11,7 @@ import {RewardsDistributor} from "./lib/RewardsDistributor.sol";
 import {Staker} from "./lib/Staker.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./lib/structs/Configs.sol";
 import {IConfiguratorErrors} from "./interfaces/IConfiguratorErrors.sol";
-import {IManager} from "./interfaces/IManager.sol";
+import {ICozyManager} from "./interfaces/ICozyManager.sol";
 
 contract RewardsManager is
   RewardsManagerCommon,
@@ -27,12 +27,12 @@ contract RewardsManager is
   error Initialized();
 
   constructor(
-    IManager manager_,
+    ICozyManager cozyManager_,
     IReceiptTokenFactory receiptTokenFactory_,
     uint8 allowedStakePools_,
     uint8 allowedRewardPools_
   ) {
-    _assertAddressNotZero(address(manager_));
+    _assertAddressNotZero(address(cozyManager_));
     _assertAddressNotZero(address(receiptTokenFactory_));
     receiptTokenFactory = receiptTokenFactory_;
     allowedStakePools = allowedStakePools_;

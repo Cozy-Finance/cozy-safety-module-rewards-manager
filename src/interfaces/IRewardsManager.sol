@@ -55,6 +55,8 @@ interface IRewardsManager {
 
   function owner() external view returns (address);
 
+  function pause() external;
+
   function pauser() external view returns (address);
 
   function redeemUndrippedRewards(
@@ -90,4 +92,6 @@ interface IRewardsManager {
   function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_)
     external
     returns (uint256 stkReceiptTokenAmount_);
+
+  function unpause() external;
 }
