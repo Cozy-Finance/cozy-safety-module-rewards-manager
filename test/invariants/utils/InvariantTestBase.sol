@@ -97,7 +97,7 @@ abstract contract InvariantTestWithSingleStakePoolAndSingleRewardPool is Invaria
     numStakePools = stakePoolConfigs_.length;
     numRewardPools = rewardPoolConfigs_.length;
     rewardsManager =
-      rewardsManagerFactory.deployRewardsManager(owner, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32());
+      cozyManager.createRewardsManager(owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32());
 
     vm.label(address(getStakePool(rewardsManager, 0).stkReceiptToken), "stakePool0StkToken");
     vm.label(address(getRewardPool(rewardsManager, 0).depositReceiptToken), "rewardPool0DepositToken");
@@ -143,7 +143,7 @@ abstract contract InvariantTestWithMultipleStakePoolsAndMultipleRewardPools is I
     numStakePools = stakePoolConfigs_.length;
     numRewardPools = rewardPoolConfigs_.length;
     rewardsManager =
-      rewardsManagerFactory.deployRewardsManager(owner, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32());
+      cozyManager.createRewardsManager(owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32());
 
     for (uint256 i_; i_ < numStakePools_; i_++) {
       vm.label(

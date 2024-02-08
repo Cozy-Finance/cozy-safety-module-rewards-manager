@@ -2,6 +2,7 @@
 pragma solidity 0.8.22;
 
 import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
+import {RewardsManagerState} from "../../src/lib/RewardsManagerStates.sol";
 import {RewardPool, StakePool} from "../../src/lib/structs/Pools.sol";
 import {
   UserRewardsData,
@@ -119,5 +120,9 @@ abstract contract TestAssertions is Test {
     assertEq(address(actual_.asset), address(expected_.asset), "PreviewClaimableRewardsData.asset");
     assertEq(actual_.amount, expected_.amount, "PreviewClaimableRewardsData.amount");
     assertEq(actual_.rewardPoolId, expected_.rewardPoolId, "PreviewClaimableRewardsData.rewardPoolId");
+  }
+
+  function assertEq(RewardsManagerState actual_, RewardsManagerState expected_) internal {
+    assertEq(uint256(actual_), uint256(expected_), "RewardsManagerState");
   }
 }
