@@ -52,6 +52,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
       });
       weightSum_ += stakePoolConfigs_[i].rewardsWeight;
     }
+    sortStakePoolConfigs(stakePoolConfigs_);
     return stakePoolConfigs_;
   }
 

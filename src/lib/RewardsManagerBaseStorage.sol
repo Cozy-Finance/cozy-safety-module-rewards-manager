@@ -29,6 +29,8 @@ abstract contract RewardsManagerBaseStorage {
   /// @dev Used when claiming rewards
   mapping(IReceiptToken stkReceiptToken_ => IdLookup stakePoolId_) public stkReceiptTokenToStakePoolIds;
 
+  mapping(IERC20 asset_ => IdLookup stakePoolId_) public assetToStakePoolIds;
+
   /// @notice The max number of stake pools allowed per rewards manager.
   uint8 public immutable allowedStakePools;
 
