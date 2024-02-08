@@ -26,10 +26,7 @@ interface IRewardsManager {
   /// @dev Claimable reward pool IDs are mapped 1:1 with reward pool IDs.
   function rewardPools(uint256 id_) external view returns (RewardPool memory);
 
-  function userRewards(uint16 stakePoolId_, address user_)
-    external
-    view
-    returns (UserRewardsData[] memory);
+  function getUserRewards(uint16 stakePoolId_, address user) external view returns (UserRewardsData[] memory);
 
   function claimableRewards(uint16 stakePoolId_, uint16 rewardPoolId_)
     external

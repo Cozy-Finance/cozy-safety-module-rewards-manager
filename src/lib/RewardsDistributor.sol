@@ -94,6 +94,10 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     _updateUserRewards(stkToken_.balanceOf(to_), claimableRewards_, userRewards[stakePoolId_][to_]);
   }
 
+  function getUserRewards(uint16 stakePoolId_, address user) external view returns (UserRewardsData[] memory) {
+    return userRewards[stakePoolId_][user];
+  }
+
   function _dripRewardPool(RewardPool storage rewardPool_) internal override {
     RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
     if (rewardDrip_.amount > 0) {

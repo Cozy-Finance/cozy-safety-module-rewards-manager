@@ -1085,10 +1085,6 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
     return claimableRewards[stakePoolId_][rewardPoolid_];
   }
 
-  function getUserRewards(uint16 stakePoolId_, address user) external view returns (UserRewardsData[] memory) {
-    return userRewards[stakePoolId_][user];
-  }
-
   // -------- Exposed internal functions --------
   function getUserAccruedRewards(uint256 stkTokenAmount_, uint128 newRewardPoolIndex, uint128 oldRewardPoolIndex)
     external

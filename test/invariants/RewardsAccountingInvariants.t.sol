@@ -25,9 +25,12 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
 
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
       uint256 cumulativeDrippedRewards_ = rewardsManager.rewardPools(rewardPoolId_).cumulativeDrippedRewards;
+      uint256 totalClaimedRewards_ = 0;
       for (uint16 stakePoolId_ = 0; stakePoolId_ < numStakePools_; stakePoolId_++) {
         uint256 cumulativeClaimedRewards_ =
           rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_).cumulativeClaimedRewards;
+        totalClaimedRewards_ += cumulativeClaimedRewards_;
+
         uint256 rewardsWeight_ = rewardsManager.stakePools(stakePoolId_).rewardsWeight;
         uint256 scaledCumulativeDrippedRewards_ =
           cumulativeDrippedRewards_.mulDivDown(rewardsWeight_, MathConstants.ZOC);
@@ -46,6 +49,19 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
           )
         );
       }
+
+      require(
+        totalClaimedRewards_ <= cumulativeDrippedRewards_,
+        string.concat(
+          "Invariant Violated: The total claimed rewards must be less than or equal to the cumulative dripped rewards.",
+          " totalClaimedRewards: ",
+          Strings.toString(totalClaimedRewards_),
+          ", cumulativeDrippedRewards: ",
+          Strings.toString(cumulativeDrippedRewards_),
+          ", rewardPoolId: ",
+          Strings.toString(rewardPoolId_)
+        )
+      );
     }
   }
 
@@ -86,7 +102,7 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
 
   function _invariant_userRewardsAccounting(address user_) internal {
     uint16 stakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), user_);
-    UserRewardsData[] memory userRewardsData_ = rewardsManager.userRewards(stakePoolId_, user_);
+    UserRewardsData[] memory userRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, user_);
 
     uint256 numRewardPools_ = userRewardsData_.length;
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
@@ -118,9 +134,7 @@ contract RewardsAccountingInvariantsSingleStakePoolSingleRewardPool is
   InvariantTestWithSingleStakePoolAndSingleRewardPool
 {}
 
-/*
 contract RewardsAccountingInvariantsMultipleStakePoolsMultipleRewardPools is
   RewardsAccountingInvariants,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 {}
-*/
