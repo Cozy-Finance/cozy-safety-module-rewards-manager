@@ -28,9 +28,9 @@ contract CozyManager is Governable, ICozyManager {
     rewardsManagerFactory = rewardsManagerFactory_;
   }
 
-  // -----------------------------------------------
-  // -------- Batched Safety Module Actions --------
-  // -----------------------------------------------
+  // -------------------------------------------------
+  // -------- Batched Rewards Manager Actions --------
+  // -------------------------------------------------
 
   /// @notice Batch pauses rewardsManagers_. The manager's pauser or owner can perform this action.
   function pause(IRewardsManager[] calldata rewardsManagers_) external {
