@@ -4,9 +4,11 @@ pragma solidity ^0.8.0;
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
+import {RewardsManagerState} from "../lib/RewardsManagerStates.sol";
 import {AssetPool} from "../lib/structs/Pools.sol";
 import {ClaimableRewardsData, PreviewClaimableRewards} from "../lib/structs/Rewards.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
+import {ICozyManager} from "./ICozyManager.sol";
 import {IDripModel} from "./IDripModel.sol";
 
 interface IRewardsManager {
@@ -93,5 +95,9 @@ interface IRewardsManager {
     external
     returns (uint256 stkReceiptTokenAmount_);
 
+  function rewardsManagerState() external view returns (RewardsManagerState);
+
   function unpause() external;
+
+  function cozyManager() external returns (ICozyManager);
 }

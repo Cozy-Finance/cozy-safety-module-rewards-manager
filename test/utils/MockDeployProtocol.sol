@@ -24,7 +24,7 @@ contract MockDeployer is TestBase {
   ICozyManager cozyManager;
 
   address owner = address(this);
-  address pauser = address(this);
+  address pauser = address(0xBEEF);
 
   uint8 constant ALLOWED_STAKE_POOLS = 100;
   uint8 constant ALLOWED_REWARD_POOLS = 100;

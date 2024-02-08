@@ -9,6 +9,7 @@ import {RewardsManagerInspector} from "./lib/RewardsManagerInspector.sol";
 import {Depositor} from "./lib/Depositor.sol";
 import {RewardsDistributor} from "./lib/RewardsDistributor.sol";
 import {Staker} from "./lib/Staker.sol";
+import {StateChanger} from "./lib/StateChanger.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./lib/structs/Configs.sol";
 import {IConfiguratorErrors} from "./interfaces/IConfiguratorErrors.sol";
 import {ICozyManager} from "./interfaces/ICozyManager.sol";
@@ -19,7 +20,8 @@ contract RewardsManager is
   Configurator,
   Depositor,
   RewardsDistributor,
-  Staker
+  Staker,
+  StateChanger
 {
   bool public initialized;
 
@@ -34,6 +36,7 @@ contract RewardsManager is
   ) {
     _assertAddressNotZero(address(cozyManager_));
     _assertAddressNotZero(address(receiptTokenFactory_));
+    cozyManager = cozyManager_;
     receiptTokenFactory = receiptTokenFactory_;
     allowedStakePools = allowedStakePools_;
     allowedRewardPools = allowedRewardPools_;

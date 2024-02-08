@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IGovernable} from "cozy-safety-module-shared/interfaces/IGovernable.sol";
 import {IRewardsManager} from "./IRewardsManager.sol";
+import {IRewardsManagerFactory} from "./IRewardsManagerFactory.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 
 interface ICozyManager is IGovernable {
@@ -19,4 +20,10 @@ interface ICozyManager is IGovernable {
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     bytes32 salt_
   ) external returns (IRewardsManager rewardsManager_);
+
+  function pause(IRewardsManager[] calldata rewardsManagers_) external;
+
+  function rewardsManagerFactory() external view returns (IRewardsManagerFactory rewardsManagerFactory_);
+
+  function unpause(IRewardsManager[] calldata rewardsManagers_) external;
 }
