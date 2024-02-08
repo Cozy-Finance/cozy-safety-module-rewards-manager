@@ -46,6 +46,9 @@ contract RewardsManagerHandler is TestBase {
 
   uint256 public totalCalls;
 
+  error StakePoolIdNotFoundForActor(address actor_);
+  error RewardPoolIdNotFoundForActor(address actor_);
+
   // -------- Ghost Variables --------
 
   mapping(uint16 stakePoolId_ => GhostStakePool stakePool_) public ghost_stakePoolCumulative;
@@ -502,6 +505,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   modifier createActorWithStakes() {
+    console2.log("createActorWithStakes", currentActor);
     actorsWithStakes.add(currentActor);
     _;
   }
@@ -529,40 +533,57 @@ contract RewardsManagerHandler is TestBase {
 
   modifier useActorWithRewardDeposits(uint256 seed_) {
     currentActor = actorsWithRewardDeposits.rand(seed_);
-
-    uint16 initIndex_ = uint16(bound(seed_, 0, numRewardPools));
-    uint16 indicesVisited_ = 0;
-
-    // Iterate through reserve pools to find the first pool with a positive reserve deposit count for the current actor
-    for (uint16 i = initIndex_; indicesVisited_ < numRewardPools; i = uint16((i + 1) % numRewardPools)) {
-      if (ghost_actorRewardDepositCount[currentActor][i] > 0) {
-        currentRewardPoolId = i;
-        break;
-      }
-      indicesVisited_++;
-    }
+    currentRewardPoolId = getRewardPoolIdForActorWithRewardDeposit(seed_, currentActor);
     _;
   }
 
   modifier useActorWithStakes(uint256 seed_) {
     currentActor = actorsWithStakes.rand(seed_);
-
-    uint16 initIndex_ = uint16(bound(seed_, 0, numStakePools));
-    uint16 indicesVisited_ = 0;
-
-    // Iterate through reserve pools to find the first pool with a positive reserve deposit count for the current actor
-    for (uint16 i = initIndex_; indicesVisited_ < numStakePools; i = uint16((i + 1) % numStakePools)) {
-      if (ghost_actorStakeCount[currentActor][i] > 0) {
-        currentStakePoolId = i;
-        break;
-      }
-      indicesVisited_++;
-    }
+    currentStakePoolId = getStakePoolIdForActorWithStake(seed_, currentActor);
     _;
   }
 
   modifier warpToCurrentTimestamp() {
     vm.warp(currentTimestamp);
     _;
+  }
+
+  // ----------------------------------
+  // ------- AddressSet helpers -------
+  // ----------------------------------
+  function getActorsWithStakes() external view returns (address[] memory) {
+    return actorsWithStakes.addrs;
+  }
+
+  function getActorsWithRewardDeposits() external view returns (address[] memory) {
+    return actorsWithRewardDeposits.addrs;
+  }
+
+  function getStakePoolIdForActorWithStake(uint256 seed_, address actor_) public view returns (uint16) {
+    uint16 initIndex_ = uint16(_randomUint256FromSeed(seed_) % numStakePools);
+    uint16 indicesVisited_ = 0;
+
+    // Iterate through stake pools to find the first pool with a stake deposit count for the current actor.
+    for (uint16 i = initIndex_; indicesVisited_ < numStakePools; i = uint16((i + 1) % numStakePools)) {
+      if (ghost_actorStakeCount[currentActor][i] > 0) return i;
+      indicesVisited_++;
+    }
+
+    // If no stake pool with a stake deposit count was found, return the random initial index.
+    return initIndex_;
+  }
+
+  function getRewardPoolIdForActorWithRewardDeposit(uint256 seed_, address actor_) public view returns (uint16) {
+    uint16 initIndex_ = uint16(_randomUint256FromSeed(seed_) % numRewardPools);
+    uint16 indicesVisited_ = 0;
+
+    // Iterate through reward pools to find the first pool with a positive reward deposit count for the current actor
+    for (uint16 i = initIndex_; indicesVisited_ < numRewardPools; i = uint16((i + 1) % numRewardPools)) {
+      if (ghost_actorRewardDepositCount[actor_][i] > 0) return i;
+      indicesVisited_++;
+    }
+
+    // If no reward pool with a reward deposit count was found, return the random initial index.
+    return initIndex_;
   }
 }

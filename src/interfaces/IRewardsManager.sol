@@ -5,7 +5,7 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
 import {StakePool, RewardPool, AssetPool} from "../lib/structs/Pools.sol";
-import {ClaimableRewardsData, PreviewClaimableRewards} from "../lib/structs/Rewards.sol";
+import {ClaimableRewardsData, PreviewClaimableRewards, UserRewardsData} from "../lib/structs/Rewards.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 import {IDripModel} from "./IDripModel.sol";
 
@@ -17,21 +17,24 @@ interface IRewardsManager {
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external;
 
-  function assetPools(IERC20 asset_) external view returns (AssetPool memory assetPool_);
+  function assetPools(IERC20 asset_) external view returns (AssetPool memory);
 
   /// @notice Retrieve accounting and metadata about stake pools.
-  function stakePools(uint256 id_) external view returns (StakePool memory stakePool_);
+  function stakePools(uint256 id_) external view returns (StakePool memory);
 
   /// @notice Retrieve accounting and metadata about reward pools.
   /// @dev Claimable reward pool IDs are mapped 1:1 with reward pool IDs.
-  function rewardPools(uint256 id_) external view returns (RewardPool memory rewardPool_);
+  function rewardPools(uint256 id_) external view returns (RewardPool memory);
+
+  function userRewards(uint16 stakePoolId_, address user_)
+    external
+    view
+    returns (UserRewardsData[] memory);
 
   function claimableRewards(uint16 stakePoolId_, uint16 rewardPoolId_)
     external
     view
     returns (ClaimableRewardsData memory);
-
-  function claimableRewards(uint16 stakePoolId_) external view returns (ClaimableRewardsData[] memory);
 
   /// @notice Updates the reward module's user rewards data prior to a stkToken transfer.
   function updateUserRewardsForStkTokenTransfer(address from_, address to_) external;

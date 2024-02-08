@@ -6,6 +6,7 @@ import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.
 import {IDripModel} from "../../src/interfaces/IDripModel.sol";
 import {IRewardsManager} from "../../src/interfaces/IRewardsManager.sol";
 import {RewardPool, StakePool} from "../../src/lib/structs/Pools.sol";
+import {UserRewardsData} from "../../src/lib/structs/Rewards.sol";
 import {Test} from "forge-std/Test.sol";
 import {TestAssertions} from "./TestAssertions.sol";
 
@@ -81,6 +82,10 @@ contract TestBase is Test, TestAssertions {
   function _randomUint256InRange(uint256 min_, uint256 max_) internal view returns (uint256) {
     uint256 base_ = _randomUint256();
     return bound(base_, min_, max_);
+  }
+
+  function _randomUint256FromSeed(uint256 seed_) internal view returns (uint256) {
+    return uint256(keccak256(abi.encodePacked(seed_)));
   }
 
   function _expectPanic(uint256 code_) internal {

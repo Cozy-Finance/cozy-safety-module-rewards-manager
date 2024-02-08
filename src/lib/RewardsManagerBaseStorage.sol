@@ -11,22 +11,22 @@ abstract contract RewardsManagerBaseStorage {
   /// @notice Address of the Cozy protocol ReceiptTokenFactory.
   IReceiptTokenFactory public immutable receiptTokenFactory;
 
-  /// @dev Stake pool index in this array is its ID
+  /// @dev Stake pool index in this array is its ID.
   StakePool[] public stakePools;
 
-  /// @dev Reward pool index in this array is its ID
+  /// @dev Reward pool index in this array is its ID.
   RewardPool[] public rewardPools;
 
-  /// @dev Used for doing aggregate accounting of stake pool assets.
+  /// @dev Used for doing aggregate accounting of stake/reward assets.
   mapping(IERC20 asset_ => AssetPool assetPool_) public assetPools;
 
-  /// @notice Maps a stake pool id to an reward pool id to claimable reward index
+  /// @notice Maps a stake pool id to an reward pool id to claimable rewards data.
   mapping(uint16 => mapping(uint16 => ClaimableRewardsData)) public claimableRewards;
 
-  /// @notice Maps a stake pool id to a user address to a user reward pool accounting struct.
+  /// @notice Maps a stake pool id to a user address to an array of user rewards data (one for each reward pool).
   mapping(uint16 => mapping(address => UserRewardsData[])) public userRewards;
 
-  /// @dev Used when claiming rewards
+  /// @dev Used when claiming rewards.
   mapping(IReceiptToken stkReceiptToken_ => IdLookup stakePoolId_) public stkReceiptTokenToStakePoolIds;
 
   /// @notice The max number of stake pools allowed per rewards manager.
