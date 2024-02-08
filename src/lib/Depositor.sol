@@ -60,8 +60,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
       depositReceiptTokenAmount_,
       rewardPool_.dripModel,
       rewardPool_.undrippedRewards,
-      rewardPool_.lastDripTime,
-      rewardsManagerState_
+      rewardPool_.lastDripTime
     );
 
     depositReceiptToken_.burn(msg.sender, owner_, depositReceiptTokenAmount_);
@@ -87,8 +86,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
       depositReceiptTokenAmount_,
       rewardPool_.dripModel,
       rewardPool_.undrippedRewards,
-      lastDripTime_,
-      rewardsManagerState
+      lastDripTime_
     );
   }
 
@@ -121,12 +119,10 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     uint256 receiptTokenAmount_,
     IDripModel dripModel_,
     uint256 totalPoolAmount_,
-    uint256 lastDripTime_,
-    RewardsManagerState rewardsManagerState_
+    uint256 lastDripTime_
   ) internal view returns (uint256 assetAmount_) {
-    uint256 nextDripAmount_ = (lastDripTime_ != block.timestamp && rewardsManagerState_ != RewardsManagerState.PAUSED)
-      ? _getNextDripAmount(totalPoolAmount_, dripModel_, lastDripTime_)
-      : 0;
+    uint256 nextDripAmount_ =
+      (lastDripTime_ != block.timestamp) ? _getNextDripAmount(totalPoolAmount_, dripModel_, lastDripTime_) : 0;
     uint256 nextTotalPoolAmount_ = totalPoolAmount_ - nextDripAmount_;
 
     assetAmount_ = nextTotalPoolAmount_ == 0

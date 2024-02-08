@@ -204,9 +204,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   function _previewNextRewardDrip(RewardPool storage rewardPool_) internal view returns (RewardDrip memory) {
     return RewardDrip({
       rewardAsset: rewardPool_.asset,
-      amount: rewardsManagerState == RewardsManagerState.ACTIVE
-        ? _getNextDripAmount(rewardPool_.undrippedRewards, rewardPool_.dripModel, rewardPool_.lastDripTime)
-        : 0
+      amount: _getNextDripAmount(rewardPool_.undrippedRewards, rewardPool_.dripModel, rewardPool_.lastDripTime)
     });
   }
 
@@ -256,6 +254,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     override
     returns (uint256)
   {
+    if (rewardsManagerState == RewardsManagerState.PAUSED) return 0;
     uint256 dripFactor_ = dripModel_.dripFactor(lastDripTime_);
     if (dripFactor_ > MathConstants.WAD) revert InvalidDripFactor();
 

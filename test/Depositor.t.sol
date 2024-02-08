@@ -911,7 +911,9 @@ contract TestableDepositor is Depositor, RewardsManagerInspector {
     override
     returns (uint256)
   {
-    return block.timestamp - lastDripTime_ == 0 ? 0 : mockNextRewardsDripAmount;
+    return block.timestamp - lastDripTime_ == 0 || rewardsManagerState == RewardsManagerState.PAUSED
+      ? 0
+      : mockNextRewardsDripAmount;
   }
 
   function _computeNextDripAmount(uint256, /* totalBaseAmount_ */ uint256 /* dripFactor_ */ )
