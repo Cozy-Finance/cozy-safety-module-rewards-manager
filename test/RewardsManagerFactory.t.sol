@@ -14,6 +14,7 @@ import {StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../src/lib/structs/Configs.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
+import {IManager} from "../src/interfaces/IManager.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
@@ -41,7 +42,7 @@ contract RewardsManagerFactoryTest is TestBase {
       IReceiptToken(address(safetyModuleReceiptTokenLogic)), IReceiptToken(address(stkTokenLogic))
     );
 
-    rewardsManagerLogic = new RewardsManager(receiptTokenFactory, 30, 25);
+    rewardsManagerLogic = new RewardsManager(IManager(_randomAddress()), receiptTokenFactory, 30, 25);
     rewardsManagerLogic.initialize(address(0), address(0), new StakePoolConfig[](0), new RewardPoolConfig[](0));
 
     rewardsManagerFactory = new RewardsManagerFactory(IRewardsManager(address(rewardsManagerLogic)));

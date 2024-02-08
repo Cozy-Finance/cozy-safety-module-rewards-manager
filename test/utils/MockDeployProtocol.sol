@@ -11,6 +11,7 @@ import {StkToken} from "../../src/StkToken.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../../src/lib/structs/Configs.sol";
 import {RewardsManager} from "../../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../../src/RewardsManagerFactory.sol";
+import {IManager} from "../../src/interfaces/IManager.sol";
 import {TestBase} from "../utils/TestBase.sol";
 
 contract MockDeployer is TestBase {
@@ -35,7 +36,11 @@ contract MockDeployer is TestBase {
       IReceiptTokenFactory(vm.computeCreateAddress(address(this), nonce_ + 4));
 
     rewardsManagerLogic = IRewardsManager(
-      address(new RewardsManager(computedAddrReceiptTokenFactory_, ALLOWED_STAKE_POOLS, ALLOWED_REWARD_POOLS))
+      address(
+        new RewardsManager(
+          IManager(_randomAddress()), computedAddrReceiptTokenFactory_, ALLOWED_STAKE_POOLS, ALLOWED_REWARD_POOLS
+        )
+      )
     );
     rewardsManagerLogic.initialize(owner, pauser, new StakePoolConfig[](0), new RewardPoolConfig[](0));
     rewardsManagerFactory = new RewardsManagerFactory(computedAddrRewardsManagerLogic_);

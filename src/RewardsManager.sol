@@ -11,6 +11,7 @@ import {RewardsDistributor} from "./lib/RewardsDistributor.sol";
 import {Staker} from "./lib/Staker.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./lib/structs/Configs.sol";
 import {IConfiguratorErrors} from "./interfaces/IConfiguratorErrors.sol";
+import {IManager} from "./interfaces/IManager.sol";
 
 contract RewardsManager is
   RewardsManagerCommon,
@@ -25,7 +26,13 @@ contract RewardsManager is
   /// @dev Thrown if the contract is already initialized.
   error Initialized();
 
-  constructor(IReceiptTokenFactory receiptTokenFactory_, uint8 allowedStakePools_, uint8 allowedRewardPools_) {
+  constructor(
+    IManager manager_,
+    IReceiptTokenFactory receiptTokenFactory_,
+    uint8 allowedStakePools_,
+    uint8 allowedRewardPools_
+  ) {
+    _assertAddressNotZero(address(manager_));
     _assertAddressNotZero(address(receiptTokenFactory_));
     receiptTokenFactory = receiptTokenFactory_;
     allowedStakePools = allowedStakePools_;
