@@ -12,7 +12,6 @@ import {
   InvariantTestWithSingleStakePoolAndSingleRewardPool,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 } from "./utils/InvariantTestBase.sol";
-import {console2} from "forge-std/console2.sol";
 
 abstract contract RewardsDistributorInvariants is InvariantTestBase {
   using FixedPointMathLib for uint256;
@@ -106,9 +105,7 @@ contract RewardsDistributorInvariantsSingleStakePoolSingleRewardPool is
   InvariantTestWithSingleStakePoolAndSingleRewardPool
 {}
 
-/*
 contract RewardsDistributorInvariantsMultipleStakePoolsMultipleRewardPools is
   RewardsDistributorInvariants,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 {}
-*/
