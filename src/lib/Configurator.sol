@@ -23,7 +23,8 @@ abstract contract Configurator is RewardsManagerCommon, Governable {
     //    claimableRewards[stakePool][rewardPool].cumulativeClaimedRewards <=
     //        rewardPools[rewardPool].cumulativeDrippedRewards*stakePools[stakePool].rewardsWeight
     // So, before applying the update, we drip rewards, update claimable reward indices and reset the cumulative rewards
-    // values to 0. This is also executed when a configuration update occurs in the PAUSED state.
+    // values to 0. This is also executed when a configuration update occurs in the PAUSED state, but the drip does
+    // not occur. Rewards are dripped at the time the rewards manager was paused.
     StakePool[] storage stakePools_ = stakePools;
     RewardPool[] storage rewardPools_ = rewardPools;
     _dripAndResetCumulativeRewardsValues(stakePools_, rewardPools_);
