@@ -2,20 +2,21 @@
 pragma solidity 0.8.22;
 
 import {console2} from "forge-std/console2.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {RewardsManager} from "../../../src/RewardsManager.sol";
 import {StakePool, RewardPool} from "../../../src/lib/structs/Pools.sol";
 import {PreviewClaimableRewards, PreviewClaimableRewardsData} from "../../../src/lib/structs/Rewards.sol";
 import {IRewardsManager} from "../../../src/interfaces/IRewardsManager.sol";
-import {AddressSet, AddressSetLib} from "../utils/AddressSet.sol";
 import {TestBase} from "../../utils/TestBase.sol";
 
 contract RewardsManagerHandler is TestBase {
   using FixedPointMathLib for uint256;
-  using AddressSetLib for AddressSet;
+  using EnumerableSet for EnumerableSet.AddressSet;
 
   uint64 constant SECONDS_IN_A_YEAR = 365 * 24 * 60 * 60;
+  address public constant DEFAULT_ADDRESS = address(0xc0ffee);
 
   address pauser;
   address owner;
@@ -30,11 +31,11 @@ contract RewardsManagerHandler is TestBase {
 
   address internal currentActor;
 
-  AddressSet internal actors;
+  EnumerableSet.AddressSet internal actors;
 
-  AddressSet internal actorsWithRewardDeposits;
+  EnumerableSet.AddressSet internal actorsWithRewardDeposits;
 
-  AddressSet internal actorsWithStakes;
+  EnumerableSet.AddressSet internal actorsWithStakes;
 
   uint16 public currentStakePoolId;
 
@@ -258,6 +259,7 @@ contract RewardsManagerHandler is TestBase {
     uint256 assetAmount_ = rewardsManager.unstake(currentStakePoolId, stkTokenUnstakeAmount_, receiver_, currentActor);
     vm.stopPrank();
 
+    if (stkTokenUnstakeAmount_ == actorStkTokenBalance_) actorsWithStakes.remove(currentActor);
     ghost_stakePoolCumulative[currentStakePoolId].unstakeAssetAmount += assetAmount_;
     ghost_stakePoolCumulative[currentStakePoolId].unstakeSharesAmount += stkTokenUnstakeAmount_;
   }
@@ -292,9 +294,12 @@ contract RewardsManagerHandler is TestBase {
 
     stkTokenTransferAmount_ = bound(stkTokenTransferAmount_, 0, actorStkTokenBalance_);
 
-    vm.prank(currentActor);
+    vm.startPrank(currentActor);
     // This will call `updateUserRewardsForStkTokenTransfer` in the RewardsManager.
-    stkToken_.transfer(to_, actorStkTokenBalance_);
+    stkToken_.transfer(to_, stkTokenTransferAmount_);
+    vm.stopPrank();
+
+    if (stkTokenTransferAmount_ == actorStkTokenBalance_) actorsWithStakes.remove(currentActor);
   }
 
   function claimRewards(address receiver_, uint256 seed_)
@@ -541,18 +546,23 @@ contract RewardsManagerHandler is TestBase {
   }
 
   modifier useActor(uint256 actorIndexSeed_) {
-    currentActor = actors.rand(actorIndexSeed_);
+    uint256 numActors_ = actors.length();
+    currentActor = numActors_ == 0 ? DEFAULT_ADDRESS : actors.at(actorIndexSeed_ % numActors_);
     _;
   }
 
   modifier useActorWithRewardDeposits(uint256 seed_) {
-    currentActor = actorsWithRewardDeposits.rand(seed_);
+    uint256 numActorsWithRewardDeposits_ = actorsWithRewardDeposits.length();
+    currentActor = numActorsWithRewardDeposits_ == 0
+      ? DEFAULT_ADDRESS
+      : actorsWithRewardDeposits.at(seed_ % numActorsWithRewardDeposits_);
     currentRewardPoolId = getRewardPoolIdForActorWithRewardDeposit(seed_, currentActor);
     _;
   }
 
   modifier useActorWithStakes(uint256 seed_) {
-    currentActor = actorsWithStakes.rand(seed_);
+    uint256 numActorsWithStakes_ = actorsWithStakes.length();
+    currentActor = numActorsWithStakes_ == 0 ? DEFAULT_ADDRESS : actorsWithStakes.at(seed_ % numActorsWithStakes_);
     currentStakePoolId = getStakePoolIdForActorWithStake(seed_, currentActor);
     _;
   }
@@ -566,11 +576,11 @@ contract RewardsManagerHandler is TestBase {
   // ------- AddressSet helpers -------
   // ----------------------------------
   function getActorsWithStakes() external view returns (address[] memory) {
-    return actorsWithStakes.addrs;
+    return actorsWithStakes.values();
   }
 
   function getActorsWithRewardDeposits() external view returns (address[] memory) {
-    return actorsWithRewardDeposits.addrs;
+    return actorsWithRewardDeposits.values();
   }
 
   function getStakePoolIdForActorWithStake(uint256 seed_, address actor_) public view returns (uint16) {

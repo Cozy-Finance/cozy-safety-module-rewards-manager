@@ -931,7 +931,7 @@ contract RewardsDistributorStkTokenTransferUnitTest is RewardsDistributorUnitTes
 }
 
 contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistributorUnitTest {
-  function _expectedClaimableRewardsData(uint128 indexSnapshot) internal pure returns (ClaimableRewardsData memory) {
+  function _expectedClaimableRewardsData(uint256 indexSnapshot) internal pure returns (ClaimableRewardsData memory) {
     return ClaimableRewardsData({indexSnapshot: indexSnapshot, cumulativeClaimedRewards: 0});
   }
 
@@ -1086,7 +1086,7 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
   }
 
   // -------- Exposed internal functions --------
-  function getUserAccruedRewards(uint256 stkTokenAmount_, uint128 newRewardPoolIndex, uint128 oldRewardPoolIndex)
+  function getUserAccruedRewards(uint256 stkTokenAmount_, uint256 newRewardPoolIndex, uint256 oldRewardPoolIndex)
     external
     pure
     returns (uint256)

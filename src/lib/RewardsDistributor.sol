@@ -5,7 +5,6 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
-import {SafeCastLib} from "cozy-safety-module-shared/lib/SafeCastLib.sol";
 import {SafeERC20} from "cozy-safety-module-shared/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {StakePool, AssetPool} from "./structs/Pools.sol";
@@ -18,11 +17,11 @@ import {
 } from "./structs/Rewards.sol";
 import {RewardPool, IdLookup} from "./structs/Pools.sol";
 import {IDripModel} from "../interfaces/IDripModel.sol";
+import {console2} from "forge-std/console2.sol";
 
 abstract contract RewardsDistributor is RewardsManagerCommon {
   using FixedPointMathLib for uint256;
   using SafeERC20 for IERC20;
-  using SafeCastLib for uint256;
 
   event ClaimedRewards(
     uint16 indexed stakePoolId_, IERC20 indexed rewardAsset_, uint256 amount_, address indexed owner_, address receiver_
@@ -146,7 +145,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
           UserRewardsData({accruedRewards: 0, indexSnapshot: newClaimableRewardsData_.indexSnapshot});
         // A new UserRewardsData struct is pushed to the array in the case a new reward pool was added since rewards
         // were last claimed for this user.
-        uint128 oldIndexSnapshot_ = 0;
+        uint256 oldIndexSnapshot_ = 0;
         uint256 oldAccruedRewards_ = 0;
         if (i < claimRewardsData_.numUserRewardAssets) {
           oldIndexSnapshot_ = userRewards_[i].indexSnapshot;
@@ -188,8 +187,10 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
         - claimableRewardsData_.cumulativeClaimedRewards;
       nextClaimableRewardsData_.cumulativeClaimedRewards += unclaimedDrippedRewards_;
       // Round down, in favor of leaving assets in the claimable reward pool.
-      nextClaimableRewardsData_.indexSnapshot +=
-        unclaimedDrippedRewards_.divWadDown(totalStkTokenSupply_).safeCastTo128();
+      console2.log("unclaimedDrippedRewards_", unclaimedDrippedRewards_);
+      console2.log("totalStkTokenSupply_", totalStkTokenSupply_);
+      console2.log("nextClaimableRewardsData_.indexSnapshot", nextClaimableRewardsData_.indexSnapshot);
+      nextClaimableRewardsData_.indexSnapshot += unclaimedDrippedRewards_.divWadDown(totalStkTokenSupply_);
     }
   }
 
@@ -335,29 +336,31 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
   function _previewUpdateUserRewardsData(
     uint256 userStkTokenBalance_,
-    uint128 newIndexSnapshot_,
+    uint256 newIndexSnapshot_,
     UserRewardsData storage userRewardsData_
   ) internal view returns (UserRewardsData memory newUserRewardsData_) {
     newUserRewardsData_.accruedRewards = userRewardsData_.accruedRewards
-      + _getUserAccruedRewards(userStkTokenBalance_, newIndexSnapshot_, userRewardsData_.indexSnapshot).safeCastTo128();
+      + _getUserAccruedRewards(userStkTokenBalance_, newIndexSnapshot_, userRewardsData_.indexSnapshot);
     newUserRewardsData_.indexSnapshot = newIndexSnapshot_;
   }
 
-  function _previewAddUserRewardsData(uint256 userStkTokenBalance_, uint128 newIndexSnapshot_)
+  function _previewAddUserRewardsData(uint256 userStkTokenBalance_, uint256 newIndexSnapshot_)
     internal
     pure
     returns (UserRewardsData memory newUserRewardsData_)
   {
-    newUserRewardsData_.accruedRewards =
-      _getUserAccruedRewards(userStkTokenBalance_, newIndexSnapshot_, 0).safeCastTo128();
+    newUserRewardsData_.accruedRewards = _getUserAccruedRewards(userStkTokenBalance_, newIndexSnapshot_, 0);
     newUserRewardsData_.indexSnapshot = newIndexSnapshot_;
   }
 
-  function _getUserAccruedRewards(uint256 stkTokenAmount_, uint128 newRewardPoolIndex, uint128 oldRewardPoolIndex)
+  function _getUserAccruedRewards(uint256 stkTokenAmount_, uint256 newRewardPoolIndex, uint256 oldRewardPoolIndex)
     internal
     pure
     returns (uint256)
   {
+    console2.log("stkTokenAmount_", stkTokenAmount_);
+    console2.log("newRewardPoolIndex", newRewardPoolIndex);
+    console2.log("oldRewardPoolIndex", oldRewardPoolIndex);
     // Round down, in favor of leaving assets in the rewards pool.
     return stkTokenAmount_.mulWadDown(newRewardPoolIndex - oldRewardPoolIndex);
   }
