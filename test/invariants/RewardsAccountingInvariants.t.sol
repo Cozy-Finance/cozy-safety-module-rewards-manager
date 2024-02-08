@@ -25,11 +25,12 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
 
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
       uint256 cumulativeDrippedRewards_ = rewardsManager.rewardPools(rewardPoolId_).cumulativeDrippedRewards;
-      uint256 totalClaimedRewards_ = 0;
+      uint256 sumCumulativeClaimedRewards_ = 0;
+
       for (uint16 stakePoolId_ = 0; stakePoolId_ < numStakePools_; stakePoolId_++) {
         uint256 cumulativeClaimedRewards_ =
           rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_).cumulativeClaimedRewards;
-        totalClaimedRewards_ += cumulativeClaimedRewards_;
+        sumCumulativeClaimedRewards_ += cumulativeClaimedRewards_;
 
         uint256 rewardsWeight_ = rewardsManager.stakePools(stakePoolId_).rewardsWeight;
         uint256 scaledCumulativeDrippedRewards_ =
@@ -51,11 +52,11 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
       }
 
       require(
-        totalClaimedRewards_ <= cumulativeDrippedRewards_,
+        sumCumulativeClaimedRewards_ <= cumulativeDrippedRewards_,
         string.concat(
-          "Invariant Violated: The total claimed rewards must be less than or equal to the cumulative dripped rewards.",
+          "Invariant Violated: The sum of cumulative claimed rewards must be less than or equal to the cumulative dripped rewards.",
           " totalClaimedRewards: ",
-          Strings.toString(totalClaimedRewards_),
+          Strings.toString(sumCumulativeClaimedRewards_),
           ", cumulativeDrippedRewards: ",
           Strings.toString(cumulativeDrippedRewards_),
           ", rewardPoolId: ",
@@ -65,7 +66,8 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
     }
   }
 
-  // Mapping from (stakePoolId => (rewardPoolId => sumUserAccruedRewards)).
+  // Mapping of (stakePoolId => (rewardPoolId => sumUserAccruedRewards)) to track the sum of user accrued rewards for a
+  // given (stakePoolId, rewardPoolId) pair.
   mapping(uint16 => mapping(uint16 => uint256)) private sumUserAccruedRewards;
 
   function invariant_userRewardsAccounting() public syncCurrentTimestamp(rewardsManagerHandler) {
@@ -82,6 +84,7 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
         uint256 sumUserAccruedRewards_ = sumUserAccruedRewards[stakePoolId_][rewardPoolId_];
         uint256 cumulativeClaimedRewards_ =
           rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_).cumulativeClaimedRewards;
+
         require(
           sumUserAccruedRewards_ <= cumulativeClaimedRewards_,
           string.concat(
@@ -104,6 +107,8 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
     uint16 stakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), user_);
     UserRewardsData[] memory userRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, user_);
 
+    // We only check the invariant for reward pools registered in `userRewardsData_`. New/unregistered reward pools are
+    // not checked because we will get a out-of-bounds error.
     uint256 numRewardPools_ = userRewardsData_.length;
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
       uint256 globalIndexSnapshot_ = rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_).indexSnapshot;
