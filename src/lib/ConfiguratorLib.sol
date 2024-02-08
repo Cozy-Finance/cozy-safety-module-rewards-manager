@@ -68,7 +68,7 @@ library ConfiguratorLib {
         rewardsWeightSum_ += stakePoolConfigs_[i].rewardsWeight;
 
         // Array not sorted by asset or includes duplicates.
-        if (i > 0 && address(stakePoolConfigs_[i].asset) <= address(stakePoolConfigs_[i - 1].asset)) return false; //
+        if (i > 0 && address(stakePoolConfigs_[i].asset) <= address(stakePoolConfigs_[i - 1].asset)) return false;
       }
       if (rewardsWeightSum_ != MathConstants.ZOC) return false;
     }
