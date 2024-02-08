@@ -15,19 +15,23 @@ library ConfiguratorLib {
   function isValidUpdate(
     StakePool[] storage stakePools_,
     RewardPool[] storage rewardPools_,
+    mapping(IERC20 => IdLookup) storage assetToStakePoolIds_,
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     uint16 allowedStakePools_,
     uint16 allowedRewardPools_
   ) internal view returns (bool) {
-    // Validate the configuration parameters.
-    if (!isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_, allowedStakePools_, allowedRewardPools_)) {
-      return false;
-    }
-
-    // Validate number of stake and reward pools. It is only possible to add new pools, not remove existing ones.
     uint256 numExistingStakePools_ = stakePools_.length;
+
+    // Validate the configuration parameters.
+    if (
+      !isValidConfiguration(
+        stakePoolConfigs_, rewardPoolConfigs_, numExistingStakePools_, allowedStakePools_, allowedRewardPools_
+      )
+    ) return false;
+
     uint256 numExistingRewardPools_ = rewardPools_.length;
+    // Validate number of stake and reward pools. It is only possible to add new pools, not remove existing ones.
     if (stakePoolConfigs_.length < numExistingStakePools_ || rewardPoolConfigs_.length < numExistingRewardPools_) {
       return false;
     }
@@ -35,6 +39,11 @@ library ConfiguratorLib {
     // Validate existing stake pools.
     for (uint16 i = 0; i < numExistingStakePools_; i++) {
       if (stakePools_[i].asset != stakePoolConfigs_[i].asset) return false;
+    }
+
+    // Validate new stake pools.
+    for (uint256 i = numExistingStakePools_; i < stakePoolConfigs_.length; i++) {
+      if (assetToStakePoolIds_[stakePoolConfigs_[i].asset].exists) return false;
     }
 
     // Validate existing reward pools.
@@ -50,21 +59,36 @@ library ConfiguratorLib {
   function isValidConfiguration(
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_,
+    uint256 numExistingStakePools_,
     uint16 allowedStakePools_,
     uint16 allowedRewardPools_
   ) internal pure returns (bool) {
     // Validate number of stake pools.
-    if (stakePoolConfigs_.length > allowedStakePools_) return false;
+    if (stakePoolConfigs_.length > allowedStakePools_ || stakePoolConfigs_.length < numExistingStakePools_) {
+      return false;
+    }
 
     // Validate number of reward pools.
     if (rewardPoolConfigs_.length > allowedRewardPools_) return false;
 
-    // Validate rewards weights.
+    // Validate stake pool rewards weights sum, and unique assets for new stake pools.
     if (stakePoolConfigs_.length != 0) {
       uint16 rewardsWeightSum_ = 0;
-      for (uint16 i = 0; i < stakePoolConfigs_.length; i++) {
+
+      // Existing stake pool configs.
+      for (uint256 i = 0; i < numExistingStakePools_; i++) {
         rewardsWeightSum_ += stakePoolConfigs_[i].rewardsWeight;
       }
+
+      // New stake pool configs.
+      for (uint256 i = numExistingStakePools_; i < stakePoolConfigs_.length; i++) {
+        rewardsWeightSum_ += stakePoolConfigs_[i].rewardsWeight;
+        // New stake pool configs in the array are not sorted by asset or includes duplicates.
+        if (
+          i > numExistingStakePools_ && address(stakePoolConfigs_[i].asset) <= address(stakePoolConfigs_[i - 1].asset)
+        ) return false;
+      }
+
       if (rewardsWeightSum_ != MathConstants.ZOC) return false;
     }
 
@@ -74,6 +98,7 @@ library ConfiguratorLib {
   function updateConfigs(
     StakePool[] storage stakePools_,
     RewardPool[] storage rewardPools_,
+    mapping(IERC20 => IdLookup) storage assetToStakePoolIds_,
     mapping(IReceiptToken => IdLookup) storage stkReceiptTokenToStakePoolIds_,
     IReceiptTokenFactory receiptTokenFactory_,
     StakePoolConfig[] calldata stakePoolConfigs_,
@@ -83,13 +108,20 @@ library ConfiguratorLib {
   ) public {
     if (
       !isValidUpdate(
-        stakePools_, rewardPools_, stakePoolConfigs_, rewardPoolConfigs_, allowedStakePools_, allowedRewardPools_
+        stakePools_,
+        rewardPools_,
+        assetToStakePoolIds_,
+        stakePoolConfigs_,
+        rewardPoolConfigs_,
+        allowedStakePools_,
+        allowedRewardPools_
       )
     ) revert IConfiguratorErrors.InvalidConfiguration();
 
     applyConfigUpdates(
       stakePools_,
       rewardPools_,
+      assetToStakePoolIds_,
       stkReceiptTokenToStakePoolIds_,
       receiptTokenFactory_,
       stakePoolConfigs_,
@@ -101,6 +133,7 @@ library ConfiguratorLib {
   function applyConfigUpdates(
     StakePool[] storage stakePools_,
     RewardPool[] storage rewardPools_,
+    mapping(IERC20 => IdLookup) storage assetToStakePoolIds_,
     mapping(IReceiptToken => IdLookup) storage stkReceiptTokenToStakePoolIds_,
     IReceiptTokenFactory receiptTokenFactory_,
     StakePoolConfig[] calldata stakePoolConfigs_,
@@ -115,7 +148,9 @@ library ConfiguratorLib {
 
     // Initialize new stake pools.
     for (uint256 i = numExistingStakePools_; i < stakePoolConfigs_.length; i++) {
-      initializeStakePool(stakePools_, stkReceiptTokenToStakePoolIds_, receiptTokenFactory_, stakePoolConfigs_[i]);
+      initializeStakePool(
+        stakePools_, assetToStakePoolIds_, stkReceiptTokenToStakePoolIds_, receiptTokenFactory_, stakePoolConfigs_[i]
+      );
     }
 
     // Update existing reward pool drip models. No need to update the reward pool asset since it cannot change.
@@ -135,6 +170,7 @@ library ConfiguratorLib {
   /// @dev Initializes a new stake pool when it is added to the rewards manager.
   function initializeStakePool(
     StakePool[] storage stakePools_,
+    mapping(IERC20 => IdLookup) storage assetToStakePoolIds_,
     mapping(IReceiptToken stkReceiptToken_ => IdLookup stakePoolId_) storage stkReceiptTokenToStakePoolIds_,
     IReceiptTokenFactory receiptTokenFactory_,
     StakePoolConfig calldata stakePoolConfig_
@@ -153,6 +189,7 @@ library ConfiguratorLib {
       })
     );
     stkReceiptTokenToStakePoolIds_[stkReceiptToken_] = IdLookup({index: stakePoolId_, exists: true});
+    assetToStakePoolIds_[stakePoolConfig_.asset] = IdLookup({index: stakePoolId_, exists: true});
 
     emit IConfiguratorEvents.StakePoolCreated(stakePoolId_, stkReceiptToken_, stakePoolConfig_.asset);
   }

@@ -50,7 +50,9 @@ contract RewardsManager is
   ) external {
     if (initialized) revert Initialized();
     if (
-      !ConfiguratorLib.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_, allowedStakePools, allowedRewardPools)
+      !ConfiguratorLib.isValidConfiguration(
+        stakePoolConfigs_, rewardPoolConfigs_, 0, allowedStakePools, allowedRewardPools
+      )
     ) revert IConfiguratorErrors.InvalidConfiguration();
 
     // Rewards managers are minimal proxies, so the owner and pauser is set to address(0) in the constructor for the
@@ -58,7 +60,13 @@ contract RewardsManager is
     __initGovernable(owner_, pauser_);
 
     ConfiguratorLib.applyConfigUpdates(
-      stakePools, rewardPools, stkReceiptTokenToStakePoolIds, receiptTokenFactory, stakePoolConfigs_, rewardPoolConfigs_
+      stakePools,
+      rewardPools,
+      assetToStakePoolIds,
+      stkReceiptTokenToStakePoolIds,
+      receiptTokenFactory,
+      stakePoolConfigs_,
+      rewardPoolConfigs_
     );
     initialized = true;
   }

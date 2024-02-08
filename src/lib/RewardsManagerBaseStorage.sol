@@ -31,8 +31,11 @@ abstract contract RewardsManagerBaseStorage {
   /// @notice Maps a stake pool id to a user address to a user reward pool accounting struct.
   mapping(uint16 => mapping(address => UserRewardsData[])) public userRewards;
 
-  /// @dev Used when claiming rewards
+  /// @dev Used when claiming rewards.
   mapping(IReceiptToken stkReceiptToken_ => IdLookup stakePoolId_) public stkReceiptTokenToStakePoolIds;
+
+  /// @dev Mapping of asset to stake pool id.
+  mapping(IERC20 asset_ => IdLookup stakePoolId_) public assetToStakePoolIds;
 
   /// @dev The state of this rewards manager.
   RewardsManagerState public rewardsManagerState;
