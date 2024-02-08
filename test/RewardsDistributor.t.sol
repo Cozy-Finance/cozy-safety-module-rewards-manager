@@ -635,6 +635,47 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     assertEq(previewClaimableRewards_[1].claimableRewardsData.length, oldNumRewardPools_ + 1);
   }
 
+  function test_previewClaimableRewardsWhenPaused() public {
+    _setUpConcrete();
+    address user_ = _randomAddress();
+    uint16 stakePoolId_ = 1;
+    uint256 timeElapsed_ = ONE_YEAR;
+
+    uint256 stakeAmount_ = 100e6;
+
+    // Mint user stake assets.
+    StakePool memory stakePool_ = component.getStakePool(stakePoolId_);
+    MockERC20 mockStakeAsset_ = MockERC20(address(stakePool_.asset));
+    mockStakeAsset_.mint(user_, stakeAmount_);
+    vm.prank(user_);
+    mockStakeAsset_.approve(address(component), type(uint256).max);
+    component.stake(stakePoolId_, stakeAmount_, user_, user_);
+    vm.stopPrank();
+
+    skip(timeElapsed_);
+
+    // User previews two pools, stakePoolId_ (the pool they staked into) and 0 (the pool they did not stake into).
+    uint16[] memory previewStakePoolIds_ = new uint16[](1);
+    previewStakePoolIds_[0] = stakePoolId_;
+    PreviewClaimableRewards[] memory previewClaimableRewards_ =
+      component.previewClaimableRewards(previewStakePoolIds_, user_);
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[0].amount, 300);
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[1].amount, 75_000_000);
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[2].amount, 2969);
+
+    // Rewards Manager becomes paused.
+    component.mockRewardsManagerState(RewardsManagerState.PAUSED);
+    skip(timeElapsed_);
+
+    // Since the rewards manager is paused, the claimable rewards for the user should be 0 now, since rewards do not
+    // drip while paused.
+    PreviewClaimableRewards[] memory previewClaimableRewardsAfterPause_ =
+      component.previewClaimableRewards(previewStakePoolIds_, user_);
+    assertEq(previewClaimableRewardsAfterPause_[0].claimableRewardsData[0].amount, 0);
+    assertEq(previewClaimableRewardsAfterPause_[0].claimableRewardsData[1].amount, 0);
+    assertEq(previewClaimableRewardsAfterPause_[0].claimableRewardsData[2].amount, 0);
+  }
+
   function testFuzz_claimRewards(uint64 timeElapsed_) public {
     _setUpDefault();
     (address user_, uint16 stakePoolId_, address receiver_) = _getUserClaimRewardsFixture();

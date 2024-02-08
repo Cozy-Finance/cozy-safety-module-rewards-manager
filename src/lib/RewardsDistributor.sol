@@ -204,7 +204,9 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   function _previewNextRewardDrip(RewardPool storage rewardPool_) internal view returns (RewardDrip memory) {
     return RewardDrip({
       rewardAsset: rewardPool_.asset,
-      amount: _getNextDripAmount(rewardPool_.undrippedRewards, rewardPool_.dripModel, rewardPool_.lastDripTime)
+      amount: rewardsManagerState == RewardsManagerState.ACTIVE
+        ? _getNextDripAmount(rewardPool_.undrippedRewards, rewardPool_.dripModel, rewardPool_.lastDripTime)
+        : 0
     });
   }
 
