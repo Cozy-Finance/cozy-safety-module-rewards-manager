@@ -52,7 +52,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
   ) external returns (uint256 rewardAssetAmount_) {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
     RewardsManagerState rewardsManagerState_ = rewardsManagerState;
-    if (rewardsManagerState_ != RewardsManagerState.PAUSED) _dripRewardPool(rewardPool_);
+    if (rewardsManagerState_ == RewardsManagerState.ACTIVE) _dripRewardPool(rewardPool_);
 
     IReceiptToken depositReceiptToken_ = rewardPool_.depositReceiptToken;
     rewardAssetAmount_ = _previewRedemption(
@@ -98,7 +98,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     address receiver_,
     RewardPool storage rewardPool_
   ) internal returns (uint256 depositReceiptTokenAmount_) {
-    if (rewardsManagerState != RewardsManagerState.ACTIVE) revert InvalidState();
+    if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
 
     IReceiptToken depositReceiptToken_ = rewardPool_.depositReceiptToken;

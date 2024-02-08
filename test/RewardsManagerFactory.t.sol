@@ -14,7 +14,7 @@ import {StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../src/lib/structs/Configs.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
-import {IManager} from "../src/interfaces/IManager.sol";
+import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
@@ -27,6 +27,8 @@ contract RewardsManagerFactoryTest is TestBase {
   ReceiptToken safetyModuleReceiptTokenLogic;
   StkToken stkTokenLogic;
   IReceiptTokenFactory receiptTokenFactory;
+
+  ICozyManager cozyManager = ICozyManager(_randomAddress());
 
   /// @dev Emitted when a new Rewards Manager is deployed.
   event RewardsManagerDeployed(IRewardsManager rewardsManager);
@@ -42,10 +44,10 @@ contract RewardsManagerFactoryTest is TestBase {
       IReceiptToken(address(safetyModuleReceiptTokenLogic)), IReceiptToken(address(stkTokenLogic))
     );
 
-    rewardsManagerLogic = new RewardsManager(IManager(_randomAddress()), receiptTokenFactory, 30, 25);
+    rewardsManagerLogic = new RewardsManager(cozyManager, receiptTokenFactory, 30, 25);
     rewardsManagerLogic.initialize(address(0), address(0), new StakePoolConfig[](0), new RewardPoolConfig[](0));
 
-    rewardsManagerFactory = new RewardsManagerFactory(IRewardsManager(address(rewardsManagerLogic)));
+    rewardsManagerFactory = new RewardsManagerFactory(cozyManager, IRewardsManager(address(rewardsManagerLogic)));
   }
 
   function test_deployRewardsManagerFactory() public {
@@ -54,7 +56,7 @@ contract RewardsManagerFactoryTest is TestBase {
 
   function test_revertDeployRewardsManagerFactoryZeroAddressParams() public {
     vm.expectRevert(RewardsManagerFactory.InvalidAddress.selector);
-    new RewardsManagerFactory(IRewardsManager(address(0)));
+    new RewardsManagerFactory(cozyManager, IRewardsManager(address(0)));
   }
 
   function test_deployRewardsManager() public {
@@ -75,6 +77,7 @@ contract RewardsManagerFactoryTest is TestBase {
 
     _expectEmit();
     emit RewardsManagerDeployed(IRewardsManager(computedRewardsManagerAddress_));
+    vm.prank(address(cozyManager));
     IRewardsManager rewardsManager_ =
       rewardsManagerFactory.deployRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, baseSalt_);
 
@@ -111,22 +114,7 @@ contract RewardsManagerFactoryTest is TestBase {
     bytes32 baseSalt_ = _randomBytes32();
 
     vm.expectRevert(IConfiguratorErrors.InvalidConfiguration.selector);
-    rewardsManagerFactory.deployRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, baseSalt_);
-  }
-
-  function test_deployRewardsManager_invalidAddress() public {
-    address owner_ = address(0);
-    address pauser_ = _randomAddress();
-    IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6)));
-
-    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
-    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: uint16(MathConstants.ZOC)});
-    RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
-    rewardPoolConfigs_[0] = RewardPoolConfig({asset: asset_, dripModel: IDripModel(address(_randomAddress()))});
-
-    bytes32 baseSalt_ = _randomBytes32();
-
-    vm.expectRevert(RewardsManagerFactory.InvalidAddress.selector);
+    vm.prank(address(cozyManager));
     rewardsManagerFactory.deployRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, baseSalt_);
   }
 }

@@ -43,7 +43,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   function dripRewards() public override {
-    if (rewardsManagerState != RewardsManagerState.ACTIVE) revert InvalidState();
+    if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     uint256 numRewardAssets_ = rewardPools.length;
     for (uint16 i = 0; i < numRewardAssets_; i++) {
       _dripRewardPool(rewardPools[i]);
@@ -51,7 +51,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   function dripRewardPool(uint16 rewardPoolId_) external {
-    if (rewardsManagerState != RewardsManagerState.ACTIVE) revert InvalidState();
+    if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     _dripRewardPool(rewardPools[rewardPoolId_]);
   }
 
@@ -81,7 +81,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     for (uint16 i = 0; i < claimRewardsData_.numRewardAssets; i++) {
       // Step (1)
       RewardPool storage rewardPool_ = rewardPools[i];
-      if (rewardsManagerState != RewardsManagerState.PAUSED) _dripRewardPool(rewardPool_);
+      if (rewardsManagerState == RewardsManagerState.ACTIVE) _dripRewardPool(rewardPool_);
 
       {
         // Step (2)

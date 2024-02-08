@@ -5,7 +5,7 @@ import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
-import {IManager} from "../src/interfaces/IManager.sol";
+import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IStateChangerEvents} from "../src/interfaces/IStateChangerEvents.sol";
 import {RewardPool, StakePool} from "../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
@@ -38,7 +38,7 @@ contract StateChangerUnitTest is TestBase, StateChangerTestMockEvents, IStateCha
     returns (TestableStateChanger)
   {
     TestableStateChanger component_ =
-      new TestableStateChanger(testParams_.owner, testParams_.pauser, IManager(address(manager_)));
+      new TestableStateChanger(testParams_.owner, testParams_.pauser, ICozyManager(address(manager_)));
     component_.mockSetRewardsManagerState(testParams_.initialState);
     return component_;
   }
@@ -205,7 +205,7 @@ contract StateChangerUnpauseTest is StateChangerUnitTest {
 }
 
 contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
-  constructor(address owner_, address pauser_, IManager manager_) {
+  constructor(address owner_, address pauser_, ICozyManager manager_) {
     __initGovernable(owner_, pauser_);
     cozyManager = manager_;
   }

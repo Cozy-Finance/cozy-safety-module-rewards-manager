@@ -54,7 +54,7 @@ contract CozyManager is Governable, ICozyManager {
   /// @notice Deploys a new Rewards Manager with the provided parameters.
   /// @param owner_ The owner of the rewards manager.
   /// @param pauser_ The pauser of the rewards manager.
-  /// @param stakePoolConfigs_ The array of stake pool configs, sorted by stake pool ID.
+  /// @param stakePoolConfigs_ The array of stake pool configs, sorted by sorted by underlying asset address.
   /// @param rewardPoolConfigs_  The array of new reward pool configs, sorted by reward pool ID.
   /// @param salt_ Used to compute the resulting address of the rewards manager.
   function createRewardsManager(

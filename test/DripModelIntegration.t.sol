@@ -38,11 +38,7 @@ abstract contract DripModelIntegrationTestSetup is MockDeployProtocol {
     });
 
     rewardsManager = RewardsManager(
-      address(
-        rewardsManagerFactory.deployRewardsManager(
-          owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32()
-        )
-      )
+      address(cozyManager.createRewardsManager(owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32()))
     );
   }
 

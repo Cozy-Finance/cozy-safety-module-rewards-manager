@@ -126,7 +126,7 @@ abstract contract Staker is RewardsManagerCommon {
     AssetPool storage assetPool_,
     StakePool storage stakePool_
   ) internal returns (uint256 stkReceiptTokenAmount_) {
-    if (rewardsManagerState != RewardsManagerState.ACTIVE) revert InvalidState();
+    if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;
 
     stkReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToReceiptTokenAmount(

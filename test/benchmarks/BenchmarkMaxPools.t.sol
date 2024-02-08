@@ -38,9 +38,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     RewardPoolConfig[] memory rewardPoolConfigs_
   ) internal {
     rewardsManager = RewardsManager(
-      address(
-        rewardsManagerFactory.deployRewardsManager(self, self, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32())
-      )
+      address(cozyManager.createRewardsManager(self, self, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32()))
     );
   }
 

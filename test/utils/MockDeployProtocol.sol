@@ -5,13 +5,14 @@ import {IRewardsManager} from "../../src/interfaces/IRewardsManager.sol";
 import {IRewardsManagerFactory} from "../../src/interfaces/IRewardsManagerFactory.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
+import {CozyManager} from "../../src/CozyManager.sol";
 import {ReceiptToken} from "cozy-safety-module-shared/ReceiptToken.sol";
 import {ReceiptTokenFactory} from "cozy-safety-module-shared/ReceiptTokenFactory.sol";
 import {StkToken} from "../../src/StkToken.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../../src/lib/structs/Configs.sol";
 import {RewardsManager} from "../../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../../src/RewardsManagerFactory.sol";
-import {IManager} from "../../src/interfaces/IManager.sol";
+import {ICozyManager} from "../../src/interfaces/ICozyManager.sol";
 import {TestBase} from "../utils/TestBase.sol";
 
 contract MockDeployer is TestBase {
@@ -20,6 +21,7 @@ contract MockDeployer is TestBase {
   StkToken stkTokenLogic;
   ReceiptTokenFactory receiptTokenFactory;
   IRewardsManager rewardsManagerLogic;
+  ICozyManager cozyManager;
 
   address owner = address(this);
   address pauser = address(this);
@@ -34,22 +36,27 @@ contract MockDeployer is TestBase {
     IReceiptToken stkTokenLogic_ = IReceiptToken(vm.computeCreateAddress(address(this), nonce_ + 3));
     IReceiptTokenFactory computedAddrReceiptTokenFactory_ =
       IReceiptTokenFactory(vm.computeCreateAddress(address(this), nonce_ + 4));
+    ICozyManager computedAddrCozyManager_ = ICozyManager(vm.computeCreateAddress(address(this), nonce_ + 5));
 
     rewardsManagerLogic = IRewardsManager(
       address(
         new RewardsManager(
-          IManager(_randomAddress()), computedAddrReceiptTokenFactory_, ALLOWED_STAKE_POOLS, ALLOWED_REWARD_POOLS
+          ICozyManager(computedAddrCozyManager_),
+          computedAddrReceiptTokenFactory_,
+          ALLOWED_STAKE_POOLS,
+          ALLOWED_REWARD_POOLS
         )
       )
     );
     rewardsManagerLogic.initialize(owner, pauser, new StakePoolConfig[](0), new RewardPoolConfig[](0));
-    rewardsManagerFactory = new RewardsManagerFactory(computedAddrRewardsManagerLogic_);
+    rewardsManagerFactory = new RewardsManagerFactory(computedAddrCozyManager_, computedAddrRewardsManagerLogic_);
 
     depositTokenLogic = new ReceiptToken();
     stkTokenLogic = new StkToken();
     depositTokenLogic.initialize(address(0), "", "", 0);
     stkTokenLogic.initialize(address(0), "", "", 0);
     receiptTokenFactory = new ReceiptTokenFactory(depositTokenLogic_, stkTokenLogic_);
+    cozyManager = new CozyManager(owner, pauser, rewardsManagerFactory);
   }
 }
 
