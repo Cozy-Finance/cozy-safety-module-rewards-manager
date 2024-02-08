@@ -297,7 +297,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
     for (uint16 i = 0; i < numRewardAssets_; i++) {
       RewardPool storage rewardPool_ = rewardPools_[i];
-      _dripRewardPool(rewardPool_);
+      if (rewardsManagerState == RewardsManagerState.ACTIVE) _dripRewardPool(rewardPool_);
       uint256 oldCumulativeDrippedRewards_ = rewardPool_.cumulativeDrippedRewards;
       rewardPool_.cumulativeDrippedRewards = 0;
 

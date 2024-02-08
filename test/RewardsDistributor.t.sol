@@ -1011,6 +1011,33 @@ contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistri
       }
     }
   }
+
+  function test_dripAndResetCumulativeRewardsValuesWhenPaused() public {
+    _setUpConcrete();
+
+    component.mockRewardsManagerState(RewardsManagerState.PAUSED);
+
+    skip(ONE_YEAR);
+
+    component.dripAndResetCumulativeRewardsValues();
+
+    ClaimableRewardsData[] memory claimableRewardsPoolA_ = component.getClaimableRewards(0);
+    // Claimable reward indices should not be updated since the rewards manager is paused.
+    // Cumulative claimed rewards should be reset to 0.
+    assertEq(claimableRewardsPoolA_[0], _expectedClaimableRewardsData(0));
+    assertEq(claimableRewardsPoolA_[1], _expectedClaimableRewardsData(0));
+    assertEq(claimableRewardsPoolA_[2], _expectedClaimableRewardsData(0));
+
+    ClaimableRewardsData[] memory claimableRewardsPoolB_ = component.getClaimableRewards(1);
+    assertEq(claimableRewardsPoolB_[0], _expectedClaimableRewardsData(0));
+    assertEq(claimableRewardsPoolB_[1], _expectedClaimableRewardsData(0));
+    assertEq(claimableRewardsPoolB_[2], _expectedClaimableRewardsData(0));
+
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    for (uint16 i = 0; i < rewardPools_.length; i++) {
+      assertEq(rewardPools_[i].cumulativeDrippedRewards, 0);
+    }
+  }
 }
 
 contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, RewardsManagerInspector {
