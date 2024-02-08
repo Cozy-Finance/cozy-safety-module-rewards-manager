@@ -59,7 +59,7 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
     selectors[9] = RewardsManagerHandler.dripRewards.selector;
     selectors[10] = RewardsManagerHandler.dripRewardPool.selector;
     selectors[11] = RewardsManagerHandler.claimRewards.selector;
-    selectors[12] = RewardsManagerHandler.updateUserRewardsForStkTokenTransfer.selector;
+    selectors[12] = RewardsManagerHandler.stkTokenTransfer.selector;
     selectors[13] = RewardsManagerHandler.redeemUndrippedRewards.selector;
     return selectors;
   }

@@ -46,9 +46,6 @@ contract RewardsManagerHandler is TestBase {
 
   uint256 public totalCalls;
 
-  error StakePoolIdNotFoundForActor(address actor_);
-  error RewardPoolIdNotFoundForActor(address actor_);
-
   // -------- Ghost Variables --------
 
   mapping(uint16 stakePoolId_ => GhostStakePool stakePool_) public ghost_stakePoolCumulative;
@@ -279,14 +276,25 @@ contract RewardsManagerHandler is TestBase {
     rewardsManager.dripRewardPool(currentRewardPoolId);
   }
 
-  function updateUserRewardsForStkTokenTransfer(address to_, uint256 seed_)
+  function stkTokenTransfer(uint256 stkTokenTransferAmount_, address to_, uint256 seed_)
     public
     virtual
     useActorWithStakes(seed_)
-    countCall("updateUserRewardsForStkTokenTransfer")
+    countCall("stkTokenTransfer")
     advanceTime(seed_)
   {
-    rewardsManager.updateUserRewardsForStkTokenTransfer(currentActor, to_);
+    IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
+    uint256 actorStkTokenBalance_ = stkToken_.balanceOf(currentActor);
+    if (actorStkTokenBalance_ == 0) {
+      invalidCalls["stkTokenTransfer"] += 1;
+      return;
+    }
+
+    stkTokenTransferAmount_ = bound(stkTokenTransferAmount_, 0, actorStkTokenBalance_);
+
+    vm.prank(currentActor);
+    // This will call `updateUserRewardsForStkTokenTransfer` in the RewardsManager.
+    stkToken_.transfer(to_, actorStkTokenBalance_);
   }
 
   function claimRewards(address receiver_, uint256 seed_)
@@ -369,9 +377,12 @@ contract RewardsManagerHandler is TestBase {
     console2.log("stakeWithExistingActor", calls["stakeWithExistingActor"]);
     console2.log("stakeWithoutTransfer", calls["stakeWithoutTransfer"]);
     console2.log("stakeWithoutTransferWithExistingActor", calls["stakeWithoutTransferWithExistingActor"]);
-    console2.log("redeemUndrippedRewards", calls["redeemUndrippedRewards"]);
     console2.log("unstake", calls["unstake"]);
+    console2.log("dripRewards", calls["dripRewards"]);
+    console2.log("dripRewardPool", calls["dripRewardPool"]);
     console2.log("claimRewards", calls["claimRewards"]);
+    console2.log("stkTokenTransfer", calls["stkTokenTransfer"]);
+    console2.log("redeemUndrippedRewards", calls["redeemUndrippedRewards"]);
     console2.log("pause", calls["pause"]);
     console2.log("unpause", calls["unpause"]);
     console2.log("----------------------------------------------------------------------------");
@@ -388,9 +399,12 @@ contract RewardsManagerHandler is TestBase {
     console2.log("stakeWithExistingActor", invalidCalls["stakeWithExistingActor"]);
     console2.log("stakeWithoutTransfer", invalidCalls["stakeWithoutTransfer"]);
     console2.log("stakeWithoutTransferWithExistingActor", invalidCalls["stakeWithoutTransferWithExistingActor"]);
-    console2.log("redeemUndrippedRewards", invalidCalls["redeemUndrippedRewards"]);
     console2.log("unstake", invalidCalls["unstake"]);
+    console2.log("dripRewards", invalidCalls["dripRewards"]);
+    console2.log("dripRewardPool", invalidCalls["dripRewardPool"]);
     console2.log("claimRewards", invalidCalls["claimRewards"]);
+    console2.log("stkTokenTransfer", invalidCalls["stkTokenTransfer"]);
+    console2.log("redeemUndrippedRewards", invalidCalls["redeemUndrippedRewards"]);
     console2.log("pause", invalidCalls["pause"]);
     console2.log("unpause", invalidCalls["unpause"]);
   }
@@ -565,7 +579,7 @@ contract RewardsManagerHandler is TestBase {
 
     // Iterate through stake pools to find the first pool with a stake deposit count for the current actor.
     for (uint16 i = initIndex_; indicesVisited_ < numStakePools; i = uint16((i + 1) % numStakePools)) {
-      if (ghost_actorStakeCount[currentActor][i] > 0) return i;
+      if (ghost_actorStakeCount[actor_][i] > 0) return i;
       indicesVisited_++;
     }
 
