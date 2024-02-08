@@ -12,6 +12,7 @@ import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
 import {RewardsDistributor} from "../src/lib/RewardsDistributor.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
+import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {Staker} from "../src/lib/Staker.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {
@@ -255,6 +256,16 @@ contract RewardsDepositorDripUnitTest is RewardsDistributorUnitTest {
     component.dripRewards();
     assertEq(component.getRewardPools(), initialRewardPools_);
     assertEq(component.getClaimableRewards(), initialClaimableRewards_);
+  }
+
+  function test_dripRewardsRevertsIfPaused() public {
+    _setUpDefault();
+    component.mockRewardsManagerState(RewardsManagerState.PAUSED);
+
+    vm.expectRevert(ICommonErrors.InvalidState.selector);
+    component.dripRewards();
+    vm.expectRevert(ICommonErrors.InvalidState.selector);
+    component.dripRewardPool(0);
   }
 
   function test_rewardsDripConcrete() public {
@@ -1032,6 +1043,10 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
 
   function mockRegisterStkReceiptToken(uint16 stakePoolId_, IReceiptToken stkReceiptToken_) external {
     stkReceiptTokenToStakePoolIds[stkReceiptToken_] = IdLookup({index: stakePoolId_, exists: true});
+  }
+
+  function mockRewardsManagerState(RewardsManagerState rewardsManagerState_) external {
+    rewardsManagerState = rewardsManagerState_;
   }
 
   // -------- Mock getters --------

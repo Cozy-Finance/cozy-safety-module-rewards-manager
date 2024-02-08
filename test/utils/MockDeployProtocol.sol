@@ -21,6 +21,7 @@ contract MockDeployer is TestBase {
   IRewardsManager rewardsManagerLogic;
 
   address owner = address(this);
+  address pauser = address(this);
 
   uint8 constant ALLOWED_STAKE_POOLS = 100;
   uint8 constant ALLOWED_REWARD_POOLS = 100;
@@ -36,7 +37,7 @@ contract MockDeployer is TestBase {
     rewardsManagerLogic = IRewardsManager(
       address(new RewardsManager(computedAddrReceiptTokenFactory_, ALLOWED_STAKE_POOLS, ALLOWED_REWARD_POOLS))
     );
-    rewardsManagerLogic.initialize(owner, new StakePoolConfig[](0), new RewardPoolConfig[](0));
+    rewardsManagerLogic.initialize(owner, pauser, new StakePoolConfig[](0), new RewardPoolConfig[](0));
     rewardsManagerFactory = new RewardsManagerFactory(computedAddrRewardsManagerLogic_);
 
     depositTokenLogic = new ReceiptToken();

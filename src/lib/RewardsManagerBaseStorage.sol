@@ -4,10 +4,15 @@ pragma solidity 0.8.22;
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
+import {RewardsManagerState} from "./RewardsManagerStates.sol";
+import {IManager} from "../interfaces/IManager.sol";
 import {AssetPool, StakePool, IdLookup, RewardPool} from "./structs/Pools.sol";
 import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";
 
 abstract contract RewardsManagerBaseStorage {
+  /// @notice Address of the Cozy protocol manager.
+  IManager public immutable cozyManager;
+
   /// @notice Address of the Cozy protocol ReceiptTokenFactory.
   IReceiptTokenFactory public immutable receiptTokenFactory;
 
@@ -28,6 +33,9 @@ abstract contract RewardsManagerBaseStorage {
 
   /// @dev Used when claiming rewards
   mapping(IReceiptToken stkReceiptToken_ => IdLookup stakePoolId_) public stkReceiptTokenToStakePoolIds;
+
+  /// @dev The state of this rewards manager.
+  RewardsManagerState public rewardsManagerState;
 
   /// @notice The max number of stake pools allowed per rewards manager.
   uint8 public immutable allowedStakePools;

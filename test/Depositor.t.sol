@@ -11,6 +11,7 @@ import {IDepositorErrors} from "../src/interfaces/IDepositorErrors.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
+import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {UserRewardsData, ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
@@ -156,6 +157,25 @@ contract DepositorUnitTest is TestBase {
     assertEq(mockRewardPoolDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
   }
 
+  function test_depositReserveAssets_RevertWhenPaused() external {
+    address depositor_ = _randomAddress();
+    address receiver_ = _randomAddress();
+    uint128 amountToDeposit_ = 10e18;
+
+    // Mint initial balance for depositor.
+    mockAsset.mint(depositor_, amountToDeposit_);
+
+    // Approve rewards manager to spend asset.
+    vm.prank(depositor_);
+    mockAsset.approve(address(component), amountToDeposit_);
+
+    component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
+
+    vm.expectRevert(ICommonErrors.InvalidState.selector);
+    vm.prank(depositor_);
+    _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+  }
+
   function test_depositReserve_RevertOutOfBoundsRewardPoolId() external {
     address depositor_ = _randomAddress();
     address receiver_ = _randomAddress();
@@ -261,6 +281,24 @@ contract DepositorUnitTest is TestBase {
 
     assertEq(mockAsset.balanceOf(depositor_), 0);
     assertEq(mockRewardPoolDepositToken.balanceOf(receiver_), expectedDepositTokenAmount_);
+  }
+
+  function test_depositReserveAssetsWithoutTransfer_RevertWhenPaused() external {
+    address depositor_ = _randomAddress();
+    address receiver_ = _randomAddress();
+    uint128 amountToDeposit_ = 10e18;
+
+    // Mint initial balance for depositor.
+    mockAsset.mint(depositor_, amountToDeposit_);
+    // Transfer to rewards manager.
+    vm.prank(depositor_);
+    mockAsset.transfer(address(component), amountToDeposit_);
+
+    component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
+
+    vm.expectRevert(ICommonErrors.InvalidState.selector);
+    vm.prank(depositor_);
+    _deposit(true, 0, amountToDeposit_, receiver_, receiver_);
   }
 
   function test_depositReserveAssetsWithoutTransfer_RevertOutOfBoundsRewardPoolId() external {
@@ -461,6 +499,61 @@ contract DepositorUnitTest is TestBase {
     // half of the remaining were redeemed.
     assertEq(finalAssetPool_.amount, (initialSafetyModuleBal + amountToDeposit_) / 4 * 3);
     assertEq(finalAssetPool_.amount, 45e18);
+  }
+
+  function test_redeemUndrippredRewards_noDripWhenPaused() external {
+    address depositor_ = _randomAddress();
+    address receiver_ = _randomAddress();
+    uint128 amountToDeposit_ = 10e18;
+
+    // Mint initial balance for depositor.
+    mockAsset.mint(depositor_, amountToDeposit_);
+    // Approve rewards manager to spend asset.
+    vm.prank(depositor_);
+    mockAsset.approve(address(component), amountToDeposit_);
+
+    vm.prank(depositor_);
+    uint256 depositTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+
+    // Mock the next drip to half of the assets in the reward pool.
+    vm.warp(100);
+    component.mockSetNextRewardsDripAmount((initialUndrippedRewards + amountToDeposit_) / 2);
+    // But because the rewards manager is paused, the drip doesn't occur for this test.
+    component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
+
+    // Half of total supply of deposit token is redeemed.
+    assertEq(depositTokenAmount_, mockRewardPoolDepositToken.totalSupply());
+    uint256 depositTokenAmountToRedeem_ = depositTokenAmount_ / 2;
+    uint256 expectedRewardAssetAmount_ = (initialUndrippedRewards + amountToDeposit_) / 2;
+
+    vm.prank(receiver_);
+    mockRewardPoolDepositToken.approve(address(component), depositTokenAmountToRedeem_);
+
+    _expectEmit();
+    emit Transfer(receiver_, address(0), depositTokenAmountToRedeem_);
+    _expectEmit();
+    emit RedeemedUndrippedRewards(
+      receiver_,
+      receiver_,
+      receiver_,
+      IReceiptToken(address(mockRewardPoolDepositToken)),
+      depositTokenAmountToRedeem_,
+      expectedRewardAssetAmount_
+    );
+    vm.prank(receiver_);
+    uint256 rewardAssetAmount_ = component.redeemUndrippedRewards(0, depositTokenAmountToRedeem_, receiver_, receiver_);
+
+    // Receiver redeems half of their reward pool deposit receipt token balance.
+    assertEq(rewardAssetAmount_, expectedRewardAssetAmount_);
+
+    RewardPool memory finalRewardPool_ = component.getRewardPool(0);
+    // Half of pool after drip is redeemed
+    assertEq(finalRewardPool_.undrippedRewards, expectedRewardAssetAmount_);
+
+    AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
+    // Half of the total assets before component.redeemUndrippedRewards were redeemed, since none dripped.
+    assertEq(finalAssetPool_.amount, (initialSafetyModuleBal + amountToDeposit_) / 2);
+    assertEq(finalAssetPool_.amount, 30e18);
   }
 
   function test_redeemUndrippedRewards_cannotRedeemIfRoundsDownToZeroAssets() external {
@@ -674,6 +767,56 @@ contract DepositorUnitTest is TestBase {
     component.redeemUndrippedRewards(0, depositTokenAmount_, receiver_, receiver_);
   }
 
+  function test_redeemUndrippedRewards_noDripWhenPaused() external {
+    address depositor_ = _randomAddress();
+    address receiver_ = _randomAddress();
+    uint128 amountToDeposit_ = 10e18;
+
+    // Mint initial balance for depositor.
+    mockAsset.mint(depositor_, amountToDeposit_);
+    // Approve rewards manager to spend asset.
+    vm.prank(depositor_);
+    mockAsset.approve(address(component), amountToDeposit_);
+
+    vm.prank(depositor_);
+    uint256 depositTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+
+    // Mock next drip (which occurs on redeem), drip half of the assets in the reward pool.
+    vm.warp(100);
+    component.mockSetNextRewardsDripAmount((initialUndrippedRewards + amountToDeposit_) / 2);
+    // But because the rewards manager is paused, the drip doesn't occur for this test.
+    component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
+
+    // Half of total supply of deposit token is redeemed.
+    assertEq(depositTokenAmount_, mockRewardPoolDepositToken.totalSupply());
+    uint256 depositTokenAmountToRedeem_ = depositTokenAmount_ / 2;
+    uint256 expectedRewardAssetAmount_ = (initialUndrippedRewards + amountToDeposit_) / 2;
+
+    uint256 previewRewardAssetAmount_ = component.previewUndrippedRewardsRedemption(0, depositTokenAmountToRedeem_);
+
+    vm.prank(receiver_);
+    mockRewardPoolDepositToken.approve(address(component), depositTokenAmountToRedeem_);
+
+    _expectEmit();
+    emit Transfer(receiver_, address(0), depositTokenAmountToRedeem_);
+    _expectEmit();
+    emit RedeemedUndrippedRewards(
+      receiver_,
+      receiver_,
+      receiver_,
+      IReceiptToken(address(mockRewardPoolDepositToken)),
+      depositTokenAmountToRedeem_,
+      expectedRewardAssetAmount_
+    );
+    vm.prank(receiver_);
+    uint256 rewardAssetAmount_ = component.redeemUndrippedRewards(0, depositTokenAmountToRedeem_, receiver_, receiver_);
+
+    // Receiver redeems half of their reward pool deposit receipt token balance.
+    assertEq(rewardAssetAmount_, expectedRewardAssetAmount_);
+    assertEq(mockAsset.balanceOf(receiver_), rewardAssetAmount_);
+    assertEq(rewardAssetAmount_, previewRewardAssetAmount_);
+  }
+
   function test_redeemUndrippedRewards_previewRewardsRedemptionRoundsDownToZero() external {
     // Init 0 assets.
     deal(address(mockAsset), address(component), 0);
@@ -733,6 +876,10 @@ contract TestableDepositor is Depositor, RewardsManagerInspector {
 
   function mockSetAssetPoolAmount(IERC20 asset_, uint256 amount_) external {
     assetPools[asset_].amount = amount_;
+  }
+
+  function mockSetRewardsManagerState(RewardsManagerState state_) external {
+    rewardsManagerState = state_;
   }
 
   // -------- Mock getters --------

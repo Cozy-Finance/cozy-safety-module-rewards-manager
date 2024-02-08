@@ -34,6 +34,7 @@ contract RewardsManager is
 
   function initialize(
     address owner_,
+    address pauser_,
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external {
@@ -42,9 +43,9 @@ contract RewardsManager is
       !ConfiguratorLib.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_, allowedStakePools, allowedRewardPools)
     ) revert IConfiguratorErrors.InvalidConfiguration();
 
-    // Rewards managers are minimal proxies, so the owner is set to address(0) in the constructor for the
-    // logic contract. When the rewards manager is initialized for the minimal proxy, we update the owner.
-    __initOwnable(owner_);
+    // Rewards managers are minimal proxies, so the owner and pauser is set to address(0) in the constructor for the
+    // logic contract. When the rewards manager is initialized for the minimal proxy, we update the owner and pauser.
+    __initGovernable(owner_, pauser_);
 
     ConfiguratorLib.applyConfigUpdates(
       stakePools, rewardPools, stkReceiptTokenToStakePoolIds, receiptTokenFactory, stakePoolConfigs_, rewardPoolConfigs_

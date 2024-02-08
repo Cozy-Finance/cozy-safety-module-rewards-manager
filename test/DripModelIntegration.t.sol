@@ -39,7 +39,9 @@ abstract contract DripModelIntegrationTestSetup is MockDeployProtocol {
 
     rewardsManager = RewardsManager(
       address(
-        rewardsManagerFactory.deployRewardsManager(owner, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32())
+        rewardsManagerFactory.deployRewardsManager(
+          owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32()
+        )
       )
     );
   }

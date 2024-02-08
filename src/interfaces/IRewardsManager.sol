@@ -13,6 +13,7 @@ interface IRewardsManager {
   /// @notice Replaces the constructor for minimal proxies.
   function initialize(
     address owner_,
+    address pauser_,
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external;
@@ -53,6 +54,8 @@ interface IRewardsManager {
   function receiptTokenFactory() external view returns (address);
 
   function owner() external view returns (address);
+
+  function pauser() external view returns (address);
 
   function redeemUndrippedRewards(
     uint16 rewardPoolId_,

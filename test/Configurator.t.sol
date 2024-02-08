@@ -18,6 +18,7 @@ import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {ConfiguratorLib} from "../src/lib/ConfiguratorLib.sol";
 import {Configurator} from "../src/lib/Configurator.sol";
+import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
@@ -103,6 +104,24 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
 
   function test_updateConfigs_basicSetup() external {
     (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+
+    _expectEmit();
+    emit TestableConfiguratorEvents.DripAndResetCumulativeRewardsValuesCalled();
+    _expectEmit();
+    emit ConfigUpdatesApplied(stakePoolConfigs_, rewardPoolConfigs_);
+
+    component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
+
+    _assertRewardPoolUpdatesApplied(component.getRewardPool(0), rewardPoolConfigs_[0]);
+    _assertRewardPoolUpdatesApplied(component.getRewardPool(1), rewardPoolConfigs_[1]);
+    _assertStakePoolUpdatesApplied(component.getStakePool(0), stakePoolConfigs_[0]);
+    _assertStakePoolUpdatesApplied(component.getStakePool(1), stakePoolConfigs_[1]);
+  }
+
+  function test_updateConfigs_basicSetup_whenPaused() external {
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+
+    component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
 
     _expectEmit();
     emit TestableConfiguratorEvents.DripAndResetCumulativeRewardsValuesCalled();
@@ -343,6 +362,10 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
 
   function mockAddRewardPool(RewardPool memory rewardPool_) external {
     rewardPools.push(rewardPool_);
+  }
+
+  function mockSetRewardsManagerState(RewardsManagerState state_) external {
+    rewardsManagerState = state_;
   }
 
   // -------- Mock getters --------

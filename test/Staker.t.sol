@@ -15,6 +15,7 @@ import {Depositor} from "../src/lib/Depositor.sol";
 import {Staker} from "../src/lib/Staker.sol";
 import {RewardsDistributor} from "../src/lib/RewardsDistributor.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
+import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {AssetPool, StakePool} from "../src/lib/structs/Pools.sol";
 import {RewardPool} from "../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
@@ -170,6 +171,25 @@ contract StakerUnitTest is TestBase {
     assertEq(mockStkToken.balanceOf(receiver_), expectedStkTokenAmount_);
   }
 
+  function test_stake_RevertWhenPaused() external {
+    address staker_ = _randomAddress();
+    address receiver_ = _randomAddress();
+
+    uint256 amountToStake_ = 20e18;
+    // Mint initial safety module receipt token balance for staker.
+    mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
+
+    // Approve rewards manager to spend safety module receipt token.
+    vm.prank(staker_);
+    mockSafetyModuleReceiptToken.approve(address(component), amountToStake_);
+
+    component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
+
+    vm.expectRevert(ICommonErrors.InvalidState.selector);
+    vm.prank(staker_);
+    component.stake(0, amountToStake_, receiver_, staker_);
+  }
+
   function test_stake_RevertOutOfBoundsStakePoolId() external {
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
@@ -267,6 +287,28 @@ contract StakerUnitTest is TestBase {
 
     assertEq(mockSafetyModuleReceiptToken.balanceOf(staker_), 0);
     assertEq(mockStkToken.balanceOf(receiver_), expectedStkTokenAmount_);
+  }
+
+  function test_stakeWithoutTransfer_RevertWhenPaused() external {
+    address staker_ = _randomAddress();
+    address receiver_ = _randomAddress();
+
+    // Mint initial safety module receipt token balance for rewards manager.
+    mockSafetyModuleReceiptToken.mint(address(component), 150e18);
+
+    uint256 amountToStake_ = 20e18;
+    // Mint initial safety module receipt token balance for staker.
+    mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
+
+    // Transfer to rewards manager.
+    vm.prank(staker_);
+    mockSafetyModuleReceiptToken.transfer(address(component), amountToStake_);
+
+    component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
+
+    vm.expectRevert(ICommonErrors.InvalidState.selector);
+    vm.prank(staker_);
+    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
   }
 
   function test_stakeWithoutTransfer_RevertOutOfBoundsStakePoolId() external {
@@ -484,6 +526,65 @@ contract StakerUnitTest is TestBase {
     assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), finalAssetPool_.amount);
   }
 
+  function test_unstake_whenPaused() public {
+    (, address receiver_, uint256 amountStaked_, uint256 stkTokenAmountReceived_) = _setupDefaultSingleUserFixture();
+    address unstakeReceiver_ = _randomAddress();
+
+    vm.prank(receiver_);
+    mockStkToken.approve(address(component), stkTokenAmountReceived_);
+
+    // receiver_ owns the entire supply of stake receipt tokens.
+    uint256 stkTokenSupplyBeforeUnstake_ = component.getStakePool(0).stkReceiptToken.totalSupply();
+    assertEq(stkTokenAmountReceived_, stkTokenSupplyBeforeUnstake_);
+
+    component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
+
+    // If the rewards manager is paused, no drip should occur, so the user should not receive any rewards.
+    // As such, in the assertions below we do not add any of the undripped rewards.
+    // Note: The drip model from setUp is a mock drip model with 100% drip per second.
+    component.mockSetRewardPoolUndrippedRewards(0, 100e6);
+    skip(1);
+
+    _expectEmit();
+    emit Transfer(address(component), unstakeReceiver_, amountStaked_ + initialStakeAmount);
+    _expectEmit();
+    emit Unstaked(
+      receiver_,
+      unstakeReceiver_,
+      receiver_,
+      IReceiptToken(address(mockStkToken)),
+      stkTokenAmountReceived_,
+      amountStaked_ + initialStakeAmount
+    );
+    vm.prank(receiver_);
+    uint256 safetyModuleReceiptTokenAmount_ = component.unstake(0, stkTokenAmountReceived_, unstakeReceiver_, receiver_);
+
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_ + initialStakeAmount);
+    assertEq(amountStaked_ + initialStakeAmount, safetyModuleReceiptTokenAmount_);
+
+    StakePool memory finalStakePool_ = component.getStakePool(0);
+    AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
+    // Entire supply of stake tokens was unstaked
+    assertEq(finalStakePool_.amount, 0);
+    // 150e18 + 20e18 - 120e18
+    assertEq(finalAssetPool_.amount, initialSafetyModuleBal + stkTokenAmountReceived_ - safetyModuleReceiptTokenAmount_);
+    assertEq(finalAssetPool_.amount, 50e18);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), finalAssetPool_.amount);
+
+    ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
+
+    // Because `stkToken.totalSupply() > 0` before unstaking, the index snapshot and cumulative claimed rewards should
+    // change. Since this updates before the users stkTokens are burned, the calculation below uses
+    // `stkToken.totalSupply() == stkTokenSupplyBeforeUnstake_`.
+    assertEq(
+      finalClaimableRewardsData_.indexSnapshot,
+      initialIndexSnapshot_
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(stkTokenSupplyBeforeUnstake_)
+    );
+    assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeDrippedRewards_);
+    assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_ + 10e18);
+  }
+
   function test_unstake_cannotRedeemIfRoundsDownToZero() external {
     (, address receiver_,,) = _setupDefaultSingleUserFixture();
     address unstakeReceiver_ = _randomAddress();
@@ -661,6 +762,14 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManager
 
   function mockSetStakeAmount(uint256 stakeAmount_) external {
     stakePools[0].amount = stakeAmount_;
+  }
+
+  function mockSetRewardsManagerState(RewardsManagerState state_) external {
+    rewardsManagerState = state_;
+  }
+
+  function mockSetRewardPoolUndrippedRewards(uint16 rewardPoolId_, uint256 undrippedRewards_) external {
+    rewardPools[rewardPoolId_].undrippedRewards = undrippedRewards_;
   }
 
   // -------- Mock getters --------
