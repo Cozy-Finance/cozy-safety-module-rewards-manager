@@ -346,14 +346,6 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
   }
 
   // -------- Mock getters --------
-  function getStakePools() external view returns (StakePool[] memory) {
-    return stakePools;
-  }
-
-  function getRewardPools() external view returns (RewardPool[] memory) {
-    return rewardPools;
-  }
-
   function getStakePool(uint16 stakePoolId_) external view returns (StakePool memory) {
     return stakePools[stakePoolId_];
   }

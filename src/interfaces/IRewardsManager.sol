@@ -77,4 +77,12 @@ interface IRewardsManager {
   function dripRewards() external;
 
   function dripRewardPool(uint16 rewardPoolId_) external;
+
+  function getRewardPools() external view returns (RewardPool[] memory);
+
+  function getStakePools() external view returns (StakePool[] memory);
+
+  function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory);
+
+  function getClaimableRewards(uint16 stakePoolId_) external view returns (ClaimableRewardsData[] memory);
 }

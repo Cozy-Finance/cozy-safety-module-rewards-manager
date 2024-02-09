@@ -45,7 +45,7 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
   }
 
   function _fuzzedSelectors() internal pure virtual returns (bytes4[] memory) {
-    bytes4[] memory selectors = new bytes4[](14);
+    bytes4[] memory selectors = new bytes4[](15);
     selectors[0] = RewardsManagerHandler.depositRewardAssets.selector;
     selectors[1] = RewardsManagerHandler.depositRewardAssetsWithExistingActor.selector;
     selectors[2] = RewardsManagerHandler.depositRewardAssetsWithoutTransfer.selector;
@@ -60,7 +60,8 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
     selectors[10] = RewardsManagerHandler.dripRewardPool.selector;
     selectors[11] = RewardsManagerHandler.claimRewards.selector;
     selectors[12] = RewardsManagerHandler.stkTokenTransfer.selector;
-    selectors[13] = RewardsManagerHandler.redeemUndrippedRewards.selector;
+    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkTokenTransfer.selector;
+    selectors[14] = RewardsManagerHandler.redeemUndrippedRewards.selector;
     return selectors;
   }
 

@@ -278,28 +278,45 @@ contract RewardsManagerHandler is TestBase {
     rewardsManager.dripRewardPool(currentRewardPoolId);
   }
 
-  function stkTokenTransfer(uint256 stkTokenTransferAmount_, address to_, uint256 seed_)
+  function stkTokenTransfer(uint64 stkTokenTransferAmount_, address to_, uint256 seed_)
     public
     virtual
     useActorWithStakes(seed_)
     countCall("stkTokenTransfer")
     advanceTime(seed_)
+    returns (address actor_, uint256 amount_)
   {
     IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
     uint256 actorStkTokenBalance_ = stkToken_.balanceOf(currentActor);
     if (actorStkTokenBalance_ == 0) {
       invalidCalls["stkTokenTransfer"] += 1;
-      return;
+      return (currentActor, 0);
     }
 
-    stkTokenTransferAmount_ = bound(stkTokenTransferAmount_, 0, actorStkTokenBalance_);
+    uint256 boundedStkTokenTransferAmount_ = bound(uint256(stkTokenTransferAmount_), 0, actorStkTokenBalance_);
 
     vm.startPrank(currentActor);
     // This will call `updateUserRewardsForStkTokenTransfer` in the RewardsManager.
-    stkToken_.transfer(to_, stkTokenTransferAmount_);
+    stkToken_.transfer(to_, boundedStkTokenTransferAmount_);
     vm.stopPrank();
 
-    if (stkTokenTransferAmount_ == actorStkTokenBalance_) actorsWithStakes.remove(currentActor);
+    if (boundedStkTokenTransferAmount_ == actorStkTokenBalance_) actorsWithStakes.remove(currentActor);
+
+    return (currentActor, boundedStkTokenTransferAmount_);
+  }
+
+  function updateUserRewardsForStkTokenTransfer(address from_, address to_, uint256 seed_)
+    public
+    virtual
+    useValidStakePoolId(seed_)
+    countCall("updateUserRewardsForStkTokenTransfer")
+    advanceTime(seed_)
+    returns (address actor_, uint256 amount_)
+  {
+    IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
+
+    vm.prank(address(stkToken_));
+    rewardsManager.updateUserRewardsForStkTokenTransfer(from_, to_);
   }
 
   function claimRewards(address receiver_, uint256 seed_)
@@ -387,6 +404,7 @@ contract RewardsManagerHandler is TestBase {
     console2.log("dripRewardPool", calls["dripRewardPool"]);
     console2.log("claimRewards", calls["claimRewards"]);
     console2.log("stkTokenTransfer", calls["stkTokenTransfer"]);
+    console2.log("updateUserRewardsForStkTokenTransfer", calls["updateUserRewardsForStkTokenTransfer"]);
     console2.log("redeemUndrippedRewards", calls["redeemUndrippedRewards"]);
     console2.log("pause", calls["pause"]);
     console2.log("unpause", calls["unpause"]);
@@ -409,6 +427,7 @@ contract RewardsManagerHandler is TestBase {
     console2.log("dripRewardPool", invalidCalls["dripRewardPool"]);
     console2.log("claimRewards", invalidCalls["claimRewards"]);
     console2.log("stkTokenTransfer", invalidCalls["stkTokenTransfer"]);
+    console2.log("updateUserRewardsForStkTokenTransfer", invalidCalls["updateUserRewardsForStkTokenTransfer"]);
     console2.log("redeemUndrippedRewards", invalidCalls["redeemUndrippedRewards"]);
     console2.log("pause", invalidCalls["pause"]);
     console2.log("unpause", invalidCalls["unpause"]);

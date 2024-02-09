@@ -17,7 +17,6 @@ import {
 } from "./structs/Rewards.sol";
 import {RewardPool, IdLookup} from "./structs/Pools.sol";
 import {IDripModel} from "../interfaces/IDripModel.sol";
-import {console2} from "forge-std/console2.sol";
 
 abstract contract RewardsDistributor is RewardsManagerCommon {
   using FixedPointMathLib for uint256;
@@ -187,9 +186,6 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
         - claimableRewardsData_.cumulativeClaimedRewards;
       nextClaimableRewardsData_.cumulativeClaimedRewards += unclaimedDrippedRewards_;
       // Round down, in favor of leaving assets in the claimable reward pool.
-      console2.log("unclaimedDrippedRewards_", unclaimedDrippedRewards_);
-      console2.log("totalStkTokenSupply_", totalStkTokenSupply_);
-      console2.log("nextClaimableRewardsData_.indexSnapshot", nextClaimableRewardsData_.indexSnapshot);
       nextClaimableRewardsData_.indexSnapshot += unclaimedDrippedRewards_.divWadDown(totalStkTokenSupply_);
     }
   }
@@ -358,9 +354,6 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     pure
     returns (uint256)
   {
-    console2.log("stkTokenAmount_", stkTokenAmount_);
-    console2.log("newRewardPoolIndex", newRewardPoolIndex);
-    console2.log("oldRewardPoolIndex", oldRewardPoolIndex);
     // Round down, in favor of leaving assets in the rewards pool.
     return stkTokenAmount_.mulWadDown(newRewardPoolIndex - oldRewardPoolIndex);
   }

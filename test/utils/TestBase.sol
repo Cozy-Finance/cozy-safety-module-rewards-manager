@@ -83,7 +83,7 @@ contract TestBase is Test, TestAssertions {
     return bound(base_, min_, max_);
   }
 
-  function _randomUint256FromSeed(uint256 seed_) internal view returns (uint256) {
+  function _randomUint256FromSeed(uint256 seed_) internal pure returns (uint256) {
     return uint256(keccak256(abi.encodePacked(seed_)));
   }
 

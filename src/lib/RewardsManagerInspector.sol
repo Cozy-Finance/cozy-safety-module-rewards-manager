@@ -3,7 +3,8 @@ pragma solidity 0.8.22;
 
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
-import {StakePool} from "./structs/Pools.sol";
+import {StakePool, RewardPool} from "./structs/Pools.sol";
+import {ClaimableRewardsData} from "./structs/Rewards.sol";
 
 abstract contract RewardsManagerInspector is RewardsManagerCommon {
   uint256 internal constant POOL_AMOUNT_FLOOR = 1;
@@ -67,5 +68,41 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
   /// of reward deposit receipt tokens > 0, but the `poolAmount` = 0, which can occur due to drip.
   function _poolAmountWithFloor(uint256 poolAmount_) internal pure override returns (uint256) {
     return poolAmount_ > POOL_AMOUNT_FLOOR ? poolAmount_ : POOL_AMOUNT_FLOOR;
+  }
+
+  function getStakePools() external view returns (StakePool[] memory) {
+    return stakePools;
+  }
+
+  function getRewardPools() external view returns (RewardPool[] memory) {
+    return rewardPools;
+  }
+
+  function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory) {
+    uint256 numStakePools_ = stakePools.length;
+    uint256 numRewardPools_ = rewardPools.length;
+
+    ClaimableRewardsData[][] memory claimableRewards_ = new ClaimableRewardsData[][](numStakePools_);
+    for (uint16 i = 0; i < numStakePools_; i++) {
+      claimableRewards_[i] = new ClaimableRewardsData[](numRewardPools_);
+      mapping(uint16 => ClaimableRewardsData) storage stakePoolClaimableRewards_ = claimableRewards[i];
+      for (uint16 j = 0; j < numRewardPools_; j++) {
+        claimableRewards_[i][j] = stakePoolClaimableRewards_[j];
+      }
+    }
+
+    return claimableRewards_;
+  }
+
+  function getClaimableRewards(uint16 stakePoolId_) external view returns (ClaimableRewardsData[] memory) {
+    mapping(uint16 => ClaimableRewardsData) storage stakePoolClaimableRewards_ = claimableRewards[stakePoolId_];
+
+    uint256 numRewardPools_ = rewardPools.length;
+    ClaimableRewardsData[] memory claimableRewards_ = new ClaimableRewardsData[](numRewardPools_);
+    for (uint16 i = 0; i < numRewardPools_; i++) {
+      claimableRewards_[i] = stakePoolClaimableRewards_[i];
+    }
+
+    return claimableRewards_;
   }
 }
