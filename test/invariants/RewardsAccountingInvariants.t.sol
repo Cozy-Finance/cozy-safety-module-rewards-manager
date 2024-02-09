@@ -16,18 +16,15 @@ import {
 abstract contract RewardsAccountingInvariants is InvariantTestBase {
   using FixedPointMathLib for uint256;
 
-  function invariant_cumulativeClaimedRewardsLeScaledCumulativeDrippedRewards()
+  function invariant_cumulativeClaimedRewardsLteScaledCumulativeDrippedRewards()
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
-    uint256 numStakePools_ = numStakePools;
-    uint256 numRewardPools_ = numRewardPools;
-
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       uint256 cumulativeDrippedRewards_ = rewardsManager.rewardPools(rewardPoolId_).cumulativeDrippedRewards;
       uint256 sumCumulativeClaimedRewards_ = 0;
 
-      for (uint16 stakePoolId_ = 0; stakePoolId_ < numStakePools_; stakePoolId_++) {
+      for (uint16 stakePoolId_ = 0; stakePoolId_ < numStakePools; stakePoolId_++) {
         uint256 cumulativeClaimedRewards_ =
           rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_).cumulativeClaimedRewards;
         sumCumulativeClaimedRewards_ += cumulativeClaimedRewards_;
@@ -38,7 +35,7 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
         require(
           cumulativeClaimedRewards_ <= scaledCumulativeDrippedRewards_,
           string.concat(
-            "Invariant Violated: The cumulative claimed rewards must be less than or equal to the scaled cumulative dripped rewards.",
+            "Invariant Violated: The cumulative claimed rewards for a specific (stake pool, reward pool) pair must be less than or equal to the scaled cumulative dripped rewards for the pair.",
             " scaledCumulativeDrippedRewards: ",
             Strings.toString(scaledCumulativeDrippedRewards_),
             ", cumulativeClaimedRewards: ",
@@ -54,7 +51,7 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
       require(
         sumCumulativeClaimedRewards_ <= cumulativeDrippedRewards_,
         string.concat(
-          "Invariant Violated: The sum of cumulative claimed rewards must be less than or equal to the cumulative dripped rewards.",
+          "Invariant Violated: Invariant Violated: The sum of every stake pool's cumulative claimed rewards from a reward pool must be less than or equal to the cumulative dripped rewards from the reward pool.",
           " totalClaimedRewards: ",
           Strings.toString(sumCumulativeClaimedRewards_),
           ", cumulativeDrippedRewards: ",
@@ -72,15 +69,12 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
 
   function invariant_userRewardsAccounting() public syncCurrentTimestamp(rewardsManagerHandler) {
     address[] memory actorsWithStakes_ = rewardsManagerHandler.getActorsWithStakes();
-    uint256 numActorsWithStakes_ = actorsWithStakes_.length;
-    for (uint256 i = 0; i < numActorsWithStakes_; i++) {
+    for (uint256 i = 0; i < actorsWithStakes_.length; i++) {
       _invariant_userRewardsAccounting(actorsWithStakes_[i]);
     }
 
-    uint256 numStakePools_ = numStakePools;
-    uint256 numRewardPools_ = numRewardPools;
-    for (uint16 stakePoolId_ = 0; stakePoolId_ < numStakePools_; stakePoolId_++) {
-      for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
+    for (uint16 stakePoolId_ = 0; stakePoolId_ < numStakePools; stakePoolId_++) {
+      for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
         uint256 sumUserAccruedRewards_ = sumUserAccruedRewards[stakePoolId_][rewardPoolId_];
         uint256 cumulativeClaimedRewards_ =
           rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_).cumulativeClaimedRewards;
@@ -88,7 +82,7 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
         require(
           sumUserAccruedRewards_ <= cumulativeClaimedRewards_,
           string.concat(
-            "Invariant Violated: The sum of user accrued rewards must be less than or equal to the cumulative claimed rewards.",
+            "Invariant Violated: The sum of user accrued rewards for a (stake pool, reward pool) pair must be less than or equal to the cumulative claimed rewards for the pair.",
             " sumUserAccruedRewards: ",
             Strings.toString(sumUserAccruedRewards_),
             ", cumulativeClaimedRewards: ",
@@ -107,15 +101,14 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
     uint16 stakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), user_);
     UserRewardsData[] memory userRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, user_);
 
-    // We only check the invariant for reward pools registered in `userRewardsData_`. New/unregistered reward pools are
-    // not checked because we will get a out-of-bounds error.
-    uint256 numRewardPools_ = userRewardsData_.length;
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
+    // The invariant only checks for reward pools registered in `userRewardsData_`. Reward pools that have not been yet
+    // registered into the users rewards data are skip to avoid an out-of-bounds error.
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < userRewardsData_.length; rewardPoolId_++) {
       uint256 globalIndexSnapshot_ = rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_).indexSnapshot;
       require(
         userRewardsData_[rewardPoolId_].indexSnapshot <= globalIndexSnapshot_,
         string.concat(
-          "Invariant Violated: The user index snapshot must be less than or equal to the global index snapshot.",
+          "Invariant Violated: Invariant Violated: The user rewards index snapshot must be less than or equal to the global rewards index snapshot.",
           " userIndexSnapshot: ",
           Strings.toString(userRewardsData_[rewardPoolId_].indexSnapshot),
           ", globalIndexSnapshot: ",

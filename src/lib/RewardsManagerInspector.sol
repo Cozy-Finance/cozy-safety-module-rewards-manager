@@ -4,7 +4,7 @@ pragma solidity 0.8.22;
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
 import {StakePool, RewardPool} from "./structs/Pools.sol";
-import {ClaimableRewardsData} from "./structs/Rewards.sol";
+import {ClaimableRewardsData, UserRewardsData} from "./structs/Rewards.sol";
 
 abstract contract RewardsManagerInspector is RewardsManagerCommon {
   uint256 internal constant POOL_AMOUNT_FLOOR = 1;
@@ -76,6 +76,10 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
 
   function getRewardPools() external view returns (RewardPool[] memory) {
     return rewardPools;
+  }
+
+  function getUserRewards(uint16 stakePoolId_, address user) external view returns (UserRewardsData[] memory) {
+    return userRewards[stakePoolId_][user];
   }
 
   function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory) {

@@ -19,9 +19,8 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
   function invariant_claimRewardsUserRewardsAccounting() public syncCurrentTimestamp(rewardsManagerHandler) {
     address receiver_ = _randomAddress();
 
-    uint256 numRewardPools_ = numRewardPools;
-    uint256[] memory receiverPreBalances_ = new uint256[](numRewardPools_);
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
+    uint256[] memory receiverPreBalances_ = new uint256[](numRewardPools);
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       receiverPreBalances_[rewardPoolId_] = IERC20(rewardsManager.rewardPools(rewardPoolId_).asset).balanceOf(receiver_);
     }
 
@@ -30,27 +29,26 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     if (actor_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
 
     uint16 stakePoolId_ = rewardsManagerHandler.currentStakePoolId();
-    UserRewardsData[] memory userRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, actor_);
-    uint256 userNumRewardPools_ = userRewardsData_.length;
+    UserRewardsData[] memory userRewards_ = rewardsManager.getUserRewards(stakePoolId_, actor_);
 
     require(
-      userNumRewardPools_ == numRewardPools_,
+      userRewards_.length == numRewardPools,
       string.concat(
-        "Invariant Violated: The length of the user rewards data must be equal to the number of reward pools.",
-        " userNumRewardPools_: ",
-        Strings.toString(userNumRewardPools_),
+        "Invariant Violated: The length of the user rewards must be equal to the number of reward pools after claimRewards.",
+        " userRewards_.length: ",
+        Strings.toString(userRewards_.length),
         ", numRewardPools: ",
-        Strings.toString(numRewardPools_)
+        Strings.toString(numRewardPools)
       )
     );
 
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < userNumRewardPools_; rewardPoolId_++) {
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < userRewards_.length; rewardPoolId_++) {
       require(
-        userRewardsData_[rewardPoolId_].accruedRewards == 0,
+        userRewards_[rewardPoolId_].accruedRewards == 0,
         string.concat(
-          "Invariant Violated: The user accrued rewards must be zero after claiming rewards.",
-          " userRewardsData_[rewardPoolId_].accruedRewards: ",
-          Strings.toString(userRewardsData_[rewardPoolId_].accruedRewards),
+          "Invariant Violated: The user accrued rewards must be zero after claimRewards.",
+          " userRewards_[rewardPoolId_].accruedRewards: ",
+          Strings.toString(userRewards_[rewardPoolId_].accruedRewards),
           ", actor: ",
           Strings.toHexString(uint160(actor_)),
           ", stakePoolId: ",
@@ -62,11 +60,11 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
 
       ClaimableRewardsData memory claimableRewards_ = rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_);
       require(
-        userRewardsData_[rewardPoolId_].indexSnapshot == claimableRewards_.indexSnapshot,
+        userRewards_[rewardPoolId_].indexSnapshot == claimableRewards_.indexSnapshot,
         string.concat(
-          "Invariant Violated: The user index snapshot must be equal to the global index snapshot after claiming rewards.",
+          "Invariant Violated: The user rewards index snapshot must be equal to the global rewards index snapshot after claimRewards.",
           " userIndexSnapshot: ",
-          Strings.toString(userRewardsData_[rewardPoolId_].indexSnapshot),
+          Strings.toString(userRewards_[rewardPoolId_].indexSnapshot),
           ", globalIndexSnapshot: ",
           Strings.toString(claimableRewards_.indexSnapshot),
           ", actor: ",
@@ -82,7 +80,7 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
       require(
         receiverPostBalance_ >= receiverPreBalances_[rewardPoolId_],
         string.concat(
-          "Invariant Violated: The receiver balance must be greater than or equal to the pre-balance after claiming rewards.",
+          "Invariant Violated: The receiver balance must be greater than or equal to the pre-balance after claimRewards.",
           " receiverPostBalance: ",
           Strings.toString(receiverPostBalance_),
           ", receiverPreBalance: ",
@@ -103,6 +101,7 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     ClaimableRewardsData[][] memory preClaimableRewards_ = rewardsManager.getClaimableRewards();
 
     address actor_ = rewardsManagerHandler.claimRewards(_randomAddress(), _randomUint256());
+    // The default address is used when there are no actors with stakes, in which case we just skip this invariant.
     if (actor_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
 
     uint16 stakePoolId_ = rewardsManagerHandler.currentStakePoolId();
@@ -110,8 +109,7 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     RewardPool[] memory postRewardPools_ = rewardsManager.getRewardPools();
     ClaimableRewardsData[][] memory postClaimableRewards_ = rewardsManager.getClaimableRewards();
 
-    uint256 numRewardPools_ = numRewardPools;
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       _invariant_dripRewardPoolChanged(preRewardPools_[rewardPoolId_], postRewardPools_[rewardPoolId_]);
 
       uint256 preCumulativeClaimedRewards_ = preClaimableRewards_[stakePoolId_][rewardPoolId_].cumulativeClaimedRewards;
@@ -120,7 +118,7 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
       require(
         preCumulativeClaimedRewards_ <= postCumulativeClaimedRewards_,
         string.concat(
-          "Invariant Violated: The post-cumulative claimed rewards must be greater than or equal to the pre-cumulative claimed rewards after claiming rewards.",
+          "Invariant Violated: The post-cumulative claimed rewards must be greater than or equal to the pre-cumulative claimed rewards after claimRewards.",
           " preCumulativeClaimedRewards: ",
           Strings.toString(preCumulativeClaimedRewards_),
           ", postCumulativeClaimedRewards: ",
@@ -137,7 +135,7 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
       require(
         postCumulativeClaimedRewards_ == scaledCumulativeDrippedRewards_,
         string.concat(
-          "Invariant Violated: The post-cumulative claimed rewards must be equal to the scaled cumulative dripped rewards after claiming rewards.",
+          "Invariant Violated: The post-cumulative claimed rewards must be equal to the scaled cumulative dripped rewards after claimRewards.",
           " scaledCumulativeDrippedRewards: ",
           Strings.toString(scaledCumulativeDrippedRewards_),
           ", postCumulativeClaimedRewards: ",
@@ -154,7 +152,7 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
       require(
         preIndexSnapshot_ <= postIndexSnapshot_,
         string.concat(
-          "Invariant Violated: The post-index snapshot must be greater than or equal to the pre-index snapshot after claiming rewards.",
+          "Invariant Violated: The post-index rewards snapshot must be greater than or equal to the pre-index rewards snapshot after claimRewards.",
           " preIndexSnapshot: ",
           Strings.toString(preIndexSnapshot_),
           ", postIndexSnapshot: ",
@@ -173,10 +171,8 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     rewardsManagerHandler.dripRewardPool(_randomUint256());
     RewardPool[] memory postRewardPools_ = rewardsManager.getRewardPools();
 
-    uint16 drippedRewardPoolId_ = rewardsManagerHandler.currentRewardPoolId();
-    uint256 numRewardPools_ = numRewardPools;
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
-      if (rewardPoolId_ == drippedRewardPoolId_) {
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
+      if (rewardPoolId_ == rewardsManagerHandler.currentRewardPoolId()) {
         _invariant_dripRewardPoolChanged(preRewardPools_[rewardPoolId_], postRewardPools_[rewardPoolId_]);
       } else {
         _invariant_dripRewardPoolUnchanged(preRewardPools_[rewardPoolId_], postRewardPools_[rewardPoolId_]);
@@ -189,8 +185,7 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     rewardsManagerHandler.dripRewards(_randomUint256());
     RewardPool[] memory postRewardPools_ = rewardsManager.getRewardPools();
 
-    uint256 numRewardPools_ = numRewardPools;
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       _invariant_dripRewardPoolChanged(preRewardPools_[rewardPoolId_], postRewardPools_[rewardPoolId_]);
     }
   }
@@ -204,16 +199,16 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     rewardsManagerHandler.updateUserRewardsForStkTokenTransfer(from_, to_, _randomUint256());
 
     uint16 stakePoolId_ = rewardsManagerHandler.currentStakePoolId();
-    UserRewardsData[] memory fromUserRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, from_);
-    UserRewardsData[] memory toUserRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, to_);
+    UserRewardsData[] memory fromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);
+    UserRewardsData[] memory toUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, to_);
     ClaimableRewardsData[] memory claimableRewards_ = rewardsManager.getClaimableRewards(stakePoolId_);
 
-    _invariant_userRewardsDataUpdated(
-      fromUserRewardsData_, toUserRewardsData_, claimableRewards_, stakePoolId_, from_, to_
+    _invariant_userRewardsSnapshotsUpdated(
+      fromUserRewards_, toUserRewards_, claimableRewards_, stakePoolId_, from_, to_
     );
   }
 
-  function invariant_updateUserRewardsForStkTokenTransferAccountingExistingStakers()
+  function invariant_updateUserRewardsForStkTokenTransferAccountingForExistingStakers()
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
@@ -224,32 +219,30 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     address to_ = actorsWithStakes_[_randomUint256InRange(0, actorsWithStakes_.length - 1)];
     uint16 stakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), from_);
 
-    UserRewardsData[] memory preFromUserRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, from_);
-    UserRewardsData[] memory preToUserRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, to_);
+    UserRewardsData[] memory preFromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);
+    UserRewardsData[] memory preToUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, to_);
 
     IERC20 stkToken_ = getStakePool(rewardsManager, stakePoolId_).stkReceiptToken;
-    vm.startPrank(address(stkToken_));
+    vm.prank(address(stkToken_));
     rewardsManager.updateUserRewardsForStkTokenTransfer(from_, to_);
-    vm.stopPrank();
 
-    UserRewardsData[] memory postFromUserRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, from_);
-    UserRewardsData[] memory postToUserRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, to_);
+    UserRewardsData[] memory postFromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);
+    UserRewardsData[] memory postToUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, to_);
     ClaimableRewardsData[] memory claimableRewards_ = rewardsManager.getClaimableRewards(stakePoolId_);
 
-    _invariant_userRewardsDataUpdated(
-      postFromUserRewardsData_, postToUserRewardsData_, claimableRewards_, stakePoolId_, from_, to_
+    _invariant_userRewardsSnapshotsUpdated(
+      postFromUserRewards_, postToUserRewards_, claimableRewards_, stakePoolId_, from_, to_
     );
 
-    uint256 numRewardPools_ = preFromUserRewardsData_.length;
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < preFromUserRewards_.length; rewardPoolId_++) {
       require(
-        preFromUserRewardsData_[rewardPoolId_].accruedRewards <= postFromUserRewardsData_[rewardPoolId_].accruedRewards,
+        preFromUserRewards_[rewardPoolId_].accruedRewards <= postFromUserRewards_[rewardPoolId_].accruedRewards,
         string.concat(
           "Invariant Violated: The from user pre-accrued rewards must be less than or equal to the post-accrued rewards after updateUserRewardsForStkTokenTransfer.",
           " preAccruedRewards: ",
-          Strings.toString(preFromUserRewardsData_[rewardPoolId_].accruedRewards),
+          Strings.toString(preFromUserRewards_[rewardPoolId_].accruedRewards),
           ", postAccruedRewards: ",
-          Strings.toString(postFromUserRewardsData_[rewardPoolId_].accruedRewards),
+          Strings.toString(postFromUserRewards_[rewardPoolId_].accruedRewards),
           ", from: ",
           Strings.toHexString(uint160(from_)),
           ", stakePoolId: ",
@@ -260,16 +253,15 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
       );
     }
 
-    numRewardPools_ = preToUserRewardsData_.length;
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < preToUserRewards_.length; rewardPoolId_++) {
       require(
-        preToUserRewardsData_[rewardPoolId_].accruedRewards <= postToUserRewardsData_[rewardPoolId_].accruedRewards,
+        preToUserRewards_[rewardPoolId_].accruedRewards <= postToUserRewards_[rewardPoolId_].accruedRewards,
         string.concat(
           "Invariant Violated: The to user pre-accrued rewards must be less than or equal to the post-accrued rewards after updateUserRewardsForStkTokenTransfer.",
           " preAccruedRewards: ",
-          Strings.toString(preToUserRewardsData_[rewardPoolId_].accruedRewards),
+          Strings.toString(preToUserRewards_[rewardPoolId_].accruedRewards),
           ", postAccruedRewards: ",
-          Strings.toString(postToUserRewardsData_[rewardPoolId_].accruedRewards),
+          Strings.toString(postToUserRewards_[rewardPoolId_].accruedRewards),
           ", to: ",
           Strings.toHexString(uint160(to_)),
           ", stakePoolId: ",
@@ -287,16 +279,11 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     if (from_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
 
     uint16 stakePoolId_ = rewardsManagerHandler.currentStakePoolId();
-    UserRewardsData[] memory fromUserRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, from_);
-    UserRewardsData[] memory toUserRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, to_);
+    UserRewardsData[] memory fromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);
+    UserRewardsData[] memory toUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, to_);
 
-    _invariant_userRewardsDataUpdated(
-      fromUserRewardsData_,
-      toUserRewardsData_,
-      rewardsManager.getClaimableRewards(stakePoolId_),
-      stakePoolId_,
-      from_,
-      to_
+    _invariant_userRewardsSnapshotsUpdated(
+      fromUserRewards_, toUserRewards_, rewardsManager.getClaimableRewards(stakePoolId_), stakePoolId_, from_, to_
     );
   }
 
@@ -380,36 +367,35 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     );
   }
 
-  function _invariant_userRewardsDataUpdated(
-    UserRewardsData[] memory fromUserRewardsData_,
-    UserRewardsData[] memory toUserRewardsData_,
+  function _invariant_userRewardsSnapshotsUpdated(
+    UserRewardsData[] memory fromUserRewards_,
+    UserRewardsData[] memory toUserRewards_,
     ClaimableRewardsData[] memory claimableRewards_,
     uint16 stakePoolId_,
     address from_,
     address to_
   ) internal view {
-    uint256 numRewardPools_ = numRewardPools;
     require(
-      fromUserRewardsData_.length == numRewardPools_ && toUserRewardsData_.length == numRewardPools_,
+      fromUserRewards_.length == numRewardPools && toUserRewards_.length == numRewardPools,
       string.concat(
         "Invariant Violated: The length of the user rewards data must be equal to the number of reward pools after updateUserRewardsForStkTokenTransfer.",
-        " fromUserRewardsData_.length: ",
-        Strings.toString(fromUserRewardsData_.length),
-        ", toUserRewardsData_.length: ",
-        Strings.toString(toUserRewardsData_.length),
+        " fromUserRewards_.length: ",
+        Strings.toString(fromUserRewards_.length),
+        ", toUserRewards_.length: ",
+        Strings.toString(toUserRewards_.length),
         ", numRewardPools: ",
-        Strings.toString(numRewardPools_)
+        Strings.toString(numRewardPools)
       )
     );
 
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools_; rewardPoolId_++) {
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       uint256 globalIndexSnapshot_ = claimableRewards_[rewardPoolId_].indexSnapshot;
       require(
-        fromUserRewardsData_[rewardPoolId_].indexSnapshot == globalIndexSnapshot_,
+        fromUserRewards_[rewardPoolId_].indexSnapshot == globalIndexSnapshot_,
         string.concat(
-          "Invariant Violated: The user index snapshot must be equal to the global index snapshot after updateUserRewardsForStkTokenTransfer.",
+          "Invariant Violated: The user rewards index snapshot must be equal to the global rewards index snapshot after updateUserRewardsForStkTokenTransfer.",
           " userindexSnapshot: ",
-          Strings.toString(fromUserRewardsData_[rewardPoolId_].indexSnapshot),
+          Strings.toString(fromUserRewards_[rewardPoolId_].indexSnapshot),
           ", globalIndexSnapshot: ",
           Strings.toString(globalIndexSnapshot_),
           ", from: ",
@@ -422,11 +408,11 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
       );
 
       require(
-        toUserRewardsData_[rewardPoolId_].indexSnapshot == globalIndexSnapshot_,
+        toUserRewards_[rewardPoolId_].indexSnapshot == globalIndexSnapshot_,
         string.concat(
-          "Invariant Violated: The user index snapshot must be equal to the global index snapshot after updateUserRewardsForStkTokenTransfer.",
+          "Invariant Violated: The user rewards index snapshot must be equal to the global rewards index snapshot after updateUserRewardsForStkTokenTransfer.",
           " userindexSnapshot: ",
-          Strings.toString(toUserRewardsData_[rewardPoolId_].indexSnapshot),
+          Strings.toString(toUserRewards_[rewardPoolId_].indexSnapshot),
           ", globalIndexSnapshot: ",
           Strings.toString(globalIndexSnapshot_),
           ", to: ",
