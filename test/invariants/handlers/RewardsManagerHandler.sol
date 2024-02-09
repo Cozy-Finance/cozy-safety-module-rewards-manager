@@ -542,7 +542,6 @@ contract RewardsManagerHandler is TestBase {
   }
 
   modifier createActorWithStakes() {
-    console2.log("createActorWithStakes", currentActor);
     actorsWithStakes.add(currentActor);
     _;
   }
