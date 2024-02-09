@@ -39,36 +39,29 @@ contract StakerUnitTest is TestBase {
   uint256 initialIndexSnapshot_ = 11;
 
   event Staked(
-    address indexed caller_,
-    address indexed receiver_,
-    IReceiptToken indexed stkToken_,
-    uint256 assetAmount_,
-    uint256 stkTokenAmount_
+    address indexed caller_, address indexed receiver_, IReceiptToken indexed stkToken_, uint256 assetAmount_
   );
 
-  /// @dev Emitted when a user unstakes.
   event Unstaked(
     address caller_,
     address indexed receiver_,
     address indexed owner_,
     IReceiptToken indexed stkReceiptToken_,
-    uint256 stkReceiptTokenAmount_,
-    uint256 assetAmount_
+    uint256 stkReceiptTokenAmount_
   );
 
   event Transfer(address indexed from, address indexed to, uint256 amount);
 
-  uint256 initialSafetyModuleBal = 150e18;
   uint256 initialStakeAmount = 100e18;
 
   function setUp() public {
     StakePool memory initialStakePool_ = StakePool({
       asset: IReceiptToken(address(mockSafetyModuleReceiptToken)),
       stkReceiptToken: IReceiptToken(address(mockStkToken)),
-      amount: 100e18,
+      amount: initialStakeAmount,
       rewardsWeight: 1e4
     });
-    AssetPool memory initialAssetPool_ = AssetPool({amount: 150e18});
+    AssetPool memory initialAssetPool_ = AssetPool({amount: initialStakeAmount});
     component.mockAddStakePool(initialStakePool_);
     component.mockAddAssetPool(IERC20(address(mockSafetyModuleReceiptToken)), initialAssetPool_);
 
@@ -78,97 +71,89 @@ contract StakerUnitTest is TestBase {
     mockAsset.mint(address(component), cumulativeDrippedRewards_);
     component.mockSetClaimableRewardsData(0, 0, initialIndexSnapshot_, cumulativeClaimedRewards_);
 
-    deal(address(mockSafetyModuleReceiptToken), address(component), initialSafetyModuleBal);
+    deal(address(mockSafetyModuleReceiptToken), address(component), initialStakeAmount);
+    mockStkToken.mint(address(0), initialStakeAmount);
   }
 
-  function test_stake_StkTokensAndStorageUpdates() external {
+  function _overrideSetUpToZeroStkTokenSupply() internal {
+    component.mockSetStakeAmount(0);
+    component.mockSetAssetPoolAmount(0);
+    deal(address(mockSafetyModuleReceiptToken), address(component), 0);
+    vm.mockCall(address(mockStkToken), abi.encodeWithSelector(IERC20.totalSupply.selector), abi.encode(0));
+  }
+
+  function test_stake_StkTokensAndStorageUpdates_NonZeroSupply() external {
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
 
-    // Mint initial safety module receipt token balance for rewards manager.
-    mockSafetyModuleReceiptToken.mint(address(component), 150e18);
     // Mint initial safety module receipt token balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
     // Approve rewards manager to spend safety module receipt token.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.approve(address(component), amountToStake_);
 
-    // `stkToken.totalSupply() == 0`, so should be minted 1-1 with safety module receipt tokens staked.
-    uint256 expectedStkTokenAmount_ = 20e18;
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_, expectedStkTokenAmount_);
+    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_);
 
     vm.prank(staker_);
-    uint256 stkTokenAmount_ = component.stake(0, amountToStake_, receiver_, staker_);
-
-    assertEq(stkTokenAmount_, expectedStkTokenAmount_);
+    component.stake(0, amountToStake_, receiver_, staker_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
 
     // 100e18 + 20e18
-    assertEq(finalStakePool_.amount, 120e18);
-    // 150e18 + 20e18
-    assertEq(finalAssetPool_.amount, 170e18);
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), 170e18 + initialSafetyModuleBal);
-
-    // Because `stkToken.totalSupply() == 0`, the index snapshot and cumulative claimed rewards should not have change.
-    assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_);
-    assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeClaimedRewards_);
-
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(staker_), 0);
-    assertEq(mockStkToken.balanceOf(receiver_), expectedStkTokenAmount_);
-  }
-
-  function test_stake_StkTokensAndStorageUpdatesNonZeroSupply() external {
-    address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
-    uint128 amountToStake_ = 20e18;
-
-    // Mint initial safety module receipt token balance for rewards manager.
-    mockSafetyModuleReceiptToken.mint(address(component), 150e18);
-    // Mint initial safety module receipt token balance for staker.
-    mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
-    // Mint/burn some stkTokens.
-    uint256 initialStkTokenSupply_ = 50e18;
-    mockStkToken.mint(address(0), initialStkTokenSupply_);
-    // Approve rewards manager to spend safety module receipt token.
-    vm.prank(staker_);
-    mockSafetyModuleReceiptToken.approve(address(component), amountToStake_);
-
-    // `stkToken.totalSupply() == 50e18`, so we have (20e18 / 100e18) * 50e18 = 10e18.
-    uint256 expectedStkTokenAmount_ = 10e18;
-    _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_, expectedStkTokenAmount_);
-
-    vm.prank(staker_);
-    uint256 stkTokenAmount_ = component.stake(0, amountToStake_, receiver_, staker_);
-
-    assertEq(stkTokenAmount_, expectedStkTokenAmount_);
-
-    StakePool memory finalStakePool_ = component.getStakePool(0);
-    AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
-    ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
-
-    // 100e18 + 20e18
-    assertEq(finalStakePool_.amount, 120e18);
-    // 150e18 + 20e18
-    assertEq(finalAssetPool_.amount, 170e18);
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), 170e18 + initialSafetyModuleBal);
+    assertEq(finalStakePool_.amount, amountToStake_ + initialStakeAmount);
+    assertEq(finalAssetPool_.amount, amountToStake_ + initialStakeAmount);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), amountToStake_ + initialStakeAmount);
 
     // Because `stkToken.totalSupply() > 0`, the index snapshot and cumulative claimed rewards should change.
-    // Since this updates before the user is minted stkTokens, the `stkToken.totalSupply() == initialStkTokenSupply_`.
+    // Since this updates before the user is minted stkTokens, the `stkToken.totalSupply() == initialStakeAmount`.
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(initialStkTokenSupply_)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(initialStakeAmount)
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeDrippedRewards_);
 
     assertEq(mockSafetyModuleReceiptToken.balanceOf(staker_), 0);
-    assertEq(mockStkToken.balanceOf(receiver_), expectedStkTokenAmount_);
+    assertEq(mockStkToken.balanceOf(receiver_), amountToStake_);
+  }
+
+  function test_stake_StkTokensAndStorageUpdates_ZeroSupply() external {
+    _overrideSetUpToZeroStkTokenSupply();
+
+    address staker_ = _randomAddress();
+    address receiver_ = _randomAddress();
+    uint128 amountToStake_ = 20e18;
+
+    // Mint initial safety module receipt token balance for staker.
+    mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
+    // Approve rewards manager to spend safety module receipt token.
+    vm.prank(staker_);
+    mockSafetyModuleReceiptToken.approve(address(component), amountToStake_);
+
+    _expectEmit();
+    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_);
+
+    vm.prank(staker_);
+    component.stake(0, amountToStake_, receiver_, staker_);
+
+    StakePool memory finalStakePool_ = component.getStakePool(0);
+    AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
+    ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
+
+    assertEq(finalStakePool_.amount, amountToStake_);
+    assertEq(finalAssetPool_.amount, amountToStake_);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), amountToStake_);
+
+    // Because `stkToken.totalSupply() == 0` when the user stakes, the index snapshot and cumulative claimed rewards
+    // should not change.
+    assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_);
+    assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeClaimedRewards_);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(staker_), 0);
+    assertEq(mockStkToken.balanceOf(receiver_), amountToStake_);
   }
 
   function test_stake_RevertWhenPaused() external {
@@ -216,77 +201,67 @@ contract StakerUnitTest is TestBase {
     component.stake(0, amountToStake_, receiver_, staker_);
   }
 
-  function test_stakeWithoutTransfer_StkTokensAndStorageUpdates() external {
+  function test_stakeWithoutTransfer_StkTokensAndStorageUpdates_NonZeroSupply() external {
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
 
-    // Mint initial safety module receipt token balance for rewards manager.
-    mockSafetyModuleReceiptToken.mint(address(component), 150e18);
     // Mint initial balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
     // Transfer to rewards manager.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.transfer(address(component), amountToStake_);
 
-    // `stkToken.totalSupply() == 0`, so should be minted 1-1 with safety module receipt tokens staked.
-    uint256 expectedStkTokenAmount_ = 20e18;
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_, expectedStkTokenAmount_);
+    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_);
 
     vm.prank(staker_);
-    uint256 stkTokenAmount_ = component.stakeWithoutTransfer(0, amountToStake_, receiver_);
-
-    assertEq(stkTokenAmount_, expectedStkTokenAmount_);
+    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     // 100e18 + 20e18
-    assertEq(finalStakePool_.amount, 120e18);
-    // 150e18 + 20e18
-    assertEq(finalAssetPool_.amount, 170e18);
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), 170e18 + initialSafetyModuleBal);
+    assertEq(finalStakePool_.amount, amountToStake_ + initialStakeAmount);
+    assertEq(finalAssetPool_.amount, amountToStake_ + initialStakeAmount);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), amountToStake_ + initialStakeAmount);
 
     assertEq(mockSafetyModuleReceiptToken.balanceOf(staker_), 0);
-    assertEq(mockStkToken.balanceOf(receiver_), expectedStkTokenAmount_);
+    assertEq(mockStkToken.balanceOf(receiver_), amountToStake_);
   }
 
-  function test_stakeWithoutTransfer_StkTokensAndStorageUpdatesNonZeroSupply() external {
+  function test_stakeWithoutTransfer_StkTokensAndStorageUpdates_ZeroSupply() external {
+    _overrideSetUpToZeroStkTokenSupply();
+
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
 
-    // Mint initial safety module receipt token balance for rewards manager.
-    mockSafetyModuleReceiptToken.mint(address(component), 150e18);
-    // Mint initial balance for staker.
+    // Mint initial safety module receipt token balance for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
-    // Mint/burn some stkTokens.
-    uint256 initialStkTokenSupply_ = 50e18;
-    mockStkToken.mint(address(0), initialStkTokenSupply_);
     // Transfer to rewards manager.
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.transfer(address(component), amountToStake_);
 
-    // `stkToken.totalSupply() == 50e18`, so we have (20e18 / 100e18) * 50e18 = 10e18.
-    uint256 expectedStkTokenAmount_ = 10e18;
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_, expectedStkTokenAmount_);
+    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_);
 
     vm.prank(staker_);
-    uint256 stkTokenAmount_ = component.stakeWithoutTransfer(0, amountToStake_, receiver_);
-
-    assertEq(stkTokenAmount_, expectedStkTokenAmount_);
+    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
-    // 100e18 + 20e18
-    assertEq(finalStakePool_.amount, 120e18);
-    // 150e18 + 20e18
-    assertEq(finalAssetPool_.amount, 170e18);
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), 170e18 + initialSafetyModuleBal);
+    ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
 
+    assertEq(finalStakePool_.amount, amountToStake_);
+    assertEq(finalAssetPool_.amount, amountToStake_);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), amountToStake_);
+
+    // Because `stkToken.totalSupply() == 0` when the user stakes, the index snapshot and cumulative claimed rewards
+    // should not change.
+    assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_);
+    assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeClaimedRewards_);
     assertEq(mockSafetyModuleReceiptToken.balanceOf(staker_), 0);
-    assertEq(mockStkToken.balanceOf(receiver_), expectedStkTokenAmount_);
+    assertEq(mockStkToken.balanceOf(receiver_), amountToStake_);
   }
 
   function test_stakeWithoutTransfer_RevertWhenPaused() external {
@@ -343,7 +318,7 @@ contract StakerUnitTest is TestBase {
     uint256 amountToStake_ = 0;
 
     // 0 assets should give 0 shares.
-    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
+    vm.expectRevert(ICommonErrors.AmountIsZero.selector);
     vm.prank(staker_);
     component.stake(0, amountToStake_, receiver_, staker_);
   }
@@ -354,14 +329,14 @@ contract StakerUnitTest is TestBase {
     uint256 amountToStake_ = 0;
 
     // 0 assets should give 0 shares.
-    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
+    vm.expectRevert(ICommonErrors.AmountIsZero.selector);
     vm.prank(staker_);
     component.stakeWithoutTransfer(0, amountToStake_, receiver_);
   }
 
   function _setupDefaultSingleUserFixture()
     internal
-    returns (address staker_, address receiver_, uint256 amountStaked_, uint256 stkTokenAmountReceived_)
+    returns (address staker_, address receiver_, uint256 amountStaked_)
   {
     staker_ = _randomAddress();
     receiver_ = _randomAddress();
@@ -373,169 +348,124 @@ contract StakerUnitTest is TestBase {
     vm.prank(staker_);
     mockSafetyModuleReceiptToken.approve(address(component), amountStaked_);
 
-    // `stkToken.totalSupply() == 0`, so should be minted 1-1 with safety module receipt tokens staked.
-    uint256 expectedStkTokenAmount_ = 20e18;
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountStaked_, expectedStkTokenAmount_);
+    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountStaked_);
 
     vm.prank(staker_);
-    stkTokenAmountReceived_ = component.stake(0, amountStaked_, receiver_, staker_);
-    assertEq(amountStaked_, expectedStkTokenAmount_); // 1:1 exchange rate for initial stake.
+    component.stake(0, amountStaked_, receiver_, staker_);
   }
 
   function test_unstake_unstakeAll() public {
-    (, address receiver_, uint256 amountStaked_, uint256 stkTokenAmountReceived_) = _setupDefaultSingleUserFixture();
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
     address unstakeReceiver_ = _randomAddress();
 
     vm.prank(receiver_);
-    mockStkToken.approve(address(component), stkTokenAmountReceived_);
+    mockStkToken.approve(address(component), amountStaked_);
 
     _expectEmit();
-    emit Transfer(address(component), unstakeReceiver_, amountStaked_ + initialStakeAmount);
+    emit Transfer(address(component), unstakeReceiver_, amountStaked_);
     _expectEmit();
-    emit Unstaked(
-      receiver_,
-      unstakeReceiver_,
-      receiver_,
-      IReceiptToken(address(mockStkToken)),
-      stkTokenAmountReceived_,
-      amountStaked_ + initialStakeAmount
-    );
-
-    // receiver_ owns the entire supply of stake receipt tokens.
-    uint256 stkTokenSupplyBeforeUnstake_ = component.getStakePool(0).stkReceiptToken.totalSupply();
-    assertEq(stkTokenAmountReceived_, stkTokenSupplyBeforeUnstake_);
+    emit Unstaked(receiver_, unstakeReceiver_, receiver_, IReceiptToken(address(mockStkToken)), amountStaked_);
 
     vm.prank(receiver_);
-    uint256 safetyModuleReceiptTokenAmount_ = component.unstake(0, stkTokenAmountReceived_, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
 
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_ + initialStakeAmount);
-    assertEq(amountStaked_ + initialStakeAmount, safetyModuleReceiptTokenAmount_);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     // Entire supply of stake tokens was unstaked
-    assertEq(finalStakePool_.amount, 0);
-    // 150e18 + 20e18 - 120e18
-    assertEq(finalAssetPool_.amount, initialSafetyModuleBal + stkTokenAmountReceived_ - safetyModuleReceiptTokenAmount_);
-    assertEq(finalAssetPool_.amount, 50e18);
+    assertEq(finalStakePool_.amount, initialStakeAmount);
+    assertEq(finalAssetPool_.amount, initialStakeAmount);
     assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), finalAssetPool_.amount);
 
     ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
 
     // Because `stkToken.totalSupply() > 0` before unstaking, the index snapshot and cumulative claimed rewards should
-    // change. Since this updates before the users stkTokens are burned, the calculation below uses
-    // `stkToken.totalSupply() == stkTokenSupplyBeforeUnstake_`.
+    // change. Since this updates when the user stakes, `stkToken.totalSupply() == initialStakeAmount`.
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(stkTokenSupplyBeforeUnstake_)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(initialStakeAmount)
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeDrippedRewards_);
-    assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_ + 10e18);
   }
 
   function test_unstake_unstakePartial() public {
-    (, address receiver_, uint256 amountStaked_, uint256 stkTokenAmountReceived_) = _setupDefaultSingleUserFixture();
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
     address unstakeReceiver_ = _randomAddress();
 
     StakePool memory initStakePool_ = component.getStakePool(0);
     AssetPool memory initAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     // 100e18 + 20e18
-    assertEq(initStakePool_.amount, 120e18);
-    // 150e18 + 20e18
-    assertEq(initAssetPool_.amount, 170e18);
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), initialSafetyModuleBal + 20e18);
+    assertEq(initStakePool_.amount, amountStaked_ + initialStakeAmount);
+    assertEq(initAssetPool_.amount, amountStaked_ + initialStakeAmount);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), amountStaked_ + initialStakeAmount);
 
     vm.prank(receiver_);
-    mockStkToken.approve(address(component), stkTokenAmountReceived_);
+    mockStkToken.approve(address(component), amountStaked_);
 
-    uint256 stkTokenSupplyBeforeUnstake_ = initStakePool_.stkReceiptToken.totalSupply();
-
-    uint256 stkTokenAmountToUnstake_ = stkTokenAmountReceived_ / 2;
-    uint256 safetyModuleReceiptTokenAmountToReceive_ =
-      uint256(initStakePool_.amount).mulDivDown(stkTokenAmountToUnstake_, stkTokenSupplyBeforeUnstake_);
-
+    uint256 stkTokenAmountToUnstake_ = amountStaked_ / 2;
     _expectEmit();
-    emit Transfer(address(component), unstakeReceiver_, safetyModuleReceiptTokenAmountToReceive_);
+    emit Transfer(address(component), unstakeReceiver_, stkTokenAmountToUnstake_);
     _expectEmit();
     emit Unstaked(
-      receiver_,
-      unstakeReceiver_,
-      receiver_,
-      IReceiptToken(address(mockStkToken)),
-      stkTokenAmountToUnstake_,
-      safetyModuleReceiptTokenAmountToReceive_
+      receiver_, unstakeReceiver_, receiver_, IReceiptToken(address(mockStkToken)), stkTokenAmountToUnstake_
     );
 
     vm.prank(receiver_);
-    uint256 safetyModuleReceiptTokenAmountReceived_ =
-      component.unstake(0, stkTokenAmountToUnstake_, unstakeReceiver_, receiver_);
+    component.unstake(0, stkTokenAmountToUnstake_, unstakeReceiver_, receiver_);
 
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), (amountStaked_ + initialStakeAmount) / 2);
-    assertEq(safetyModuleReceiptTokenAmountReceived_, safetyModuleReceiptTokenAmountToReceive_);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_ / 2);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     // Half of supply was unstaked.
-    assertEq(finalStakePool_.amount, (initialStakeAmount + amountStaked_) / 2);
-    // 150e18 + 20e18 - 60e18
-    assertEq(finalAssetPool_.amount, initialSafetyModuleBal + amountStaked_ - safetyModuleReceiptTokenAmountReceived_);
-    assertEq(finalAssetPool_.amount, 110e18);
+    assertEq(finalStakePool_.amount, initialStakeAmount + (amountStaked_ / 2));
+    assertEq(finalAssetPool_.amount, initialStakeAmount + (amountStaked_ / 2));
 
     ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
     // Because `stkToken.totalSupply() > 0` before unstaking, the index snapshot and cumulative claimed rewards should
-    // change. Since this updates before the users stkTokens are burned, the calculation below uses
-    // `stkToken.totalSupply() == stkTokenSupplyBeforeUnstake_`.
+    // change. Since this updates when the user stakes, `stkToken.totalSupply() == initialStakeAmount`.
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(stkTokenSupplyBeforeUnstake_)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(initialStakeAmount)
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeDrippedRewards_);
-    assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_ + 10e18);
   }
 
   function test_unstake_canUnstakeTotalInMultipleUnstakes() external {
-    (, address receiver_, uint256 amountStaked_, uint256 stkTokenAmountReceived_) = _setupDefaultSingleUserFixture();
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
     address unstakeReceiver_ = _randomAddress();
 
     vm.prank(receiver_);
-    mockStkToken.approve(address(component), stkTokenAmountReceived_);
+    mockStkToken.approve(address(component), amountStaked_);
 
     vm.prank(receiver_);
-    uint256 safetyModuleReceiptTokenAmount_ =
-      component.unstake(0, stkTokenAmountReceived_ / 2, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_ / 2, unstakeReceiver_, receiver_);
 
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), (amountStaked_ + initialStakeAmount) / 2);
-    assertEq(safetyModuleReceiptTokenAmount_, (amountStaked_ + initialStakeAmount) / 2);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_ / 2);
 
     vm.prank(receiver_);
-    safetyModuleReceiptTokenAmount_ = component.unstake(0, stkTokenAmountReceived_ / 2, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_ / 2, unstakeReceiver_, receiver_);
 
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_ + initialStakeAmount);
-    assertEq(safetyModuleReceiptTokenAmount_, (amountStaked_ + initialStakeAmount) / 2);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
-    // Entire supply of stake tokens was unstaked
-    assertEq(finalStakePool_.amount, 0);
-    // 150e18 + 100e18
-    assertEq(finalAssetPool_.amount, initialSafetyModuleBal - initialStakeAmount);
-    assertEq(finalAssetPool_.amount, 50e18);
+    // Initial stake amount remains in the stake pool.
+    assertEq(finalStakePool_.amount, initialStakeAmount);
+    assertEq(finalAssetPool_.amount, initialStakeAmount);
     assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), finalAssetPool_.amount);
   }
 
   function test_unstake_whenPaused() public {
-    (, address receiver_, uint256 amountStaked_, uint256 stkTokenAmountReceived_) = _setupDefaultSingleUserFixture();
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
     address unstakeReceiver_ = _randomAddress();
 
     vm.prank(receiver_);
-    mockStkToken.approve(address(component), stkTokenAmountReceived_);
-
-    // receiver_ owns the entire supply of stake receipt tokens.
-    uint256 stkTokenSupplyBeforeUnstake_ = component.getStakePool(0).stkReceiptToken.totalSupply();
-    assertEq(stkTokenAmountReceived_, stkTokenSupplyBeforeUnstake_);
+    mockStkToken.approve(address(component), amountStaked_);
 
     component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
 
@@ -546,104 +476,84 @@ contract StakerUnitTest is TestBase {
     skip(1);
 
     _expectEmit();
-    emit Transfer(address(component), unstakeReceiver_, amountStaked_ + initialStakeAmount);
+    emit Transfer(address(component), unstakeReceiver_, amountStaked_);
     _expectEmit();
-    emit Unstaked(
-      receiver_,
-      unstakeReceiver_,
-      receiver_,
-      IReceiptToken(address(mockStkToken)),
-      stkTokenAmountReceived_,
-      amountStaked_ + initialStakeAmount
-    );
+    emit Unstaked(receiver_, unstakeReceiver_, receiver_, IReceiptToken(address(mockStkToken)), amountStaked_);
     vm.prank(receiver_);
-    uint256 safetyModuleReceiptTokenAmount_ = component.unstake(0, stkTokenAmountReceived_, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
 
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_ + initialStakeAmount);
-    assertEq(amountStaked_ + initialStakeAmount, safetyModuleReceiptTokenAmount_);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockSafetyModuleReceiptToken)));
     // Entire supply of stake tokens was unstaked
-    assertEq(finalStakePool_.amount, 0);
-    // 150e18 + 20e18 - 120e18
-    assertEq(finalAssetPool_.amount, initialSafetyModuleBal + stkTokenAmountReceived_ - safetyModuleReceiptTokenAmount_);
-    assertEq(finalAssetPool_.amount, 50e18);
+    assertEq(finalStakePool_.amount, initialStakeAmount);
+    assertEq(finalAssetPool_.amount, initialStakeAmount);
     assertEq(mockSafetyModuleReceiptToken.balanceOf(address(component)), finalAssetPool_.amount);
 
     ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
 
     // Because `stkToken.totalSupply() > 0` before unstaking, the index snapshot and cumulative claimed rewards should
-    // change. Since this updates before the users stkTokens are burned, the calculation below uses
-    // `stkToken.totalSupply() == stkTokenSupplyBeforeUnstake_`.
+    // change. Since this updates when the user stakes, `stkToken.totalSupply() == initialStakeAmount`.
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(stkTokenSupplyBeforeUnstake_)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(initialStakeAmount)
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeDrippedRewards_);
-    assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_ + 10e18);
   }
 
-  function test_unstake_cannotRedeemIfRoundsDownToZero() external {
-    (, address receiver_,,) = _setupDefaultSingleUserFixture();
+  function test_unstake_cannotUnstakeIfAmountIsZero() external {
+    (, address receiver_,) = _setupDefaultSingleUserFixture();
     address unstakeReceiver_ = _randomAddress();
 
-    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
+    vm.expectRevert(ICommonErrors.AmountIsZero.selector);
     vm.prank(receiver_);
     component.unstake(0, 0, unstakeReceiver_, receiver_);
-
-    component.mockSetStakeAmount(0);
-
-    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
-    vm.prank(receiver_);
-    component.unstake(0, 1, unstakeReceiver_, receiver_);
   }
 
   function test_unstake_canUnstakeThroughAllowance() external {
-    (, address receiver_, uint256 amountStaked_, uint256 stkTokenAmountReceived_) = _setupDefaultSingleUserFixture();
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
     address unstakeReceiver_ = _randomAddress();
     address spender_ = _randomAddress();
 
     vm.prank(receiver_);
-    mockStkToken.approve(spender_, stkTokenAmountReceived_ + 1); // Allowance is 1 extra.
+    mockStkToken.approve(spender_, amountStaked_ + 1); // Allowance is 1 extra.
 
     vm.prank(spender_);
-    uint256 safetyModuleReceiptTokenAmount_ = component.unstake(0, stkTokenAmountReceived_, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
 
     assertEq(mockStkToken.allowance(receiver_, spender_), 1, "depositToken allowance"); // Only 1 allowance left because
       // of subtraction.
-    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_ + initialStakeAmount);
-    assertEq(safetyModuleReceiptTokenAmount_, amountStaked_ + initialStakeAmount);
+    assertEq(mockSafetyModuleReceiptToken.balanceOf(unstakeReceiver_), amountStaked_);
   }
 
   function test_unstake_cannotUnstake_ThroughAllowance_WithInsufficientAllowance() external {
-    (, address receiver_,, uint256 stkTokenAmountReceived_) = _setupDefaultSingleUserFixture();
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
     address unstakeReceiver_ = _randomAddress();
     address spender_ = _randomAddress();
 
     vm.prank(receiver_);
-    mockStkToken.approve(spender_, stkTokenAmountReceived_ - 1); // Allowance is 1 less.
+    mockStkToken.approve(spender_, amountStaked_ - 1); // Allowance is 1 less.
 
     _expectPanic(PANIC_MATH_UNDEROVERFLOW);
     vm.prank(spender_);
-    component.unstake(0, stkTokenAmountReceived_, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
   }
 
   function test_unstake_cannotUnstake_InsufficientTokenBalance() external {
     address staker_ = _randomAddress();
-    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
+    _expectPanic(PANIC_MATH_UNDEROVERFLOW);
     vm.prank(staker_);
     component.unstake(0, _randomUint128(), staker_, staker_);
 
-    (, address receiver_,, uint256 stkTokenAmountReceived_) = _setupDefaultSingleUserFixture();
-
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
     vm.prank(receiver_);
-    mockStkToken.approve(address(component), stkTokenAmountReceived_ + 1);
+    mockStkToken.approve(address(component), amountStaked_ + 1);
 
     vm.prank(receiver_);
     _expectPanic(PANIC_MATH_UNDEROVERFLOW);
-    component.unstake(0, stkTokenAmountReceived_ + 1, receiver_, receiver_);
+    component.unstake(0, amountStaked_ + 1, receiver_, receiver_);
   }
 
   function test_unstake_invalidStakePoolId() external {
@@ -651,74 +561,6 @@ contract StakerUnitTest is TestBase {
     _expectPanic(PANIC_ARRAY_OUT_OF_BOUNDS);
     vm.prank(staker_);
     component.unstake(1, _randomUint128(), staker_, staker_);
-  }
-
-  function test_unstake_matchesPreviewUnstakeAll() external {
-    address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
-    uint256 amountStaked_ = 20e18;
-
-    // Mint initial safety module receipt token balance for staker.
-    mockSafetyModuleReceiptToken.mint(staker_, amountStaked_);
-    // Approve rewards manager to spend safety module receipt token.
-    vm.prank(staker_);
-    mockSafetyModuleReceiptToken.approve(address(component), amountStaked_);
-
-    vm.prank(staker_);
-    uint256 stkTokenAmountReceived_ = component.stake(0, amountStaked_, receiver_, staker_);
-
-    uint256 unstakeAmountPreview_ = component.previewUnstake(0, stkTokenAmountReceived_);
-
-    vm.prank(receiver_);
-    mockStkToken.approve(address(component), stkTokenAmountReceived_);
-
-    vm.prank(receiver_);
-    uint256 safetyModuleReceiptTokenAmountReceived_ =
-      component.unstake(0, stkTokenAmountReceived_, receiver_, receiver_);
-
-    assertEq(unstakeAmountPreview_, safetyModuleReceiptTokenAmountReceived_);
-  }
-
-  function test_unstake_matchesPreviewUnstakePartial() external {
-    address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
-    uint256 amountStaked_ = 20e18;
-
-    // Mint initial safety module receipt token balance for staker.
-    mockSafetyModuleReceiptToken.mint(staker_, amountStaked_);
-    // Approve rewards manager to spend safety module receipt token.
-    vm.prank(staker_);
-    mockSafetyModuleReceiptToken.approve(address(component), amountStaked_);
-
-    vm.prank(staker_);
-    uint256 stkTokenAmountReceived_ = component.stake(0, amountStaked_, receiver_, staker_);
-
-    uint256 stkTokenAmountToUnstake_ = stkTokenAmountReceived_ / 2;
-
-    uint256 unstakeAmountPreview_ = component.previewUnstake(0, stkTokenAmountToUnstake_);
-
-    vm.prank(receiver_);
-    mockStkToken.approve(address(component), stkTokenAmountToUnstake_);
-
-    vm.prank(receiver_);
-    uint256 safetyModuleReceiptTokenAmountReceived_ =
-      component.unstake(0, stkTokenAmountToUnstake_, receiver_, receiver_);
-
-    assertEq(unstakeAmountPreview_, safetyModuleReceiptTokenAmountReceived_);
-  }
-
-  function test_unstake_previewUnstakeRoundsDownToZero() external {
-    (, address receiver_,,) = _setupDefaultSingleUserFixture();
-
-    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
-    vm.prank(receiver_);
-    component.previewUnstake(0, 0);
-
-    component.mockSetStakeAmount(0);
-
-    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
-    vm.prank(receiver_);
-    component.previewUnstake(0, 1);
   }
 }
 
@@ -762,6 +604,11 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManager
 
   function mockSetStakeAmount(uint256 stakeAmount_) external {
     stakePools[0].amount = stakeAmount_;
+  }
+
+  function mockSetAssetPoolAmount(uint256 amount_) external {
+    StakePool memory stakePool_ = stakePools[0];
+    assetPools[stakePool_.asset].amount = amount_;
   }
 
   function mockSetRewardsManagerState(RewardsManagerState state_) external {

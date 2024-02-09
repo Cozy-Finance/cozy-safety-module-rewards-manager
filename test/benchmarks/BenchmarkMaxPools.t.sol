@@ -109,18 +109,13 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     rewardsManager.stakeWithoutTransfer(stakePoolId_, stakeAssetAmount_, receiver_);
   }
 
-  function _setUpUnstake(uint16 stakePoolId_, uint256 stakeAssetAmount_, address receiver_)
-    internal
-    returns (uint256 stkReceiptTokenAmount_)
-  {
+  function _setUpUnstake(uint16 stakePoolId_, uint256 stakeAssetAmount_, address receiver_) internal {
     _stake(stakePoolId_, stakeAssetAmount_, receiver_);
 
-    stkReceiptTokenAmount_ = rewardsManager.convertStakeAssetToReceiptTokenAmount(stakePoolId_, stakeAssetAmount_);
-    vm.startPrank(receiver_);
+    vm.prank(receiver_);
     getStakePool(IRewardsManager(address(rewardsManager)), stakePoolId_).stkReceiptToken.approve(
-      address(rewardsManager), stkReceiptTokenAmount_
+      address(rewardsManager), stakeAssetAmount_
     );
-    vm.stopPrank();
   }
 
   function _setUpRedeemRewards(uint16 rewardPoolId_, address receiver_)
@@ -209,11 +204,11 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
 
   function test_unstake() public {
     (uint16 stakePoolId_, uint256 stakeAssetAmount_, address receiver_) = _randomSingleActionFixture(true);
-    uint256 stkReceiptTokenAmount_ = _setUpUnstake(stakePoolId_, stakeAssetAmount_, receiver_);
+    _setUpUnstake(stakePoolId_, stakeAssetAmount_, receiver_);
 
     vm.startPrank(receiver_);
     uint256 gasInitial_ = gasleft();
-    rewardsManager.unstake(stakePoolId_, stkReceiptTokenAmount_, receiver_, receiver_);
+    rewardsManager.unstake(stakePoolId_, stakeAssetAmount_, receiver_, receiver_);
     console2.log("Gas used for unstake: %s", gasInitial_ - gasleft());
     vm.stopPrank();
   }
