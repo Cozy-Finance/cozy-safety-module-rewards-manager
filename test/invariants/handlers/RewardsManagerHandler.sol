@@ -311,7 +311,6 @@ contract RewardsManagerHandler is TestBase {
     useValidStakePoolId(seed_)
     countCall("updateUserRewardsForStkTokenTransfer")
     advanceTime(seed_)
-    returns (address actor_, uint256 amount_)
   {
     IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
 

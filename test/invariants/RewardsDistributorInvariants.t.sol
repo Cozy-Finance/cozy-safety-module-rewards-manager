@@ -283,7 +283,8 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
 
   function invariant_stkTokenTransferAccounting() public syncCurrentTimestamp(rewardsManagerHandler) {
     address to_ = _randomAddress();
-    (address from_, uint256 amount_) = rewardsManagerHandler.stkTokenTransfer(_randomUint64(), to_, _randomUint256());
+    (address from_,) = rewardsManagerHandler.stkTokenTransfer(_randomUint64(), to_, _randomUint256());
+    if (from_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
 
     uint16 stakePoolId_ = rewardsManagerHandler.currentStakePoolId();
     UserRewardsData[] memory fromUserRewardsData_ = rewardsManager.getUserRewards(stakePoolId_, from_);
@@ -386,7 +387,7 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     uint16 stakePoolId_,
     address from_,
     address to_
-  ) internal {
+  ) internal view {
     uint256 numRewardPools_ = numRewardPools;
     require(
       fromUserRewardsData_.length == numRewardPools_ && toUserRewardsData_.length == numRewardPools_,
