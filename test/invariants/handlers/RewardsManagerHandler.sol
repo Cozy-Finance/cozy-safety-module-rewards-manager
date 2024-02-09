@@ -2,20 +2,21 @@
 pragma solidity 0.8.22;
 
 import {console2} from "forge-std/console2.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {RewardsManager} from "../../../src/RewardsManager.sol";
 import {StakePool, RewardPool} from "../../../src/lib/structs/Pools.sol";
 import {PreviewClaimableRewards, PreviewClaimableRewardsData} from "../../../src/lib/structs/Rewards.sol";
 import {IRewardsManager} from "../../../src/interfaces/IRewardsManager.sol";
-import {AddressSet, AddressSetLib} from "../utils/AddressSet.sol";
 import {TestBase} from "../../utils/TestBase.sol";
 
 contract RewardsManagerHandler is TestBase {
   using FixedPointMathLib for uint256;
-  using AddressSetLib for AddressSet;
+  using EnumerableSet for EnumerableSet.AddressSet;
 
   uint64 constant SECONDS_IN_A_YEAR = 365 * 24 * 60 * 60;
+  address public constant DEFAULT_ADDRESS = address(0xc0ffee);
 
   address pauser;
   address owner;
@@ -30,11 +31,11 @@ contract RewardsManagerHandler is TestBase {
 
   address internal currentActor;
 
-  AddressSet internal actors;
+  EnumerableSet.AddressSet internal actors;
 
-  AddressSet internal actorsWithRewardDeposits;
+  EnumerableSet.AddressSet internal actorsWithRewardDeposits;
 
-  AddressSet internal actorsWithStakes;
+  EnumerableSet.AddressSet internal actorsWithStakes;
 
   uint16 public currentStakePoolId;
 
@@ -258,8 +259,63 @@ contract RewardsManagerHandler is TestBase {
     uint256 assetAmount_ = rewardsManager.unstake(currentStakePoolId, stkTokenUnstakeAmount_, receiver_, currentActor);
     vm.stopPrank();
 
+    if (stkTokenUnstakeAmount_ == actorStkTokenBalance_) actorsWithStakes.remove(currentActor);
     ghost_stakePoolCumulative[currentStakePoolId].unstakeAssetAmount += assetAmount_;
     ghost_stakePoolCumulative[currentStakePoolId].unstakeSharesAmount += stkTokenUnstakeAmount_;
+  }
+
+  function dripRewards(uint256 seed_) public virtual countCall("dripRewards") advanceTime(seed_) {
+    rewardsManager.dripRewards();
+  }
+
+  function dripRewardPool(uint256 seed_)
+    public
+    virtual
+    countCall("dripRewardPool")
+    useValidRewardPoolId(seed_)
+    advanceTime(seed_)
+  {
+    rewardsManager.dripRewardPool(currentRewardPoolId);
+  }
+
+  function stkTokenTransfer(uint64 stkTokenTransferAmount_, address to_, uint256 seed_)
+    public
+    virtual
+    useActorWithStakes(seed_)
+    countCall("stkTokenTransfer")
+    advanceTime(seed_)
+    returns (address actor_, uint256 amount_)
+  {
+    IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
+    uint256 actorStkTokenBalance_ = stkToken_.balanceOf(currentActor);
+    if (actorStkTokenBalance_ == 0) {
+      invalidCalls["stkTokenTransfer"] += 1;
+      return (currentActor, 0);
+    }
+
+    uint256 boundedStkTokenTransferAmount_ = bound(uint256(stkTokenTransferAmount_), 0, actorStkTokenBalance_);
+
+    vm.startPrank(currentActor);
+    // This will call `updateUserRewardsForStkTokenTransfer` in the RewardsManager.
+    stkToken_.transfer(to_, boundedStkTokenTransferAmount_);
+    vm.stopPrank();
+
+    if (boundedStkTokenTransferAmount_ == actorStkTokenBalance_) actorsWithStakes.remove(currentActor);
+
+    return (currentActor, boundedStkTokenTransferAmount_);
+  }
+
+  function updateUserRewardsForStkTokenTransfer(address from_, address to_, uint256 seed_)
+    public
+    virtual
+    useValidStakePoolId(seed_)
+    countCall("updateUserRewardsForStkTokenTransfer")
+    advanceTime(seed_)
+  {
+    IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
+
+    vm.prank(address(stkToken_));
+    rewardsManager.updateUserRewardsForStkTokenTransfer(from_, to_);
   }
 
   function claimRewards(address receiver_, uint256 seed_)
@@ -342,9 +398,13 @@ contract RewardsManagerHandler is TestBase {
     console2.log("stakeWithExistingActor", calls["stakeWithExistingActor"]);
     console2.log("stakeWithoutTransfer", calls["stakeWithoutTransfer"]);
     console2.log("stakeWithoutTransferWithExistingActor", calls["stakeWithoutTransferWithExistingActor"]);
-    console2.log("redeemUndrippedRewards", calls["redeemUndrippedRewards"]);
     console2.log("unstake", calls["unstake"]);
+    console2.log("dripRewards", calls["dripRewards"]);
+    console2.log("dripRewardPool", calls["dripRewardPool"]);
     console2.log("claimRewards", calls["claimRewards"]);
+    console2.log("stkTokenTransfer", calls["stkTokenTransfer"]);
+    console2.log("updateUserRewardsForStkTokenTransfer", calls["updateUserRewardsForStkTokenTransfer"]);
+    console2.log("redeemUndrippedRewards", calls["redeemUndrippedRewards"]);
     console2.log("pause", calls["pause"]);
     console2.log("unpause", calls["unpause"]);
     console2.log("----------------------------------------------------------------------------");
@@ -361,9 +421,13 @@ contract RewardsManagerHandler is TestBase {
     console2.log("stakeWithExistingActor", invalidCalls["stakeWithExistingActor"]);
     console2.log("stakeWithoutTransfer", invalidCalls["stakeWithoutTransfer"]);
     console2.log("stakeWithoutTransferWithExistingActor", invalidCalls["stakeWithoutTransferWithExistingActor"]);
-    console2.log("redeemUndrippedRewards", invalidCalls["redeemUndrippedRewards"]);
     console2.log("unstake", invalidCalls["unstake"]);
+    console2.log("dripRewards", invalidCalls["dripRewards"]);
+    console2.log("dripRewardPool", invalidCalls["dripRewardPool"]);
     console2.log("claimRewards", invalidCalls["claimRewards"]);
+    console2.log("stkTokenTransfer", invalidCalls["stkTokenTransfer"]);
+    console2.log("updateUserRewardsForStkTokenTransfer", invalidCalls["updateUserRewardsForStkTokenTransfer"]);
+    console2.log("redeemUndrippedRewards", invalidCalls["redeemUndrippedRewards"]);
     console2.log("pause", invalidCalls["pause"]);
     console2.log("unpause", invalidCalls["unpause"]);
   }
@@ -499,46 +563,68 @@ contract RewardsManagerHandler is TestBase {
   }
 
   modifier useActor(uint256 actorIndexSeed_) {
-    currentActor = actors.rand(actorIndexSeed_);
+    uint256 numActors_ = actors.length();
+    currentActor = numActors_ == 0 ? DEFAULT_ADDRESS : actors.at(actorIndexSeed_ % numActors_);
     _;
   }
 
   modifier useActorWithRewardDeposits(uint256 seed_) {
-    currentActor = actorsWithRewardDeposits.rand(seed_);
-
-    uint16 initIndex_ = uint16(bound(seed_, 0, numRewardPools));
-    uint16 indicesVisited_ = 0;
-
-    // Iterate through reserve pools to find the first pool with a positive reserve deposit count for the current actor
-    for (uint16 i = initIndex_; indicesVisited_ < numRewardPools; i = uint16((i + 1) % numRewardPools)) {
-      if (ghost_actorRewardDepositCount[currentActor][i] > 0) {
-        currentRewardPoolId = i;
-        break;
-      }
-      indicesVisited_++;
-    }
+    uint256 numActorsWithRewardDeposits_ = actorsWithRewardDeposits.length();
+    currentActor = numActorsWithRewardDeposits_ == 0
+      ? DEFAULT_ADDRESS
+      : actorsWithRewardDeposits.at(seed_ % numActorsWithRewardDeposits_);
+    currentRewardPoolId = getRewardPoolIdForActorWithRewardDeposit(seed_, currentActor);
     _;
   }
 
   modifier useActorWithStakes(uint256 seed_) {
-    currentActor = actorsWithStakes.rand(seed_);
-
-    uint16 initIndex_ = uint16(bound(seed_, 0, numStakePools));
-    uint16 indicesVisited_ = 0;
-
-    // Iterate through reserve pools to find the first pool with a positive reserve deposit count for the current actor
-    for (uint16 i = initIndex_; indicesVisited_ < numStakePools; i = uint16((i + 1) % numStakePools)) {
-      if (ghost_actorStakeCount[currentActor][i] > 0) {
-        currentStakePoolId = i;
-        break;
-      }
-      indicesVisited_++;
-    }
+    uint256 numActorsWithStakes_ = actorsWithStakes.length();
+    currentActor = numActorsWithStakes_ == 0 ? DEFAULT_ADDRESS : actorsWithStakes.at(seed_ % numActorsWithStakes_);
+    currentStakePoolId = getStakePoolIdForActorWithStake(seed_, currentActor);
     _;
   }
 
   modifier warpToCurrentTimestamp() {
     vm.warp(currentTimestamp);
     _;
+  }
+
+  // ----------------------------------
+  // ------- AddressSet helpers -------
+  // ----------------------------------
+  function getActorsWithStakes() external view returns (address[] memory) {
+    return actorsWithStakes.values();
+  }
+
+  function getActorsWithRewardDeposits() external view returns (address[] memory) {
+    return actorsWithRewardDeposits.values();
+  }
+
+  function getStakePoolIdForActorWithStake(uint256 seed_, address actor_) public view returns (uint16) {
+    uint16 initIndex_ = uint16(_randomUint256FromSeed(seed_) % numStakePools);
+    uint16 indicesVisited_ = 0;
+
+    // Iterate through stake pools to find the first pool with a stake deposit count for the current actor.
+    for (uint16 i = initIndex_; indicesVisited_ < numStakePools; i = uint16((i + 1) % numStakePools)) {
+      if (ghost_actorStakeCount[actor_][i] > 0) return i;
+      indicesVisited_++;
+    }
+
+    // If no stake pool with a stake deposit count was found, return the random initial index.
+    return initIndex_;
+  }
+
+  function getRewardPoolIdForActorWithRewardDeposit(uint256 seed_, address actor_) public view returns (uint16) {
+    uint16 initIndex_ = uint16(_randomUint256FromSeed(seed_) % numRewardPools);
+    uint16 indicesVisited_ = 0;
+
+    // Iterate through reward pools to find the first pool with a positive reward deposit count for the current actor
+    for (uint16 i = initIndex_; indicesVisited_ < numRewardPools; i = uint16((i + 1) % numRewardPools)) {
+      if (ghost_actorRewardDepositCount[actor_][i] > 0) return i;
+      indicesVisited_++;
+    }
+
+    // If no reward pool with a reward deposit count was found, return the random initial index.
+    return initIndex_;
   }
 }

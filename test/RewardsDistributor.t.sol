@@ -983,7 +983,7 @@ contract RewardsDistributorStkTokenTransferUnitTest is RewardsDistributorUnitTes
 }
 
 contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistributorUnitTest {
-  function _expectedClaimableRewardsData(uint128 indexSnapshot) internal pure returns (ClaimableRewardsData memory) {
+  function _expectedClaimableRewardsData(uint256 indexSnapshot) internal pure returns (ClaimableRewardsData memory) {
     return ClaimableRewardsData({indexSnapshot: indexSnapshot, cumulativeClaimedRewards: 0});
   }
 
@@ -1118,16 +1118,8 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
   }
 
   // -------- Mock getters --------
-  function getStakePools() external view returns (StakePool[] memory) {
-    return stakePools;
-  }
-
   function getStakePool(uint16 stakePoolId_) external view returns (StakePool memory) {
     return stakePools[stakePoolId_];
-  }
-
-  function getRewardPools() external view returns (RewardPool[] memory) {
-    return rewardPools;
   }
 
   function getRewardPool(uint16 rewardPoolid_) external view returns (RewardPool memory) {
@@ -1138,28 +1130,6 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
     return assetPools[asset_];
   }
 
-  function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory) {
-    uint256 numStakePools_ = stakePools.length;
-    uint256 numRewardPools_ = rewardPools.length;
-    ClaimableRewardsData[][] memory claimableRewards_ = new ClaimableRewardsData[][](numStakePools_);
-    for (uint16 i = 0; i < numStakePools_; i++) {
-      claimableRewards_[i] = new ClaimableRewardsData[](numRewardPools_);
-      for (uint16 j = 0; j < numRewardPools_; j++) {
-        claimableRewards_[i][j] = claimableRewards[i][j];
-      }
-    }
-    return claimableRewards_;
-  }
-
-  function getClaimableRewards(uint16 stakePoolId_) external view returns (ClaimableRewardsData[] memory) {
-    uint256 numRewardPools_ = rewardPools.length;
-    ClaimableRewardsData[] memory claimableRewards_ = new ClaimableRewardsData[](numRewardPools_);
-    for (uint16 j = 0; j < numRewardPools_; j++) {
-      claimableRewards_[j] = claimableRewards[stakePoolId_][j];
-    }
-    return claimableRewards_;
-  }
-
   function getClaimableRewardsData(uint16 stakePoolId_, uint16 rewardPoolid_)
     external
     view
@@ -1168,12 +1138,8 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
     return claimableRewards[stakePoolId_][rewardPoolid_];
   }
 
-  function getUserRewards(uint16 stakePoolId_, address user) external view returns (UserRewardsData[] memory) {
-    return userRewards[stakePoolId_][user];
-  }
-
   // -------- Exposed internal functions --------
-  function getUserAccruedRewards(uint256 stkTokenAmount_, uint128 newRewardPoolIndex, uint128 oldRewardPoolIndex)
+  function getUserAccruedRewards(uint256 stkTokenAmount_, uint256 newRewardPoolIndex, uint256 oldRewardPoolIndex)
     external
     pure
     returns (uint256)

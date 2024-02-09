@@ -18,8 +18,7 @@ abstract contract AccountingInvariants is InvariantTestBase {
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
-    uint256 numAssets_ = assets.length;
-    for (uint16 assetId_; assetId_ < numAssets_; assetId_++) {
+    for (uint16 assetId_; assetId_ < assets.length; assetId_++) {
       IERC20 asset = assets[assetId_];
       uint256 internalAssetPoolAmount_ = rewardsManager.assetPools(asset).amount;
       uint256 erc20AssetBalance_ = asset.balanceOf(address(rewardsManager));
@@ -62,21 +61,16 @@ abstract contract AccountingInvariants is InvariantTestBase {
       }
     }
 
-    uint256 numAssets_ = assets.length;
-    for (uint16 assetId_; assetId_ < numAssets_; assetId_++) {
+    for (uint16 assetId_; assetId_ < assets.length; assetId_++) {
       IERC20 asset = assets[assetId_];
       require(
         rewardsManager.assetPools(asset).amount == accountingSums[asset],
         string.concat(
-          "Invariant Violated: The internal asset pool amount for an asset must equal the sum of the internal pool amounts.",
-          " rewardsManager.assetPools(IERC20(address(asset))).amount): ",
-          Strings.toString(rewardsManager.assetPools(IERC20(address(asset))).amount),
+          "Invariant Violated: The asset pool amount for an asset must equal the sum of the internal rewards/stake pool accounting values for that asset.",
+          " assetPools[asset].amount: ",
+          Strings.toString(rewardsManager.assetPools(asset).amount),
           ", accountingSums[asset]: ",
-          Strings.toString(accountingSums[asset]),
-          ", asset.balanceOf(address(rewardsManager)): ",
-          Strings.toString(asset.balanceOf(address(rewardsManager))),
-          ", rewardsManagerHandler.ghost_rewardsClaimed(asset): ",
-          Strings.toString(rewardsManagerHandler.ghost_rewardsClaimed(asset))
+          Strings.toString(accountingSums[asset])
         )
       );
     }
