@@ -60,12 +60,12 @@ contract RewardsDistributorUnitTest is TestBase {
     }
   }
 
-  function _setUpStakePools(uint256 numStakePools_) internal {
+  function _setUpStakePools(uint256 numStakePools_, bool zeroStakeAmount_) internal {
     for (uint16 i = 0; i < numStakePools_; i++) {
       MockERC20 mockStakeAsset_ = new MockERC20("Mock Stake Asset", "MockStakeAsset", 6);
       IReceiptToken stkReceiptToken_ =
         IReceiptToken(address(new MockStkToken(address(component), "Mock StkReceiptToken", "MockStkReceiptToken", 6)));
-      uint256 stakeAmount_ = _randomUint64();
+      uint256 stakeAmount_ = zeroStakeAmount_ ? 0 : _randomUint64();
 
       StakePool memory stakePool_ = StakePool({
         amount: stakeAmount_,
@@ -97,7 +97,7 @@ contract RewardsDistributorUnitTest is TestBase {
     uint256 numStakePools_ = 2;
     uint256 numRewardAssets_ = 3;
 
-    _setUpStakePools(numStakePools_);
+    _setUpStakePools(numStakePools_, false);
     _setUpRewardPools(numRewardAssets_);
     _setUpClaimableRewards(numStakePools_, numRewardAssets_);
   }
@@ -729,7 +729,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
   function _test_claimRewardsWithNewRewardAssets(uint256 numRewardsPools_) public {
     uint256 numStakePools_ = 2;
-    _setUpStakePools(numStakePools_);
+    _setUpStakePools(numStakePools_, false);
     _setUpRewardPools(numRewardsPools_);
     _setUpClaimableRewards(numStakePools_, numRewardsPools_);
 
@@ -765,7 +765,8 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       uint256 totalDrippedRewards_ = 900; // 90_000 * 0.01
       uint256 drippedRewards_ = totalDrippedRewards_.mulDivDown(stakePool_.rewardsWeight, MathConstants.ZOC);
       uint256 receivedRewards_ = mockRewardAsset_.balanceOf(receiver_);
-      uint256 expectedRewards_ = drippedRewards_.mulWadDown(userStkReceiptTokenBalance_.divWadDown(totalStkReceiptTokenBalance_));
+      uint256 expectedRewards_ =
+        drippedRewards_.mulWadDown(userStkReceiptTokenBalance_.divWadDown(totalStkReceiptTokenBalance_));
       assertApproxEqRel(receivedRewards_, expectedRewards_, 0.05e18);
       assertLe(receivedRewards_, expectedRewards_);
     }
@@ -986,8 +987,8 @@ contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistri
     return ClaimableRewardsData({indexSnapshot: indexSnapshot, cumulativeClaimedRewards: 0});
   }
 
-  function testFuzz_dripAndResetCumulativeRewardsValuesZeroStkTokenSupply() public {
-    _setUpStakePools(1);
+  function test_dripAndResetCumulativeRewardsValues_ZeroStkTokenSupply() public {
+    _setUpStakePools(1, true);
     _setUpRewardPools(1);
     _setUpClaimableRewards(1, 1);
     skip(_randomUint64());

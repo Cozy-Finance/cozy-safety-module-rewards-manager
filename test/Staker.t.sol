@@ -299,8 +299,6 @@ contract StakerUnitTest is TestBase {
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
 
-    // Set initial safety module receipt token balance for rewards manager.
-    deal(address(mockSafetyModuleReceiptToken), address(component), 150e18);
     // Mint safety module receipt tokens for staker.
     mockSafetyModuleReceiptToken.mint(staker_, amountToStake_);
     // Transfer insufficient safety module receipt tokens to safety module.
