@@ -9,6 +9,7 @@ import {SafeERC20} from "cozy-safety-module-shared/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {StakePool, AssetPool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {
   UserRewardsData,
   PreviewClaimableRewardsData,
@@ -40,6 +41,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   function dripRewards() public override {
+    if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     uint256 numRewardAssets_ = rewardPools.length;
     for (uint16 i = 0; i < numRewardAssets_; i++) {
       _dripRewardPool(rewardPools[i]);
@@ -47,6 +49,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   function dripRewardPool(uint16 rewardPoolId_) external {
+    if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     _dripRewardPool(rewardPools[rewardPoolId_]);
   }
 
@@ -127,7 +130,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     for (uint16 i = 0; i < claimRewardsData_.numRewardAssets; i++) {
       // Step (1)
       RewardPool storage rewardPool_ = rewardPools[i];
-      _dripRewardPool(rewardPool_);
+      if (rewardsManagerState == RewardsManagerState.ACTIVE) _dripRewardPool(rewardPool_);
 
       {
         // Step (2)
@@ -252,6 +255,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     override
     returns (uint256)
   {
+    if (rewardsManagerState == RewardsManagerState.PAUSED) return 0;
     uint256 dripFactor_ = dripModel_.dripFactor(lastDripTime_);
     if (dripFactor_ > MathConstants.WAD) revert InvalidDripFactor();
 
@@ -295,7 +299,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
     for (uint16 i = 0; i < numRewardAssets_; i++) {
       RewardPool storage rewardPool_ = rewardPools_[i];
-      _dripRewardPool(rewardPool_);
+      if (rewardsManagerState == RewardsManagerState.ACTIVE) _dripRewardPool(rewardPool_);
       uint256 oldCumulativeDrippedRewards_ = rewardPool_.cumulativeDrippedRewards;
       rewardPool_.cumulativeDrippedRewards = 0;
 

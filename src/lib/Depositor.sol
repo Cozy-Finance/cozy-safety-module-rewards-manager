@@ -7,6 +7,7 @@ import {SafeERC20} from "cozy-safety-module-shared/lib/SafeERC20.sol";
 import {IDepositorErrors} from "../interfaces/IDepositorErrors.sol";
 import {IDepositorEvents} from "../interfaces/IDepositorEvents.sol";
 import {IDripModel} from "../interfaces/IDripModel.sol";
+import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardPool} from "./structs/Pools.sol";
 import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
@@ -50,7 +51,8 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     address owner_
   ) external returns (uint256 rewardAssetAmount_) {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    _dripRewardPool(rewardPool_);
+    RewardsManagerState rewardsManagerState_ = rewardsManagerState;
+    if (rewardsManagerState_ == RewardsManagerState.ACTIVE) _dripRewardPool(rewardPool_);
 
     IReceiptToken depositReceiptToken_ = rewardPool_.depositReceiptToken;
     rewardAssetAmount_ = _previewRedemption(
@@ -94,6 +96,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     address receiver_,
     RewardPool storage rewardPool_
   ) internal returns (uint256 depositReceiptTokenAmount_) {
+    if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
 
     IReceiptToken depositReceiptToken_ = rewardPool_.depositReceiptToken;
@@ -118,7 +121,9 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     uint256 totalPoolAmount_,
     uint256 lastDripTime_
   ) internal view returns (uint256 assetAmount_) {
-    uint256 nextTotalPoolAmount_ = totalPoolAmount_ - _getNextDripAmount(totalPoolAmount_, dripModel_, lastDripTime_);
+    uint256 nextDripAmount_ =
+      (lastDripTime_ != block.timestamp) ? _getNextDripAmount(totalPoolAmount_, dripModel_, lastDripTime_) : 0;
+    uint256 nextTotalPoolAmount_ = totalPoolAmount_ - nextDripAmount_;
 
     assetAmount_ = nextTotalPoolAmount_ == 0
       ? 0

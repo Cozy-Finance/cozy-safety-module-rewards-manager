@@ -102,7 +102,7 @@ abstract contract InvariantTestWithSingleStakePoolAndSingleRewardPool is Invaria
     numStakePools = stakePoolConfigs_.length;
     numRewardPools = rewardPoolConfigs_.length;
     rewardsManager =
-      rewardsManagerFactory.deployRewardsManager(owner, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32());
+      cozyManager.createRewardsManager(owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32());
 
     vm.label(address(getStakePool(rewardsManager, 0).stkReceiptToken), "stakePool0StkToken");
     vm.label(address(getRewardPool(rewardsManager, 0).depositReceiptToken), "rewardPool0DepositToken");
@@ -118,8 +118,9 @@ abstract contract InvariantTestWithMultipleStakePoolsAndMultipleRewardPools is I
     uint256 numRewardPools_ = _randomUint256InRange(1, MAX_REWARD_POOLS);
 
     // Create some unique assets to use for the pools. We want to make sure the invariant tests cover the case where the
-    // same asset is used for multiple stake/reward pools.
-    uint256 uniqueNumAssets_ = _randomUint256InRange(1, numStakePools_ + numRewardPools_);
+    // same asset is used for multiple reward pools. We need at least numStakePool_ unique assets though, since
+    // stake pool assets must be unique.
+    uint256 uniqueNumAssets_ = _randomUint256InRange(numStakePools_, numStakePools_ + numRewardPools_);
     for (uint256 i_; i_ < uniqueNumAssets_; i_++) {
       assets.push(IERC20(address(new MockERC20("Mock Asset", "MOCK", 6))));
     }
@@ -132,11 +133,9 @@ abstract contract InvariantTestWithMultipleStakePoolsAndMultipleRewardPools is I
         : MathConstants.ZOC - rewardsWeightSum_;
       rewardsWeightSum_ += rewardsWeight_;
 
-      stakePoolConfigs_[i_] = StakePoolConfig({
-        asset: assets[_randomUint256InRange(0, uniqueNumAssets_ - 1)],
-        rewardsWeight: uint16(rewardsWeight_)
-      });
+      stakePoolConfigs_[i_] = StakePoolConfig({asset: assets[i_], rewardsWeight: uint16(rewardsWeight_)});
     }
+    sortStakePoolConfigs(stakePoolConfigs_);
 
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](numRewardPools_);
     for (uint256 i_; i_ < numRewardPools_; i_++) {
@@ -149,7 +148,7 @@ abstract contract InvariantTestWithMultipleStakePoolsAndMultipleRewardPools is I
     numStakePools = stakePoolConfigs_.length;
     numRewardPools = rewardPoolConfigs_.length;
     rewardsManager =
-      rewardsManagerFactory.deployRewardsManager(owner, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32());
+      cozyManager.createRewardsManager(owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32());
 
     for (uint256 i_; i_ < numStakePools_; i_++) {
       vm.label(

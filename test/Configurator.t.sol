@@ -18,6 +18,7 @@ import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {ConfiguratorLib} from "../src/lib/ConfiguratorLib.sol";
 import {Configurator} from "../src/lib/Configurator.sol";
+import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {IDripModel} from "../src/interfaces/IDripModel.sol";
@@ -117,6 +118,24 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     _assertStakePoolUpdatesApplied(component.getStakePool(1), stakePoolConfigs_[1]);
   }
 
+  function test_updateConfigs_basicSetup_whenPaused() external {
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+
+    component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
+
+    _expectEmit();
+    emit TestableConfiguratorEvents.DripAndResetCumulativeRewardsValuesCalled();
+    _expectEmit();
+    emit ConfigUpdatesApplied(stakePoolConfigs_, rewardPoolConfigs_);
+
+    component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
+
+    _assertRewardPoolUpdatesApplied(component.getRewardPool(0), rewardPoolConfigs_[0]);
+    _assertRewardPoolUpdatesApplied(component.getRewardPool(1), rewardPoolConfigs_[1]);
+    _assertStakePoolUpdatesApplied(component.getStakePool(0), stakePoolConfigs_[0]);
+    _assertStakePoolUpdatesApplied(component.getStakePool(1), stakePoolConfigs_[1]);
+  }
+
   function test_updateConfigs_revertNonOwner() external {
     (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
 
@@ -161,6 +180,13 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
+  function test_isValidConfiguration_FalseNonUniqueStakePoolAssets() external {
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+    stakePoolConfigs_[1].asset = stakePoolConfigs_[0].asset;
+
+    assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
+  }
+
   function test_isValidConfiguration_FalseInvalidWeightSum() external {
     (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
     stakePoolConfigs_[0].rewardsWeight = 0;
@@ -191,6 +217,15 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     invalidStakePoolConfigs_[1] =
       StakePoolConfig({asset: stakePoolConfigs_[0].asset, rewardsWeight: stakePoolConfigs_[1].rewardsWeight});
     assertFalse(component.isValidUpdate(invalidStakePoolConfigs_, rewardPoolConfigs_));
+
+    // Invalid update because the new stake pool config uses an asset already used by stake pool 0.
+    invalidStakePoolConfigs_ = new StakePoolConfig[](3);
+    invalidStakePoolConfigs_[0] = stakePoolConfigs_[0];
+    invalidStakePoolConfigs_[1] = stakePoolConfigs_[1];
+    invalidStakePoolConfigs_[2] = StakePoolConfig({asset: stakePoolConfigs_[0].asset, rewardsWeight: 0});
+    assertFalse(component.isValidUpdate(invalidStakePoolConfigs_, rewardPoolConfigs_));
+    invalidStakePoolConfigs_[2].asset = IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6)));
+    assertTrue(component.isValidUpdate(invalidStakePoolConfigs_, rewardPoolConfigs_));
 
     // Valid update.
     assertTrue(component.isValidUpdate(stakePoolConfigs_, rewardPoolConfigs_));
@@ -294,6 +329,10 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     IdLookup memory idLookup_ = component.getStkReceiptTokenToStakePoolId(stkReceiptTokenAddress_);
     assertEq(idLookup_.exists, true);
     assertEq(idLookup_.index, 1);
+
+    idLookup_ = component.getAssetToStakePoolId(newStakePool_.asset);
+    assertEq(idLookup_.exists, true);
+    assertEq(idLookup_.index, 1);
   }
 
   function test_initializeRewardPool() external {
@@ -345,6 +384,10 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     rewardPools.push(rewardPool_);
   }
 
+  function mockSetRewardsManagerState(RewardsManagerState state_) external {
+    rewardsManagerState = state_;
+  }
+
   // -------- Mock getters --------
   function getStakePool(uint16 stakePoolId_) external view returns (StakePool memory) {
     return stakePools[stakePoolId_];
@@ -362,13 +405,18 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     return stkReceiptTokenToStakePoolIds[IReceiptToken(stkReceiptTokenAddress_)];
   }
 
+  function getAssetToStakePoolId(IERC20 asset_) external view returns (IdLookup memory) {
+    return assetToStakePoolIds[asset_];
+  }
+
   // -------- Internal function wrappers for testing --------
   function isValidConfiguration(
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external view returns (bool) {
-    return
-      ConfiguratorLib.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_, allowedStakePools, allowedRewardPools);
+    return ConfiguratorLib.isValidConfiguration(
+      stakePoolConfigs_, rewardPoolConfigs_, stakePools.length, allowedStakePools, allowedRewardPools
+    );
   }
 
   function isValidUpdate(StakePoolConfig[] calldata stakePoolConfigs_, RewardPoolConfig[] calldata rewardPoolConfigs_)
@@ -377,13 +425,19 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     returns (bool)
   {
     return ConfiguratorLib.isValidUpdate(
-      stakePools, rewardPools, stakePoolConfigs_, rewardPoolConfigs_, allowedStakePools, allowedRewardPools
+      stakePools,
+      rewardPools,
+      assetToStakePoolIds,
+      stakePoolConfigs_,
+      rewardPoolConfigs_,
+      allowedStakePools,
+      allowedRewardPools
     );
   }
 
   function initializeStakePool(StakePoolConfig calldata stakePoolConfig_) external {
     ConfiguratorLib.initializeStakePool(
-      stakePools, stkReceiptTokenToStakePoolIds, receiptTokenFactory, stakePoolConfig_
+      stakePools, assetToStakePoolIds, stkReceiptTokenToStakePoolIds, receiptTokenFactory, stakePoolConfig_
     );
   }
 

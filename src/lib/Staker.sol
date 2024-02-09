@@ -5,6 +5,7 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {SafeERC20} from "cozy-safety-module-shared/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {AssetPool, StakePool} from "./structs/Pools.sol";
 import {ClaimableRewardsData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
@@ -125,6 +126,7 @@ abstract contract Staker is RewardsManagerCommon {
     AssetPool storage assetPool_,
     StakePool storage stakePool_
   ) internal returns (uint256 stkReceiptTokenAmount_) {
+    if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;
 
     stkReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToReceiptTokenAmount(

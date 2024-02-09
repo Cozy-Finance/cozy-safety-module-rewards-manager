@@ -12,6 +12,7 @@ import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
 import {RewardsDistributor} from "../src/lib/RewardsDistributor.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
+import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {Staker} from "../src/lib/Staker.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {
@@ -255,6 +256,16 @@ contract RewardsDepositorDripUnitTest is RewardsDistributorUnitTest {
     component.dripRewards();
     assertEq(component.getRewardPools(), initialRewardPools_);
     assertEq(component.getClaimableRewards(), initialClaimableRewards_);
+  }
+
+  function test_dripRewardsRevertsIfPaused() public {
+    _setUpDefault();
+    component.mockRewardsManagerState(RewardsManagerState.PAUSED);
+
+    vm.expectRevert(ICommonErrors.InvalidState.selector);
+    component.dripRewards();
+    vm.expectRevert(ICommonErrors.InvalidState.selector);
+    component.dripRewardPool(0);
   }
 
   function test_rewardsDripConcrete() public {
@@ -622,6 +633,47 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     assertEq(previewClaimableRewards_, expectedPreviewClaimableRewards_);
     assertEq(previewClaimableRewards_[0].claimableRewardsData.length, oldNumRewardPools_ + 1);
     assertEq(previewClaimableRewards_[1].claimableRewardsData.length, oldNumRewardPools_ + 1);
+  }
+
+  function test_previewClaimableRewardsWhenPaused() public {
+    _setUpConcrete();
+    address user_ = _randomAddress();
+    uint16 stakePoolId_ = 1;
+    uint256 timeElapsed_ = ONE_YEAR;
+
+    uint256 stakeAmount_ = 100e6;
+
+    // Mint user stake assets.
+    StakePool memory stakePool_ = component.getStakePool(stakePoolId_);
+    MockERC20 mockStakeAsset_ = MockERC20(address(stakePool_.asset));
+    mockStakeAsset_.mint(user_, stakeAmount_);
+    vm.prank(user_);
+    mockStakeAsset_.approve(address(component), type(uint256).max);
+    component.stake(stakePoolId_, stakeAmount_, user_, user_);
+    vm.stopPrank();
+
+    skip(timeElapsed_);
+
+    // User previews two pools, stakePoolId_ (the pool they staked into) and 0 (the pool they did not stake into).
+    uint16[] memory previewStakePoolIds_ = new uint16[](1);
+    previewStakePoolIds_[0] = stakePoolId_;
+    PreviewClaimableRewards[] memory previewClaimableRewards_ =
+      component.previewClaimableRewards(previewStakePoolIds_, user_);
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[0].amount, 300);
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[1].amount, 75_000_000);
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[2].amount, 2969);
+
+    // Rewards Manager becomes paused.
+    component.mockRewardsManagerState(RewardsManagerState.PAUSED);
+    skip(timeElapsed_);
+
+    // Since the rewards manager is paused, the claimable rewards for the user should be 0 now, since rewards do not
+    // drip while paused.
+    PreviewClaimableRewards[] memory previewClaimableRewardsAfterPause_ =
+      component.previewClaimableRewards(previewStakePoolIds_, user_);
+    assertEq(previewClaimableRewardsAfterPause_[0].claimableRewardsData[0].amount, 0);
+    assertEq(previewClaimableRewardsAfterPause_[0].claimableRewardsData[1].amount, 0);
+    assertEq(previewClaimableRewardsAfterPause_[0].claimableRewardsData[2].amount, 0);
   }
 
   function testFuzz_claimRewards(uint64 timeElapsed_) public {
@@ -1000,6 +1052,33 @@ contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistri
       }
     }
   }
+
+  function test_dripAndResetCumulativeRewardsValuesWhenPaused() public {
+    _setUpConcrete();
+
+    component.mockRewardsManagerState(RewardsManagerState.PAUSED);
+
+    skip(ONE_YEAR);
+
+    component.dripAndResetCumulativeRewardsValues();
+
+    ClaimableRewardsData[] memory claimableRewardsPoolA_ = component.getClaimableRewards(0);
+    // Claimable reward indices should not be updated since the rewards manager is paused.
+    // Cumulative claimed rewards should be reset to 0.
+    assertEq(claimableRewardsPoolA_[0], _expectedClaimableRewardsData(0));
+    assertEq(claimableRewardsPoolA_[1], _expectedClaimableRewardsData(0));
+    assertEq(claimableRewardsPoolA_[2], _expectedClaimableRewardsData(0));
+
+    ClaimableRewardsData[] memory claimableRewardsPoolB_ = component.getClaimableRewards(1);
+    assertEq(claimableRewardsPoolB_[0], _expectedClaimableRewardsData(0));
+    assertEq(claimableRewardsPoolB_[1], _expectedClaimableRewardsData(0));
+    assertEq(claimableRewardsPoolB_[2], _expectedClaimableRewardsData(0));
+
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    for (uint16 i = 0; i < rewardPools_.length; i++) {
+      assertEq(rewardPools_[i].cumulativeDrippedRewards, 0);
+    }
+  }
 }
 
 contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, RewardsManagerInspector {
@@ -1032,6 +1111,10 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
 
   function mockRegisterStkReceiptToken(uint16 stakePoolId_, IReceiptToken stkReceiptToken_) external {
     stkReceiptTokenToStakePoolIds[stkReceiptToken_] = IdLookup({index: stakePoolId_, exists: true});
+  }
+
+  function mockRewardsManagerState(RewardsManagerState rewardsManagerState_) external {
+    rewardsManagerState = rewardsManagerState_;
   }
 
   // -------- Mock getters --------

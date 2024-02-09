@@ -3,6 +3,7 @@ pragma solidity 0.8.22;
 
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
+import {StakePoolConfig} from "../../src/lib/structs/Configs.sol";
 import {IDripModel} from "../../src/interfaces/IDripModel.sol";
 import {IRewardsManager} from "../../src/interfaces/IRewardsManager.sol";
 import {RewardPool, StakePool} from "../../src/lib/structs/Pools.sol";
@@ -117,5 +118,24 @@ contract TestBase is Test, TestAssertions {
     copied_.dripModel = original_.dripModel;
     copied_.depositReceiptToken = original_.depositReceiptToken;
     copied_.lastDripTime = original_.lastDripTime;
+  }
+
+  function sortStakePoolConfigs(StakePoolConfig[] memory stakePoolConfigs_) internal pure {
+    sortStakePoolConfigs(stakePoolConfigs_, 0);
+  }
+
+  function sortStakePoolConfigs(StakePoolConfig[] memory stakePoolConfigs_, uint256 startIndex) internal pure {
+    uint256 n = stakePoolConfigs_.length;
+
+    require(startIndex < n, "startIndex must be less than the array length");
+
+    for (uint256 i = startIndex; i < n - 1; i++) {
+      for (uint256 j = startIndex; j < n - i + startIndex - 1; j++) {
+        if (address(stakePoolConfigs_[j].asset) > address(stakePoolConfigs_[j + 1].asset)) {
+          // Swap stakePoolConfigs_[j] and stakePoolConfigs_[j + 1]
+          (stakePoolConfigs_[j], stakePoolConfigs_[j + 1]) = (stakePoolConfigs_[j + 1], stakePoolConfigs_[j]);
+        }
+      }
+    }
   }
 }
