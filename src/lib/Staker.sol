@@ -77,6 +77,8 @@ abstract contract Staker is RewardsManagerCommon {
     IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;
     IERC20 asset_ = stakePool_.asset;
 
+    // Given the 1:1 conversion rate between the underlying asset and stkReceiptTokens, we always have `assetAmount_ ==
+    // stkReceiptTokenAmount_`.
     stakePool_.amount -= stkReceiptTokenAmount_;
     assetPools[asset_].amount -= stkReceiptTokenAmount_;
     // Burn also ensures that the sender has sufficient allowance if they're not the owner.
@@ -96,6 +98,8 @@ abstract contract Staker is RewardsManagerCommon {
   ) internal {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
 
+    // Given the 1:1 conversion rate between the underlying asset and stkReceiptTokens, we always have `assetAmount_ ==
+    // stkReceiptTokenAmount_`.
     stakePool_.amount += assetAmount_;
     assetPool_.amount += assetAmount_;
 
