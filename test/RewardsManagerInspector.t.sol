@@ -120,52 +120,6 @@ contract RewardsManagerInspectorTest is TestBase {
     rewardAssetAmount_ = component.convertRewardReceiptTokenToAssetAmount(0, 0);
     assertEq(rewardAssetAmount_, 0);
   }
-
-  function test_convertStakeAssetToReceiptTokenAmount_zeroTotalSupply(uint256 stakeAssetAmount_) public {
-    uint256 stakeReceiptTokenAmount = component.convertStakeAssetToReceiptTokenAmount(0, stakeAssetAmount_);
-    assertEq(stakeReceiptTokenAmount, stakeAssetAmount_); // 1:1 exchange rate.
-  }
-
-  function test_convertStakeAssetToReceiptTokenAmount_totalSupplyGtZero() public {
-    mockStakePoolReceiptToken.mint(address(0), 50);
-    component.setStakePoolAmount(0, 100);
-    uint256 stakeAssetAmount_ = 100;
-    uint256 stakeReceiptTokenAmount = component.convertStakeAssetToReceiptTokenAmount(0, stakeAssetAmount_);
-    assertEq(stakeReceiptTokenAmount, 50); // 100 * 50 / 100
-
-    mockStakePoolReceiptToken.mint(address(0), 950);
-    stakeReceiptTokenAmount = component.convertStakeAssetToReceiptTokenAmount(0, 100);
-    assertEq(stakeReceiptTokenAmount, 1000); // 100 * 1000 / 100
-
-    mockStakePoolReceiptToken.burn(address(0), 999);
-    stakeReceiptTokenAmount = component.convertStakeAssetToReceiptTokenAmount(0, 100);
-    assertEq(stakeReceiptTokenAmount, 1); // 100 * 1 / 100
-  }
-
-  function test_convertStakeReceiptTokenToAssetAmount_zeroTotalSupply(uint256 stakeReceiptTokenAmount_) public {
-    uint256 stakeAssetAmount_ = component.convertStakeReceiptTokenToAssetAmount(0, stakeReceiptTokenAmount_);
-    assertEq(stakeAssetAmount_, 0);
-  }
-
-  function test_convertStakeReceiptTokenToAssetAmount_totalSupplyGtZero() public {
-    component.setStakePoolAmount(0, 100);
-    mockStakePoolReceiptToken.mint(address(0), 50);
-    uint256 stakeAssetAmount_ = component.convertStakeReceiptTokenToAssetAmount(0, 50);
-    assertEq(stakeAssetAmount_, 100); // 50 * 100 / 50
-
-    mockStakePoolReceiptToken.mint(address(0), 950);
-    stakeAssetAmount_ = component.convertStakeReceiptTokenToAssetAmount(0, 3000);
-    assertEq(stakeAssetAmount_, 300); // 3000 * 100 / 1000
-
-    mockStakePoolReceiptToken.burn(address(0), 999);
-    stakeAssetAmount_ = component.convertStakeReceiptTokenToAssetAmount(0, 2);
-    assertEq(stakeAssetAmount_, 200); // 2 * 100 / 1
-  }
-
-  function test_convertStakeReceiptTokenToAssetAmount_zeroReceiptTokenAmount() public {
-    uint256 stakeAssetAmount_ = component.convertStakeReceiptTokenToAssetAmount(0, 0);
-    assertEq(stakeAssetAmount_, 0);
-  }
 }
 
 contract TestableRewardsManagerInspector is RewardsManagerInspector {

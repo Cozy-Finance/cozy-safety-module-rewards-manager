@@ -63,9 +63,7 @@ contract RewardsManagerHandler is TestBase {
   struct GhostStakePool {
     uint256 totalAssetAmount;
     uint256 stakeAssetAmount;
-    uint256 stakeSharesAmount;
     uint256 unstakeAssetAmount;
-    uint256 unstakeSharesAmount;
   }
 
   struct GhostRewardPool {
@@ -256,12 +254,11 @@ contract RewardsManagerHandler is TestBase {
     stkTokenUnstakeAmount_ = bound(stkTokenUnstakeAmount_, 1, actorStkTokenBalance_);
     vm.startPrank(currentActor);
     stkToken_.approve(address(rewardsManager), stkTokenUnstakeAmount_);
-    uint256 assetAmount_ = rewardsManager.unstake(currentStakePoolId, stkTokenUnstakeAmount_, receiver_, currentActor);
+    rewardsManager.unstake(currentStakePoolId, stkTokenUnstakeAmount_, receiver_, currentActor);
     vm.stopPrank();
 
     if (stkTokenUnstakeAmount_ == actorStkTokenBalance_) actorsWithStakes.remove(currentActor);
-    ghost_stakePoolCumulative[currentStakePoolId].unstakeAssetAmount += assetAmount_;
-    ghost_stakePoolCumulative[currentStakePoolId].unstakeSharesAmount += stkTokenUnstakeAmount_;
+    ghost_stakePoolCumulative[currentStakePoolId].unstakeAssetAmount += stkTokenUnstakeAmount_;
   }
 
   function dripRewards(uint256 seed_) public virtual countCall("dripRewards") advanceTime(seed_) {
@@ -470,12 +467,11 @@ contract RewardsManagerHandler is TestBase {
 
     vm.startPrank(currentActor);
     asset_.approve(address(rewardsManager), assetAmount_);
-    uint256 shares_ = rewardsManager.stake(currentStakePoolId, assetAmount_, currentActor, currentActor);
+    rewardsManager.stake(currentStakePoolId, assetAmount_, currentActor, currentActor);
     vm.stopPrank();
 
     ghost_stakePoolCumulative[currentStakePoolId].stakeAssetAmount += assetAmount_;
     ghost_stakePoolCumulative[currentStakePoolId].totalAssetAmount += assetAmount_;
-    ghost_stakePoolCumulative[currentStakePoolId].stakeSharesAmount += shares_;
 
     ghost_actorStakeCount[currentActor][currentStakePoolId] += 1;
   }
@@ -486,12 +482,11 @@ contract RewardsManagerHandler is TestBase {
     _simulateTransferToRewardsManager(asset_, assetAmount_);
 
     vm.startPrank(currentActor);
-    uint256 shares_ = rewardsManager.stakeWithoutTransfer(currentStakePoolId, assetAmount_, currentActor);
+    rewardsManager.stakeWithoutTransfer(currentStakePoolId, assetAmount_, currentActor);
     vm.stopPrank();
 
     ghost_stakePoolCumulative[currentStakePoolId].stakeAssetAmount += assetAmount_;
     ghost_stakePoolCumulative[currentStakePoolId].totalAssetAmount += assetAmount_;
-    ghost_stakePoolCumulative[currentStakePoolId].stakeSharesAmount += shares_;
 
     ghost_actorStakeCount[currentActor][currentStakePoolId] += 1;
   }

@@ -39,37 +39,6 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
     );
   }
 
-  /// @notice Converts a stake pool's stake asset amount to the corresponding stake receipt token amount.
-  function convertStakeAssetToReceiptTokenAmount(uint256 stakePoolId_, uint256 stakeAssetAmount_)
-    external
-    view
-    returns (uint256 stakeReceiptTokenAmount_)
-  {
-    StakePool memory stakePool_ = stakePools[stakePoolId_];
-    stakeReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToReceiptTokenAmount(
-      stakeAssetAmount_, stakePool_.stkReceiptToken.totalSupply(), stakePool_.amount
-    );
-  }
-
-  /// @notice Converts a stake pool's stake receipt token amount to the corresponding stake asset amount.
-  function convertStakeReceiptTokenToAssetAmount(uint256 stakePoolId_, uint256 stakeReceiptTokenAmount_)
-    external
-    view
-    returns (uint256 stakeAssetAmount_)
-  {
-    StakePool memory stakePool_ = stakePools[stakePoolId_];
-    stakeAssetAmount_ = RewardsManagerCalculationsLib.convertToAssetAmount(
-      stakeReceiptTokenAmount_, stakePool_.stkReceiptToken.totalSupply(), stakePool_.amount
-    );
-  }
-
-  /// @notice The pool amount for the purposes of performing conversions. We set a floor once reward
-  /// deposit receipt tokens have been initialized to avoid divide-by-zero errors that would occur when the supply
-  /// of reward deposit receipt tokens > 0, but the `poolAmount` = 0, which can occur due to drip.
-  function _poolAmountWithFloor(uint256 poolAmount_) internal pure override returns (uint256) {
-    return poolAmount_ > POOL_AMOUNT_FLOOR ? poolAmount_ : POOL_AMOUNT_FLOOR;
-  }
-
   function getStakePools() external view returns (StakePool[] memory) {
     return stakePools;
   }
@@ -108,5 +77,12 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
     }
 
     return claimableRewards_;
+  }
+
+  /// @notice The pool amount for the purposes of performing conversions. We set a floor once reward
+  /// deposit receipt tokens have been initialized to avoid divide-by-zero errors that would occur when the supply
+  /// of reward deposit receipt tokens > 0, but the `poolAmount` = 0, which can occur due to drip.
+  function _poolAmountWithFloor(uint256 poolAmount_) internal pure override returns (uint256) {
+    return poolAmount_ > POOL_AMOUNT_FLOOR ? poolAmount_ : POOL_AMOUNT_FLOOR;
   }
 }

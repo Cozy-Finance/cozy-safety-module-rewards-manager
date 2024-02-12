@@ -55,9 +55,7 @@ interface IRewardsManager {
     address owner_
   ) external returns (uint256 rewardAssetAmount_);
 
-  function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_)
-    external
-    returns (uint256 assetAmount_);
+  function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external;
 
   function claimRewards(uint16 stakePoolId_, address receiver_) external;
 
@@ -74,13 +72,9 @@ interface IRewardsManager {
     external
     returns (uint256 depositReceiptTokenAmount_);
 
-  function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_, address from_)
-    external
-    returns (uint256 stkReceiptTokenAmount_);
+  function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_, address from_) external;
 
-  function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_)
-    external
-    returns (uint256 stkReceiptTokenAmount_);
+  function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external;
 
   function dripRewards() external;
 

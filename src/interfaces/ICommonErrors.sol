@@ -11,6 +11,9 @@ interface ICommonErrors {
   /// @dev Thrown if the request action is not allowed because zero units would be transferred, burned, minted, etc.
   error RoundsToZero();
 
+  /// @dev Thrown if the request action is not allowed because the requested amount is zero.
+  error AmountIsZero();
+
   /// @dev Thrown when a drip model returns an invalid drip factor.
   error InvalidDripFactor();
 }
