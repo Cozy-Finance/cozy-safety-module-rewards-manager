@@ -7,6 +7,7 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {StakePool, RewardPool, AssetPool} from "../../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData, UserRewardsData, PreviewClaimableRewards} from "../../src/lib/structs/Rewards.sol";
+import {ICommonErrors} from "../../src/interfaces/ICommonErrors.sol";
 import {
   InvariantTestBase,
   InvariantTestWithSingleStakePoolAndSingleRewardPool,
@@ -260,6 +261,22 @@ abstract contract UnstakerInvariants is InvariantTestBase {
         )
       );
     }
+  }
+
+  function invariant_unstakeZeroAmountReverts() public syncCurrentTimestamp(rewardsManagerHandler) {
+    vm.expectRevert(ICommonErrors.AmountIsZero.selector);
+    rewardsManager.unstake(_randomUint16(), 0, _randomAddress(), _randomAddress());
+  }
+
+  function invariant_cannotUnstakeWithInsufficientStkReceiptTokens() public syncCurrentTimestamp(rewardsManagerHandler) {
+    address actor_ = rewardsManagerHandler.getActorWithStake(_randomUint256());
+    uint16 unstakedStakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), actor_);
+    uint256 stkReceiptTokenUnstakeAmount_ =
+      getStakePool(rewardsManager, unstakedStakePoolId_).stkReceiptToken.balanceOf(actor_) + 1;
+
+    _expectPanic(PANIC_MATH_UNDEROVERFLOW);
+    vm.prank(actor_);
+    rewardsManager.unstake(unstakedStakePoolId_, stkReceiptTokenUnstakeAmount_, _randomAddress(), actor_);
   }
 }
 
