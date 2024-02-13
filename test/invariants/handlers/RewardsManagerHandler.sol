@@ -355,7 +355,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   /*
-  TODO: 
+  TODO:
   function pause(uint256 seed_) public virtual countCall("pause") advanceTime(seed_) {
     if (safetyModule.safetyModuleState() == SafetyModuleState.PAUSED) {
       invalidCalls["pause"] += 1;
@@ -432,8 +432,53 @@ contract RewardsManagerHandler is TestBase {
     console2.log("unpause", invalidCalls["unpause"]);
   }
 
+  function depositRewardAssetsWithExistingActorWithoutCountingCall(uint256 assets_) external returns (address) {
+    uint256 invalidCallsBefore_ = invalidCalls["depositRewardAssetsWithExistingActor"];
+
+    address actor_ = depositRewardAssetsWithExistingActor(assets_, _randomUint256());
+
+    calls["depositRewardAssetsWithExistingActor"] -= 1; // depositWithExistingActor increments by 1.
+    if (invalidCallsBefore_ < invalidCalls["depositRewardAssetsWithExistingActor"]) {
+      invalidCalls["depositRewardAssetsWithExistingActor"] -= 1;
+    }
+
+    return actor_;
+  }
+
+  function depositRewardAssetsWithExistingActorWithoutCountingCall(uint8 rewardPoolId_, uint256 assets_, address actor_)
+    external
+    returns (address)
+  {
+    uint256 invalidCallsBefore_ = invalidCalls["depositRewardAssetsWithExistingActor"];
+
+    currentRewardPoolId = rewardPoolId_;
+    currentActor = actor_;
+
+    _depositRewardAssets(assets_, "depositRewardAssetsWithExistingActor");
+
+    // _depositReserveAssets increments invalidCalls by 1 if the rewards manager is paused.
+    if (invalidCallsBefore_ < invalidCalls["depositRewardAssetsWithExistingActor"]) {
+      invalidCalls["depositRewardAssetsWithExistingActor"] -= 1;
+    }
+
+    return currentActor;
+  }
+
+  function boundDepositAssetAmount(uint256 assetAmount_) public pure returns (uint256) {
+    return bound(assetAmount_, 0.0001e6, type(uint72).max);
+  }
+
+  function pickValidRewardPoolId(uint256 seed_) public view returns (uint8) {
+    return uint8(bound(seed_, 0, numRewardPools - 1));
+  }
+
+  function pickActor(uint256 seed_) public view returns (address) {
+    uint256 numActors_ = actors.length();
+    return numActors_ == 0 ? DEFAULT_ADDRESS : actors.at(seed_ % numActors_);
+  }
+
   function _depositRewardAssets(uint256 assetAmount_, string memory callName_) internal {
-    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint72).max));
+    assetAmount_ = boundDepositAssetAmount(assetAmount_);
     IERC20 asset_ = getRewardPool(rewardsManager, currentRewardPoolId).asset;
     deal(address(asset_), currentActor, asset_.balanceOf(currentActor) + assetAmount_, true);
 
@@ -449,7 +494,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   function _depositRewardAssetsWithoutTransfer(uint256 assetAmount_, string memory callName_) internal {
-    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint72).max));
+    assetAmount_ = boundDepositAssetAmount(assetAmount_);
     IERC20 asset_ = getRewardPool(rewardsManager, currentRewardPoolId).asset;
     _simulateTransferToRewardsManager(asset_, assetAmount_);
 
@@ -464,7 +509,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   function _stake(uint256 assetAmount_, string memory callName_) internal {
-    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint72).max));
+    assetAmount_ = boundDepositAssetAmount(assetAmount_);
     IERC20 asset_ = getStakePool(rewardsManager, currentStakePoolId).asset;
     deal(address(asset_), currentActor, asset_.balanceOf(currentActor) + assetAmount_, true);
 
@@ -480,7 +525,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   function _stakeWithoutTransfer(uint256 assetAmount_, string memory callName_) internal {
-    assetAmount_ = uint72(bound(assetAmount_, 0.0001e6, type(uint72).max));
+    assetAmount_ = boundDepositAssetAmount(assetAmount_);
     IERC20 asset_ = getStakePool(rewardsManager, currentStakePoolId).asset;
     _simulateTransferToRewardsManager(asset_, assetAmount_);
 
@@ -556,7 +601,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   modifier useValidRewardPoolId(uint256 seed_) {
-    currentRewardPoolId = uint16(bound(seed_, 0, numRewardPools - 1));
+    currentRewardPoolId = pickValidRewardPoolId(seed_);
     _;
   }
 

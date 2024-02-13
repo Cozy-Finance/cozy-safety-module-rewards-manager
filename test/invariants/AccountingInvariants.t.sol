@@ -80,13 +80,15 @@ abstract contract AccountingInvariants is InvariantTestBase {
     for (uint16 stakePoolId_; stakePoolId_ < numStakePools; stakePoolId_++) {
       StakePool memory stakePool_ = getStakePool(rewardsManager, stakePoolId_);
       require(
-        stakePool_.amount == stakePool_.stkReceiptToken.totalSupply(),
+        stakePool_.amount == stkReceiptToken_.totalSupply(),
         string.concat(
           "Invariant Violated: The stake pool amount must equal the total supply of the stake pool's stkReceiptToken as the underlying asset and stkReceiptToken have a 1:1 conversion rate.",
           " stakePool_.amount: ",
           Strings.toString(stakePool_.amount),
-          ", stakePool_.stkReceiptToken.totalSupply(): ",
-          Strings.toString(stakePool_.stkReceiptToken.totalSupply())
+          ", stkReceiptToken_.totalSupply(): ",
+          Strings.toString(stkReceiptToken_.totalSupply()),
+          ", stakePoolId: ",
+          Strings.toString(stakePoolId_)
         )
       );
     }
