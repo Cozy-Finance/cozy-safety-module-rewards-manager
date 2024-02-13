@@ -61,6 +61,11 @@ interface IRewardsManager {
     address owner_
   ) external returns (uint256 rewardAssetAmount_);
 
+  function previewUndrippedRewardsRedemption(uint16 rewardPoolId_, uint256 depositReceiptTokenAmount_)
+    external
+    view
+    returns (uint256 rewardAssetAmount_);
+
   function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external;
 
   function claimRewards(uint16 stakePoolId_, address receiver_) external;

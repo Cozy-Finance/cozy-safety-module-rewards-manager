@@ -62,6 +62,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
       rewardPool_.undrippedRewards,
       rewardPool_.lastDripTime
     );
+    if (rewardAssetAmount_ == 0) revert RoundsToZero(); // Check for rounding error since we round down in conversion.
 
     depositReceiptToken_.burn(msg.sender, owner_, depositReceiptTokenAmount_);
     rewardPool_.undrippedRewards -= rewardAssetAmount_;
@@ -130,7 +131,6 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
       : RewardsManagerCalculationsLib.convertToAssetAmount(
         receiptTokenAmount_, receiptToken_.totalSupply(), nextTotalPoolAmount_
       );
-    if (assetAmount_ == 0) revert RoundsToZero(); // Check for rounding error since we round down in conversion.
   }
 
   function _assertValidDepositBalance(IERC20 token_, uint256 assetPoolBalance_, uint256 depositAmount_)

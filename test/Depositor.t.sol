@@ -757,8 +757,8 @@ contract DepositorUnitTest is TestBase {
     vm.warp(100);
     component.mockSetNextRewardsDripAmount(initialUndrippedRewards + amountToDeposit_);
 
-    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
-    component.previewUndrippedRewardsRedemption(0, depositTokenAmount_);
+    uint256 rewardAssetAmount_ = component.previewUndrippedRewardsRedemption(0, depositTokenAmount_);
+    assertEq(rewardAssetAmount_, 0);
 
     vm.prank(receiver_);
     mockRewardPoolDepositToken.approve(address(component), depositTokenAmount_);
@@ -842,14 +842,15 @@ contract DepositorUnitTest is TestBase {
     assertEq(component.getRewardPool(0).undrippedRewards, rewardAssetAmount_);
 
     // 1 * (2 / 3) rounds to zero.
-    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
-    component.previewUndrippedRewardsRedemption(0, 2);
+    uint256 previewedRewardAssetAmount_ = component.previewUndrippedRewardsRedemption(0, 2);
+    assertEq(previewedRewardAssetAmount_, 0);
 
     // Set undripped rewards to zero, as if all rewards have dripped.
     component.mockSetRewardsPoolUndrippedRewards(0, 0);
+
     // 0 * (3 / 3) rounds to zero.
-    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
-    component.previewUndrippedRewardsRedemption(0, depositTokenAmount_);
+    previewedRewardAssetAmount_ = component.previewUndrippedRewardsRedemption(0, depositTokenAmount_);
+    assertEq(previewedRewardAssetAmount_, 0);
   }
 }
 
