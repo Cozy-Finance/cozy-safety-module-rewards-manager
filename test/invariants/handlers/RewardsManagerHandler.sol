@@ -233,6 +233,8 @@ contract RewardsManagerHandler is TestBase {
 
     ghost_rewardPoolCumulative[currentRewardPoolId].redeemAssetAmount += assetAmount_;
     ghost_rewardPoolCumulative[currentRewardPoolId].redeemSharesAmount += depositTokenRedeemAmount_;
+
+    if (depositTokenRedeemAmount_ == actorDepositTokenBalance_) actorsWithRewardDeposits.remove(currentActor);
   }
 
   function unstake(address receiver_, uint256 seed_)
@@ -565,7 +567,7 @@ contract RewardsManagerHandler is TestBase {
 
   modifier useActorWithRewardDeposits(uint256 seed_) {
     currentActor = getActorWithRewardDeposits(seed_);
-    currentRewardPoolId = getRewardPoolIdForActorWithRewardDeposit(seed_, currentActor);
+    currentRewardPoolId = getRewardPoolIdForActorWithRewardDeposits(seed_, currentActor);
     _;
   }
 
@@ -622,7 +624,7 @@ contract RewardsManagerHandler is TestBase {
     return initIndex_;
   }
 
-  function getRewardPoolIdForActorWithRewardDeposit(uint256 seed_, address actor_) public view returns (uint16) {
+  function getRewardPoolIdForActorWithRewardDeposits(uint256 seed_, address actor_) public view returns (uint16) {
     uint16 initIndex_ = uint16(_randomUint256FromSeed(seed_) % numRewardPools);
     uint16 indicesVisited_ = 0;
 

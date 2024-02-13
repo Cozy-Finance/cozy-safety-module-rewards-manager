@@ -5,6 +5,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
+import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
 import {StakePool, RewardPool} from "../../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData, UserRewardsData, PreviewClaimableRewards} from "../../src/lib/structs/Rewards.sol";
 import {
@@ -30,11 +31,11 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     // The default address is used when there are no actors with stakes, in which case we just skip this invariant.
     if (actor_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
     uint16 stakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), actor_);
-    PreviewClaimableRewards memory previewClaimableRewards_ =
+    PreviewClaimableRewards memory actorPreviewClaimableRewards_ =
       rewardsManagerHandler.getActorRewardsToBeClaimed(stakePoolId_, actor_)[0];
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       actorRewardsToBeClaimed[rewardsManager.rewardPools(rewardPoolId_).asset] +=
-        previewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
+        actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
     }
 
     vm.prank(actor_);
@@ -235,8 +236,7 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     UserRewardsData[] memory preFromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);
     UserRewardsData[] memory preToUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, to_);
 
-    IERC20 stkToken_ = getStakePool(rewardsManager, stakePoolId_).stkReceiptToken;
-    vm.prank(address(stkToken_));
+    vm.prank(address(getStakePool(rewardsManager, stakePoolId_).stkReceiptToken));
     rewardsManager.updateUserRewardsForStkTokenTransfer(from_, to_);
 
     UserRewardsData[] memory postFromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);
@@ -284,6 +284,20 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
         )
       );
     }
+  }
+
+  function invariant_updateUserRewardsForStkTokenTransferRevertsForUnauthorizedAddress()
+    public
+    syncCurrentTimestamp(rewardsManagerHandler)
+  {
+    address unauthorizedAddress_ = _randomAddress();
+    for (uint16 stakePoolId_ = 0; stakePoolId_ < numStakePools; stakePoolId_++) {
+      vm.assume(address(rewardsManager.stakePools(stakePoolId_).stkReceiptToken) != unauthorizedAddress_);
+    }
+
+    vm.expectRevert(Ownable.Unauthorized.selector);
+    vm.prank(unauthorizedAddress_);
+    rewardsManager.updateUserRewardsForStkTokenTransfer(_randomAddress(), _randomAddress());
   }
 
   function invariant_stkTokenTransferAccounting() public syncCurrentTimestamp(rewardsManagerHandler) {
