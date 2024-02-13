@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.22;
 
+import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {Governable} from "cozy-safety-module-shared/lib/Governable.sol";
-import {IDripModel} from "./interfaces/IDripModel.sol";
 import {ICozyManager} from "./interfaces/ICozyManager.sol";
 import {IRewardsManager} from "./interfaces/IRewardsManager.sol";
 import {IRewardsManagerFactory} from "./interfaces/IRewardsManagerFactory.sol";

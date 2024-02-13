@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.22;
 
+import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {DripModelExponential} from "cozy-safety-module-models/DripModelExponential.sol";
@@ -9,7 +10,6 @@ import {RewardPoolConfig, StakePoolConfig} from "../../src/lib/structs/Configs.s
 import {StakePool, RewardPool} from "../../src/lib/structs/Pools.sol";
 import {MockDeployProtocol} from "../utils/MockDeployProtocol.sol";
 import {MockERC20} from "../utils/MockERC20.sol";
-import {IDripModel} from "../../src/interfaces/IDripModel.sol";
 import {IRewardsManager} from "../../src/interfaces/IRewardsManager.sol";
 import {console2} from "forge-std/console2.sol";
 

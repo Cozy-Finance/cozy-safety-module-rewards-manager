@@ -2,9 +2,9 @@
 pragma solidity 0.8.22;
 
 import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
+import {ICommonErrors} from "cozy-safety-module-shared/interfaces/ICommonErrors.sol";
+import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {ICommonErrors} from "../src/interfaces/ICommonErrors.sol";
-import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IStateChangerEvents} from "../src/interfaces/IStateChangerEvents.sol";
 import {RewardPool, StakePool} from "../src/lib/structs/Pools.sol";

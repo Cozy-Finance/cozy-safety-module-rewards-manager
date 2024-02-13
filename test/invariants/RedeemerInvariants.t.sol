@@ -3,11 +3,11 @@ pragma solidity 0.8.22;
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {ICommonErrors} from "cozy-safety-module-shared/interfaces/ICommonErrors.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {StakePool, RewardPool, AssetPool} from "../../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData, UserRewardsData, PreviewClaimableRewards} from "../../src/lib/structs/Rewards.sol";
-import {ICommonErrors} from "../../src/interfaces/ICommonErrors.sol";
 import {
   InvariantTestBase,
   InvariantTestWithSingleStakePoolAndSingleRewardPool,
