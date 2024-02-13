@@ -29,7 +29,7 @@ contract RewardsManagerHandler is TestBase {
   mapping(string => uint256) public calls;
   mapping(string => uint256) public invalidCalls;
 
-  address internal currentActor;
+  address public currentActor;
 
   EnumerableSet.AddressSet internal actors;
 
@@ -235,23 +235,24 @@ contract RewardsManagerHandler is TestBase {
     ghost_rewardPoolCumulative[currentRewardPoolId].redeemSharesAmount += depositTokenRedeemAmount_;
   }
 
-  function unstake(uint256 stkTokenUnstakeAmount_, address receiver_, uint256 seed_)
+  function unstake(address receiver_, uint256 seed_)
     public
     virtual
     useActorWithStakes(seed_)
     countCall("unstake")
     advanceTime(seed_)
+    returns (uint256 stkTokenUnstakeAmount_)
   {
     IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
     uint256 actorStkTokenBalance_ = stkToken_.balanceOf(currentActor);
     if (actorStkTokenBalance_ == 0) {
       invalidCalls["unstake"] += 1;
-      return;
+      return 0;
     }
 
     _incrementGhostRewardsToBeClaimed(currentStakePoolId, currentActor);
 
-    stkTokenUnstakeAmount_ = bound(stkTokenUnstakeAmount_, 1, actorStkTokenBalance_);
+    stkTokenUnstakeAmount_ = bound(_randomUint256(), 1, actorStkTokenBalance_);
     vm.startPrank(currentActor);
     stkToken_.approve(address(rewardsManager), stkTokenUnstakeAmount_);
     rewardsManager.unstake(currentStakePoolId, stkTokenUnstakeAmount_, receiver_, currentActor);
@@ -558,23 +559,18 @@ contract RewardsManagerHandler is TestBase {
   }
 
   modifier useActor(uint256 actorIndexSeed_) {
-    uint256 numActors_ = actors.length();
-    currentActor = numActors_ == 0 ? DEFAULT_ADDRESS : actors.at(actorIndexSeed_ % numActors_);
+    currentActor = getActor(actorIndexSeed_);
     _;
   }
 
   modifier useActorWithRewardDeposits(uint256 seed_) {
-    uint256 numActorsWithRewardDeposits_ = actorsWithRewardDeposits.length();
-    currentActor = numActorsWithRewardDeposits_ == 0
-      ? DEFAULT_ADDRESS
-      : actorsWithRewardDeposits.at(seed_ % numActorsWithRewardDeposits_);
+    currentActor = getActorWithRewardDeposits(seed_);
     currentRewardPoolId = getRewardPoolIdForActorWithRewardDeposit(seed_, currentActor);
     _;
   }
 
   modifier useActorWithStakes(uint256 seed_) {
-    uint256 numActorsWithStakes_ = actorsWithStakes.length();
-    currentActor = numActorsWithStakes_ == 0 ? DEFAULT_ADDRESS : actorsWithStakes.at(seed_ % numActorsWithStakes_);
+    currentActor = getActorWithStake(seed_);
     currentStakePoolId = getStakePoolIdForActorWithStake(seed_, currentActor);
     _;
   }
@@ -587,6 +583,23 @@ contract RewardsManagerHandler is TestBase {
   // ----------------------------------
   // ------- AddressSet helpers -------
   // ----------------------------------
+  function getActor(uint256 actorIndexSeed_) public view returns (address) {
+    uint256 numActors_ = actors.length();
+    return numActors_ == 0 ? DEFAULT_ADDRESS : actors.at(actorIndexSeed_ % numActors_);
+  }
+
+  function getActorWithRewardDeposits(uint256 actorIndexSeed_) public view returns (address) {
+    uint256 numActorsWithRewardDeposits_ = actorsWithRewardDeposits.length();
+    return numActorsWithRewardDeposits_ == 0
+      ? DEFAULT_ADDRESS
+      : actorsWithRewardDeposits.at(actorIndexSeed_ % numActorsWithRewardDeposits_);
+  }
+
+  function getActorWithStake(uint256 actorIndexSeed_) public view returns (address) {
+    uint256 numActorsWithStakes_ = actorsWithStakes.length();
+    return numActorsWithStakes_ == 0 ? DEFAULT_ADDRESS : actorsWithStakes.at(actorIndexSeed_ % numActorsWithStakes_);
+  }
+
   function getActorsWithStakes() external view returns (address[] memory) {
     return actorsWithStakes.values();
   }
@@ -621,5 +634,15 @@ contract RewardsManagerHandler is TestBase {
 
     // If no reward pool with a reward deposit count was found, return the random initial index.
     return initIndex_;
+  }
+
+  function getActorRewardsToBeClaimed(uint16 stakePoolId_, address actor_)
+    public
+    view
+    returns (PreviewClaimableRewards[] memory reservePoolClaimableRewards_)
+  {
+    uint16[] memory stakePoolIds_ = new uint16[](1);
+    stakePoolIds_[0] = stakePoolId_;
+    reservePoolClaimableRewards_ = rewardsManager.previewClaimableRewards(stakePoolIds_, actor_);
   }
 }

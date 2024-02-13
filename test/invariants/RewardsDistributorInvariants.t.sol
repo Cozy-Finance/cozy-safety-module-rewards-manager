@@ -6,7 +6,7 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {StakePool, RewardPool} from "../../src/lib/structs/Pools.sol";
-import {ClaimableRewardsData, UserRewardsData} from "../../src/lib/structs/Rewards.sol";
+import {ClaimableRewardsData, UserRewardsData, PreviewClaimableRewards} from "../../src/lib/structs/Rewards.sol";
 import {
   InvariantTestBase,
   InvariantTestWithSingleStakePoolAndSingleRewardPool,
@@ -16,21 +16,31 @@ import {
 abstract contract RewardsDistributorInvariants is InvariantTestBase {
   using FixedPointMathLib for uint256;
 
+  mapping(IERC20 rewardAsset_ => uint256) public actorRewardsToBeClaimed;
+
   function invariant_claimRewardsUserRewardsAccounting() public syncCurrentTimestamp(rewardsManagerHandler) {
     address receiver_ = _randomAddress();
 
     uint256[] memory receiverPreBalances_ = new uint256[](numRewardPools);
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
-      receiverPreBalances_[rewardPoolId_] = IERC20(rewardsManager.rewardPools(rewardPoolId_).asset).balanceOf(receiver_);
+      receiverPreBalances_[rewardPoolId_] = rewardsManager.rewardPools(rewardPoolId_).asset.balanceOf(receiver_);
     }
 
-    address actor_ = rewardsManagerHandler.claimRewards(receiver_, _randomUint256());
+    address actor_ = rewardsManagerHandler.getActorWithStake(_randomUint256());
     // The default address is used when there are no actors with stakes, in which case we just skip this invariant.
     if (actor_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
+    uint16 stakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), actor_);
+    PreviewClaimableRewards memory previewClaimableRewards_ =
+      rewardsManagerHandler.getActorRewardsToBeClaimed(stakePoolId_, actor_)[0];
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
+      actorRewardsToBeClaimed[rewardsManager.rewardPools(rewardPoolId_).asset] +=
+        previewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
+    }
 
-    uint16 stakePoolId_ = rewardsManagerHandler.currentStakePoolId();
+    vm.prank(actor_);
+    rewardsManager.claimRewards(stakePoolId_, receiver_);
+
     UserRewardsData[] memory userRewards_ = rewardsManager.getUserRewards(stakePoolId_, actor_);
-
     require(
       userRewards_.length == numRewardPools,
       string.concat(
@@ -76,15 +86,18 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
         )
       );
 
-      uint256 receiverPostBalance_ = IERC20(rewardsManager.rewardPools(rewardPoolId_).asset).balanceOf(receiver_);
+      RewardPool memory rewardPool_ = rewardsManager.rewardPools(rewardPoolId_);
       require(
-        receiverPostBalance_ >= receiverPreBalances_[rewardPoolId_],
+        rewardPool_.asset.balanceOf(receiver_)
+          == receiverPreBalances_[rewardPoolId_] + actorRewardsToBeClaimed[rewardPool_.asset],
         string.concat(
-          "Invariant Violated: The receiver balance must be greater than or equal to the pre-balance after claimRewards.",
+          "Invariant Violated: The receiver balance must be the pre-balance plus claimable rewards of that asset.",
           " receiverPostBalance: ",
-          Strings.toString(receiverPostBalance_),
+          Strings.toString(rewardPool_.asset.balanceOf(receiver_)),
           ", receiverPreBalance: ",
           Strings.toString(receiverPreBalances_[rewardPoolId_]),
+          ", claimableRewards: ",
+          Strings.toString(actorRewardsToBeClaimed[rewardPool_.asset]),
           ", receiver: ",
           Strings.toHexString(uint160(receiver_)),
           ", stakePoolId: ",
@@ -215,8 +228,8 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
     address[] memory actorsWithStakes_ = rewardsManagerHandler.getActorsWithStakes();
     if (actorsWithStakes_.length < 2) return;
 
-    address from_ = actorsWithStakes_[_randomUint256InRange(0, actorsWithStakes_.length - 1)];
-    address to_ = actorsWithStakes_[_randomUint256InRange(0, actorsWithStakes_.length - 1)];
+    address from_ = rewardsManagerHandler.getActorWithStake(_randomUint256());
+    address to_ = rewardsManagerHandler.getActorWithStake(_randomUint256());
     uint16 stakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), from_);
 
     UserRewardsData[] memory preFromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);

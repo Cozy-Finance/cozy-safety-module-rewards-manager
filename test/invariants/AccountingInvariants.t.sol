@@ -79,7 +79,6 @@ abstract contract AccountingInvariants is InvariantTestBase {
   function invariant_stkReceiptTokenTotalSupplyEqStakePoolAmount() public syncCurrentTimestamp(rewardsManagerHandler) {
     for (uint16 stakePoolId_; stakePoolId_ < numStakePools; stakePoolId_++) {
       StakePool memory stakePool_ = getStakePool(rewardsManager, stakePoolId_);
-      IERC20 stkReceiptToken = stakePool_.stkReceiptToken;
       require(
         stakePool_.amount == stakePool_.stkReceiptToken.totalSupply(),
         string.concat(
