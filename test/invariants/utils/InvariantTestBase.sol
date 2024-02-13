@@ -6,6 +6,7 @@ import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {RewardsManager} from "../../../src/RewardsManager.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../../../src/lib/structs/Configs.sol";
+import {RewardPool} from "../../../src/lib/structs/Pools.sol";
 import {IDripModel} from "../../../src/interfaces/IDripModel.sol";
 import {IRewardsManager} from "../../../src/interfaces/IRewardsManager.sol";
 import {RewardsManagerHandler} from "../handlers/RewardsManagerHandler.sol";
