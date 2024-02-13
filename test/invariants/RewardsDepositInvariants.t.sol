@@ -2,12 +2,12 @@
 pragma solidity 0.8.22;
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {ICommonErrors} from "cozy-safety-module-shared/interfaces/ICommonErrors.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {AssetPool, RewardPool} from "../../src/lib/structs/Pools.sol";
 import {RewardsManagerState} from "../../src/lib/RewardsManagerStates.sol";
-import {ICommonErrors} from "../../src/interfaces/ICommonErrors.sol";
 import {IDepositorErrors} from "../../src/interfaces/IDepositorErrors.sol";
 import {
   InvariantTestBase,
@@ -161,7 +161,10 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
     }
   }
 
-  function invariant_rewardsDepositMintsReceiptTokensMatchesPreview() public syncCurrentTimestamp(rewardsManagerHandler) {
+  function invariant_rewardsDepositMintsReceiptTokensMatchesPreview()
+    public
+    syncCurrentTimestamp(rewardsManagerHandler)
+  {
     // Can't deposit if the rewards manager is paused.
     if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
 

@@ -6,6 +6,7 @@ import {ReceiptTokenFactory} from "cozy-safety-module-shared/ReceiptTokenFactory
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
 import {IConfiguratorErrors} from "../src/interfaces/IConfiguratorErrors.sol";
+import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
@@ -16,7 +17,6 @@ import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
-import {IDripModel} from "../src/interfaces/IDripModel.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {TestBase} from "./utils/TestBase.sol";
 
