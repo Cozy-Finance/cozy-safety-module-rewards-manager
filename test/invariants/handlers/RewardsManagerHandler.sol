@@ -453,7 +453,7 @@ contract RewardsManagerHandler is TestBase {
 
     _depositRewardAssets(assets_, "depositRewardAssetsWithExistingActor");
 
-    // _depositReserveAssets increments invalidCalls by 1 if the safety module is paused.
+    // _depositReserveAssets increments invalidCalls by 1 if the rewards manager is paused.
     if (invalidCallsBefore_ < invalidCalls["depositRewardAssetsWithExistingActor"]) {
       invalidCalls["depositRewardAssetsWithExistingActor"] -= 1;
     }

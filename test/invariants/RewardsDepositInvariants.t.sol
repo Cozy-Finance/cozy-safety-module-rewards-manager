@@ -15,7 +15,7 @@ import {
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 } from "./utils/InvariantTestBase.sol";
 
-abstract contract DepositInvariants is InvariantTestBase {
+abstract contract RewardsDepositInvariants is InvariantTestBase {
   using FixedPointMathLib for uint256;
 
   struct InternalBalances {
@@ -24,7 +24,7 @@ abstract contract DepositInvariants is InvariantTestBase {
     uint256 assetAmount;
   }
 
-  function invariant_rewardDepositReceiptTokenTotalSupplyAndInternalBalancesIncreaseOnRewardDeposit()
+  function invariant_rewardsDepositReceiptTokenTotalSupplyAndInternalBalancesIncreaseOnRewardsDeposit()
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
@@ -150,7 +150,7 @@ abstract contract DepositInvariants is InvariantTestBase {
               "Invariant Violated: The reward manager's asset balance for a specific asset must not change when a deposit occurs in a reward pool with a different underlying asset.",
               " rewardPoolId_: ",
               Strings.toString(rewardPoolId_),
-              ", currentRewardPool_.asset.balanceOf(address(safetyModule)): ",
+              ", currentRewardPool_.asset.balanceOf(address(rewardsManager)): ",
               Strings.toString(currentRewardPool_.asset.balanceOf(address(rewardsManager))),
               ", internalBalancesBeforeDepositRewards_[rewardPoolId_].assetAmount: ",
               Strings.toString(internalBalancesBeforeDepositRewards_[rewardPoolId_].assetAmount)
@@ -161,40 +161,40 @@ abstract contract DepositInvariants is InvariantTestBase {
     }
   }
 
-  // function invariant_depositMintsReceiptTokensOneToOne() public syncCurrentTimestamp(rewardsManagerHandler) {
-  //   // Can't deposit if the rewards manager is paused.
-  //   if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
+  function invariant_rewardsDepositMintsReceiptTokensMatchesPreview() public syncCurrentTimestamp(rewardsManagerHandler) {
+    // Can't deposit if the rewards manager is paused.
+    if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
 
-  //   uint256 assetAmount_ = rewardsManagerHandler.boundDepositAssetAmount(_randomUint256());
-  //   uint8 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
-  //   address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
-  //   uint256 expectedReceiptTokenAmount_ = assetAmount_; // 1:1 conversion rate.
+    uint256 assetAmount_ = rewardsManagerHandler.boundDepositAssetAmount(_randomUint256());
+    uint8 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
+    address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
+    uint256 expectedReceiptTokenAmount_ =
+      rewardsManager.convertRewardAssetToReceiptTokenAmount(rewardPoolId_, assetAmount_);
 
-  //   IReceiptToken depositReceiptToken_ = rewardsManager.rewardPools(rewardPoolId_).depositReceiptToken;
-  //   uint256 actorReceiptTokenBalBeforeDeposit_ = depositReceiptToken_.balanceOf(actor_);
-  //   rewardsManagerHandler.depositRewardAssetsWithExistingActorWithoutCountingCall(rewardPoolId_, assetAmount_,
-  // actor_);
-  //   uint256 receivedReceiptTokenAmount_ = depositReceiptToken_.balanceOf(actor_) -
-  // actorReceiptTokenBalBeforeDeposit_;
+    IReceiptToken depositReceiptToken_ = rewardsManager.rewardPools(rewardPoolId_).depositReceiptToken;
+    uint256 actorReceiptTokenBalBeforeDeposit_ = depositReceiptToken_.balanceOf(actor_);
+    rewardsManagerHandler.depositRewardAssetsWithExistingActorWithoutCountingCall(rewardPoolId_, assetAmount_, actor_);
+    uint256 receivedReceiptTokenAmount_ = depositReceiptToken_.balanceOf(actor_) - actorReceiptTokenBalBeforeDeposit_;
 
-  //   require(
-  //     receivedReceiptTokenAmount_ == expectedReceiptTokenAmount_,
-  //     string.concat(
-  //       "Invariant Violated: The amount of receipt tokens received from a deposit must be 1:1 with the asset amount
-  // deposited.",
-  //       " assetAmount_: ",
-  //       Strings.toString(assetAmount_),
-  //       ", expectedReceiptTokenAmount_: ",
-  //       Strings.toString(expectedReceiptTokenAmount_),
-  //       ", receivedReceiptTokenAmount_: ",
-  //       Strings.toString(receivedReceiptTokenAmount_),
-  //       ", actorReceiptTokenBalBeforeDeposit_", Strings.toString(actorReceiptTokenBalBeforeDeposit_),
-  //       ", depositReceiptToken_.balanceOf(actor_)", Strings.toString(depositReceiptToken_.balanceOf(actor_))
-  //     )
-  //   );
-  // }
+    require(
+      receivedReceiptTokenAmount_ == expectedReceiptTokenAmount_,
+      string.concat(
+        "Invariant Violated: The amount of receipt tokens received from a deposit must be 1:1 with the asset amount deposited.",
+        " assetAmount_: ",
+        Strings.toString(assetAmount_),
+        ", expectedReceiptTokenAmount_: ",
+        Strings.toString(expectedReceiptTokenAmount_),
+        ", receivedReceiptTokenAmount_: ",
+        Strings.toString(receivedReceiptTokenAmount_),
+        ", actorReceiptTokenBalBeforeDeposit_",
+        Strings.toString(actorReceiptTokenBalBeforeDeposit_),
+        ", depositReceiptToken_.balanceOf(actor_)",
+        Strings.toString(depositReceiptToken_.balanceOf(actor_))
+      )
+    );
+  }
 
-  function invariant_cannotDepositZeroAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
+  function invariant_cannotRewardsDepositZeroAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
     // Can't deposit if the rewards manager is paused.
     if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
 
@@ -206,7 +206,7 @@ abstract contract DepositInvariants is InvariantTestBase {
     rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, 0, actor_);
   }
 
-  function invariant_cannotDepositWithInsufficientAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
+  function invariant_cannotRewardsDepositWithInsufficientAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
     // Can't deposit if the rewards manager is paused.
     if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
 
@@ -220,9 +220,12 @@ abstract contract DepositInvariants is InvariantTestBase {
   }
 }
 
-contract DepositsInvariantsSingleReservePool is DepositInvariants, InvariantTestWithSingleStakePoolAndSingleRewardPool {}
+contract RewardsDepositInvariantsSingleReservePool is
+  RewardsDepositInvariants,
+  InvariantTestWithSingleStakePoolAndSingleRewardPool
+{}
 
-contract DepositsInvariantsMultipleReservePools is
-  DepositInvariants,
+contract RewardsDepositInvariantsMultipleReservePools is
+  RewardsDepositInvariants,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 {}
