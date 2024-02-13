@@ -37,6 +37,12 @@ interface IRewardsManager {
     view
     returns (ClaimableRewardsData memory);
 
+  /// @notice Converts a reward pool's reward asset amount to the corresponding reward deposit receipt token amount.
+  function convertRewardAssetToReceiptTokenAmount(uint256 rewardPoolId_, uint256 rewardAssetAmount_)
+    external
+    view
+    returns (uint256 depositReceiptTokenAmount_);
+
   /// @notice Updates the reward module's user rewards data prior to a stkToken transfer.
   function updateUserRewardsForStkTokenTransfer(address from_, address to_) external;
 
