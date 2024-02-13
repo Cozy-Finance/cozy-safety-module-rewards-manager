@@ -103,7 +103,7 @@ abstract contract UnstakerInvariants is InvariantTestBase {
             == unstakeStakePoolData_[stakePoolId_].assetPoolAmount - stkReceiptTokenUnstakeAmount_
               - actorRewardsToBeClaimed[currentStakePool_.asset],
           string.concat(
-            "Invariant Violated: An asset pool's internal balance must decrease by at least the unstake amount.",
+            "Invariant Violated: An asset pool's internal balance must decrease by the unstake amount + claimed rewards from reward pools using the same asset.",
             " stakePoolId_: ",
             Strings.toString(stakePoolId_),
             ", currentAssetPool_.amount: ",
