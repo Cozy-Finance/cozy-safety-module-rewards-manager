@@ -1,0 +1,6 @@
+{
+  "owner": "0x682bd405073dD248527E40184898eD45BB827527",
+  "pauser": "0x682bd405073dD248527E40184898eD45BB827527",
+  "allowedRewardPools": 20,
+  "allowedStakePools": 30
+}
