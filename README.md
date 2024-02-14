@@ -1,66 +1,23 @@
-## Foundry
+# Cozy Safety Module Rewards Manager
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+A Rewards Manager enables projects to configure stake pools and reward pools for user incentivization.
+- Stakers can stake assets in configured stake pools
+- Stakers receive rewards from configured reward pools
 
-Foundry consists of:
+In the context of [Cozy Safety Modules](https://github.com/Cozy-Finance/cozy-safety-module), a Rewards Manager can be utilized to incentivize Safety Module depositors by allowing them to stake their deposit receipt tokens to receive rewards.
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Development
 
-## Documentation
+### Getting Started
 
-https://book.getfoundry.sh/
+This repo is built using [Foundry](https://github.com/gakonst/foundry).
 
-## Usage
+## Definitions and Standards
 
-### Build
+Definitions of terms used:
+- `zoc`: A number with 4 decimals.
+- `wad`: A number with 18 decimals.
 
-```shell
-$ forge build
-```
+Throughout the code the following standards are used:
+- All token quantities in function inputs and return values are denominated in the same units (i.e. same number of decimals) as the underlying `asset` of the related asset pool.
 
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
