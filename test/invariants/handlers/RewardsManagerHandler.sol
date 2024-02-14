@@ -432,6 +432,17 @@ contract RewardsManagerHandler is TestBase {
     console2.log("unpause", invalidCalls["unpause"]);
   }
 
+  function stakeWithoutTransferWithExistingActorWithoutCountingCall(uint256 assets_) external returns (address) {
+    uint256 invalidCallsBefore_ = invalidCalls["stakeWithExistingActor"];
+
+    address actor_ = stakeWithExistingActor(assets_, _randomUint256());
+
+    calls["stakeWithExistingActor"] -= 1; // stakeWithExistingActor increments by 1.
+    if (invalidCallsBefore_ < invalidCalls["stakeWithExistingActor"]) invalidCalls["stakeWithExistingActor"] -= 1;
+
+    return actor_;
+  }
+
   function depositRewardAssetsWithExistingActorWithoutCountingCall(uint256 assets_) external returns (address) {
     uint256 invalidCallsBefore_ = invalidCalls["depositRewardAssetsWithExistingActor"];
 
@@ -470,6 +481,10 @@ contract RewardsManagerHandler is TestBase {
 
   function pickValidRewardPoolId(uint256 seed_) public view returns (uint8) {
     return uint8(bound(seed_, 0, numRewardPools - 1));
+  }
+
+  function pickValidStakePoolId(uint256 seed_) public view returns (uint8) {
+    return uint8(bound(seed_, 0, numStakePools - 1));
   }
 
   function pickActor(uint256 seed_) public view returns (address) {
@@ -596,7 +611,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   modifier useValidStakePoolId(uint256 seed_) {
-    currentStakePoolId = uint16(bound(seed_, 0, numStakePools - 1));
+    currentStakePoolId = pickValidStakePoolId(seed_);
     _;
   }
 
