@@ -25,11 +25,11 @@ abstract contract StakerInvariants is InvariantTestBase {
     uint256 totalSupply;
   }
 
-  function invariant_stakerReceiptTokenTotalSupplyAndInternalBalancesIncreaseOnRewardsDeposit()
+  function invariant_stakerReceiptTokenTotalSupplyAndInternalBalancesIncreaseOnStake()
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
-    InternalBalances[] memory internalBalancesBeforeStake_ = new InternalBalances[](numRewardPools);
+    InternalBalances[] memory internalBalancesBeforeStake_ = new InternalBalances[](numStakePools);
     for (uint8 stakePoolId_; stakePoolId_ < numStakePools; stakePoolId_++) {
       StakePool memory stakePool_ = rewardsManager.stakePools(stakePoolId_);
 

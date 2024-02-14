@@ -478,11 +478,11 @@ contract RewardsManagerHandler is TestBase {
   }
 
   function pickValidRewardPoolId(uint256 seed_) public view returns (uint8) {
-    return uint8(bound(seed_, 0, numRewardPools - 1));
+    return uint8(seed_ % numRewardPools);
   }
 
   function pickValidStakePoolId(uint256 seed_) public view returns (uint8) {
-    return uint8(bound(seed_, 0, numStakePools - 1));
+    return uint8(seed_ % numStakePools);
   }
 
   function pickActor(uint256 seed_) public view returns (address) {
