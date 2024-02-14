@@ -54,7 +54,7 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
 
     // An unstake triggers `claimRewards`, so we need to calculate the rewards to be claimed before the unstake.
     PreviewClaimableRewards memory actorPreviewClaimableRewards_ =
-      rewardsManagerHandler.getActorRewardsToBeClaimed(unstakedStakePoolId_, actor_)[0];
+      rewardsManagerHandler.previewClaimableRewardsForActor(unstakedStakePoolId_, actor_)[0];
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       actorRewardsToBeClaimed[rewardsManager.rewardPools(rewardPoolId_).asset] +=
         actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
