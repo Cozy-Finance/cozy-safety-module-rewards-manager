@@ -28,9 +28,6 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
-    // Can't deposit if the rewards manager is paused.
-    if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
-
     uint256[] memory totalSupplyBeforeDepositRewards_ = new uint256[](numRewardPools);
     InternalBalances[] memory internalBalancesBeforeDepositRewards_ = new InternalBalances[](numRewardPools);
     for (uint8 rewardPoolId_; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
@@ -165,9 +162,6 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
-    // Can't deposit if the rewards manager is paused.
-    if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
-
     uint256 assetAmount_ = rewardsManagerHandler.boundDepositAssetAmount(_randomUint256());
     uint8 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
     address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
@@ -198,9 +192,6 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
   }
 
   function invariant_cannotRewardsDepositZeroAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
-    // Can't deposit if the rewards manager is paused.
-    if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
-
     uint8 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
     address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
 
@@ -210,9 +201,6 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
   }
 
   function invariant_cannotRewardsDepositWithInsufficientAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
-    // Can't deposit if the rewards manager is paused.
-    if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
-
     uint8 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
     address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
     uint256 assetAmount_ = rewardsManagerHandler.boundDepositAssetAmount(_randomUint256());

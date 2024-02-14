@@ -6,12 +6,12 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {StakePool, RewardPool} from "../../src/lib/structs/Pools.sol";
 import {
-  InvariantTestBase,
+  InvariantTestBaseWithStateTransitions,
   InvariantTestWithSingleStakePoolAndSingleRewardPool,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 } from "./utils/InvariantTestBase.sol";
 
-abstract contract AccountingInvariants is InvariantTestBase {
+abstract contract AccountingInvariantsWithStateTransitions is InvariantTestBaseWithStateTransitions {
   using FixedPointMathLib for uint256;
 
   function invariant_internalAssetPoolAmountEqualsERC20BalanceOfRewardsManager()
@@ -95,12 +95,12 @@ abstract contract AccountingInvariants is InvariantTestBase {
   }
 }
 
-contract AccountingInvariantsSingleStakePoolSingleRewardPool is
-  AccountingInvariants,
+contract AccountingInvariantsWithStateTransitionsSingleStakePoolSingleRewardPool is
+  AccountingInvariantsWithStateTransitions,
   InvariantTestWithSingleStakePoolAndSingleRewardPool
 {}
 
-contract AccountingInvariantsMultipleStakePoolsMultipleRewardPools is
-  AccountingInvariants,
+contract AccountingInvariantsWithStateTransitionsMultipleStakePoolsMultipleRewardPools is
+  AccountingInvariantsWithStateTransitions,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 {}

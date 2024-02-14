@@ -8,6 +8,7 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {RewardsManager} from "../../../src/RewardsManager.sol";
 import {StakePool, RewardPool} from "../../../src/lib/structs/Pools.sol";
 import {PreviewClaimableRewards, PreviewClaimableRewardsData} from "../../../src/lib/structs/Rewards.sol";
+import {RewardsManagerState} from "../../../src/lib/RewardsManagerStates.sol";
 import {IRewardsManager} from "../../../src/interfaces/IRewardsManager.sol";
 import {TestBase} from "../../utils/TestBase.sol";
 
@@ -354,26 +355,23 @@ contract RewardsManagerHandler is TestBase {
     }
   }
 
-  /*
-  TODO:
   function pause(uint256 seed_) public virtual countCall("pause") advanceTime(seed_) {
-    if (safetyModule.safetyModuleState() == SafetyModuleState.PAUSED) {
+    if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) {
       invalidCalls["pause"] += 1;
       return;
     }
     vm.prank(pauser);
-    safetyModule.pause();
+    rewardsManager.pause();
   }
 
   function unpause(uint256 seed_) public virtual countCall("unpause") advanceTime(seed_) {
-    if (safetyModule.safetyModuleState() != SafetyModuleState.PAUSED) {
+    if (rewardsManager.rewardsManagerState() != RewardsManagerState.ACTIVE) {
       invalidCalls["unpause"] += 1;
       return;
     }
     vm.prank(owner);
-    safetyModule.unpause();
+    rewardsManager.unpause();
   }
-  */
 
   // ----------------------------------
   // -------- Helper functions --------
@@ -480,11 +478,11 @@ contract RewardsManagerHandler is TestBase {
   }
 
   function pickValidRewardPoolId(uint256 seed_) public view returns (uint8) {
-    return uint8(bound(seed_, 0, numRewardPools - 1));
+    return uint8(seed_ % numRewardPools);
   }
 
   function pickValidStakePoolId(uint256 seed_) public view returns (uint8) {
-    return uint8(bound(seed_, 0, numStakePools - 1));
+    return uint8(seed_ % numStakePools);
   }
 
   function pickActor(uint256 seed_) public view returns (address) {

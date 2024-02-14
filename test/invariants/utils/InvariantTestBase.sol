@@ -88,6 +88,32 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
   }
 }
 
+abstract contract InvariantTestBaseWithStateTransitions is InvariantTestBase {
+  function _fuzzedSelectors() internal pure override returns (bytes4[] memory) {
+    bytes4[] memory selectors = new bytes4[](17);
+    selectors[0] = RewardsManagerHandler.depositRewardAssets.selector;
+    selectors[1] = RewardsManagerHandler.depositRewardAssetsWithExistingActor.selector;
+    selectors[2] = RewardsManagerHandler.depositRewardAssetsWithoutTransfer.selector;
+    selectors[3] = RewardsManagerHandler.depositRewardAssetsWithoutTransferWithExistingActor.selector;
+    selectors[4] = RewardsManagerHandler.stake.selector;
+    selectors[5] = RewardsManagerHandler.stakeWithExistingActor.selector;
+    selectors[6] = RewardsManagerHandler.stakeWithoutTransfer.selector;
+    selectors[7] = RewardsManagerHandler.stakeWithoutTransferWithExistingActor.selector;
+    selectors[8] = RewardsManagerHandler.unstake.selector;
+    // RewardsDistributor selectors
+    selectors[9] = RewardsManagerHandler.dripRewards.selector;
+    selectors[10] = RewardsManagerHandler.dripRewardPool.selector;
+    selectors[11] = RewardsManagerHandler.claimRewards.selector;
+    selectors[12] = RewardsManagerHandler.stkTokenTransfer.selector;
+    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkTokenTransfer.selector;
+    selectors[14] = RewardsManagerHandler.redeemUndrippedRewards.selector;
+    // State transition selectors
+    selectors[15] = RewardsManagerHandler.pause.selector;
+    selectors[16] = RewardsManagerHandler.unpause.selector;
+    return selectors;
+  }
+}
+
 abstract contract InvariantTestWithSingleStakePoolAndSingleRewardPool is InvariantBaseDeploy {
   function _initRewardsManager() internal override {
     IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "MOCK", 6)));
