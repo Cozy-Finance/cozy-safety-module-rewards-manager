@@ -182,7 +182,7 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
     require(
       receivedReceiptTokenAmount_ == expectedReceiptTokenAmount_,
       string.concat(
-        "Invariant Violated: The amount of receipt tokens received from a deposit must be 1:1 with the asset amount deposited.",
+        "Invariant Violated: The amount of receipt tokens received from a rewards deposit must match the previewed amount.",
         " assetAmount_: ",
         Strings.toString(assetAmount_),
         ", expectedReceiptTokenAmount_: ",
