@@ -696,7 +696,7 @@ contract RewardsManagerHandler is TestBase {
     return initIndex_;
   }
 
-  function getActorRewardsToBeClaimed(uint16 stakePoolId_, address actor_)
+  function previewClaimableRewardsForActor(uint16 stakePoolId_, address actor_)
     public
     view
     returns (PreviewClaimableRewards[] memory reservePoolClaimableRewards_)

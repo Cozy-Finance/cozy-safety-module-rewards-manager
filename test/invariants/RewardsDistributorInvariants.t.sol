@@ -32,7 +32,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     if (actor_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
     uint16 stakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), actor_);
     PreviewClaimableRewards memory actorPreviewClaimableRewards_ =
-      rewardsManagerHandler.getActorRewardsToBeClaimed(stakePoolId_, actor_)[0];
+      rewardsManagerHandler.previewClaimableRewardsForActor(stakePoolId_, actor_)[0];
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       actorRewardsToBeClaimed[rewardsManager.rewardPools(rewardPoolId_).asset] +=
         actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
@@ -101,6 +101,52 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
           Strings.toString(actorRewardsToBeClaimed[rewardPool_.asset]),
           ", receiver: ",
           Strings.toHexString(uint160(receiver_)),
+          ", stakePoolId: ",
+          Strings.toString(stakePoolId_),
+          ", rewardPoolId: ",
+          Strings.toString(rewardPoolId_)
+        )
+      );
+    }
+  }
+
+  function invariant_claimRewardsMatchesPreview() public syncCurrentTimestamp(rewardsManagerHandler) {
+    address actor_ = rewardsManagerHandler.getActorWithStake(_randomUint256());
+    uint16 stakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), actor_);
+    PreviewClaimableRewards memory actorPreviewClaimableRewards_ =
+      rewardsManagerHandler.previewClaimableRewardsForActor(stakePoolId_, actor_)[0];
+
+    address receiver_ = _randomAddress();
+    vm.prank(actor_);
+    rewardsManager.claimRewards(stakePoolId_, receiver_);
+
+    for (uint8 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
+      require(
+        rewardPoolId_ == actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].rewardPoolId,
+        string.concat(
+          "Invariant Violated: The reward pool id must match the previewed reward pool id.",
+          " rewardPoolId: ",
+          Strings.toString(rewardPoolId_),
+          ", actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].rewardPoolId: ",
+          Strings.toString(actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].rewardPoolId),
+          ", actor: ",
+          Strings.toHexString(uint160(actor_)),
+          ", stakePoolId: ",
+          Strings.toString(stakePoolId_)
+        )
+      );
+
+      IERC20 rewardAsset_ = rewardsManager.rewardPools(rewardPoolId_).asset;
+      require(
+        rewardAsset_.balanceOf(receiver_) == actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount,
+        string.concat(
+          "Invariant Violated: The amount of claimed rewards must match the previewed amount of claimed rewards.",
+          " rewardAsset_.balanceOf(receiver_): ",
+          Strings.toString(rewardAsset_.balanceOf(receiver_)),
+          ", actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount: ",
+          Strings.toString(actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount),
+          ", actor: ",
+          Strings.toHexString(uint160(actor_)),
           ", stakePoolId: ",
           Strings.toString(stakePoolId_),
           ", rewardPoolId: ",
