@@ -9,12 +9,12 @@ import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {StakePool, RewardPool, AssetPool} from "../../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData, UserRewardsData, PreviewClaimableRewards} from "../../src/lib/structs/Rewards.sol";
 import {
-  InvariantTestBase,
+  InvariantTestBaseWithStateTransitions,
   InvariantTestWithSingleStakePoolAndSingleRewardPool,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 } from "./utils/InvariantTestBase.sol";
 
-abstract contract UnstakerInvariants is InvariantTestBase {
+abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWithStateTransitions {
   using FixedPointMathLib for uint256;
 
   struct UnstakeStakePoolData {
@@ -280,12 +280,12 @@ abstract contract UnstakerInvariants is InvariantTestBase {
   }
 }
 
-contract UnstakerInvariantsSingleStakePoolSingleRewardPool is
-  UnstakerInvariants,
+contract UnstakerInvariantsWithStateTransitionsSingleStakePoolSingleRewardPool is
+  UnstakerInvariantsWithStateTransitions,
   InvariantTestWithSingleStakePoolAndSingleRewardPool
 {}
 
-contract UnstakerInvariantsMultipleStakePoolsMultipleRewardPools is
-  UnstakerInvariants,
+contract UnstakerInvariantsWithStateTransitionsMultipleStakePoolsMultipleRewardPools is
+  UnstakerInvariantsWithStateTransitions,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 {}

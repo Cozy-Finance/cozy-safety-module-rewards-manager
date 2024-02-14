@@ -8,12 +8,12 @@ import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
 import {StakePool, RewardPool} from "../../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData, UserRewardsData} from "../../src/lib/structs/Rewards.sol";
 import {
-  InvariantTestBase,
+  InvariantTestBaseWithStateTransitions,
   InvariantTestWithSingleStakePoolAndSingleRewardPool,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 } from "./utils/InvariantTestBase.sol";
 
-abstract contract RewardsAccountingInvariants is InvariantTestBase {
+abstract contract RewardsAccountingInvariantsWithStateTransitions is InvariantTestBaseWithStateTransitions {
   using FixedPointMathLib for uint256;
 
   function invariant_cumulativeClaimedRewardsLteScaledCumulativeDrippedRewards()
@@ -127,12 +127,12 @@ abstract contract RewardsAccountingInvariants is InvariantTestBase {
   }
 }
 
-contract RewardsAccountingInvariantsSingleStakePoolSingleRewardPool is
-  RewardsAccountingInvariants,
+contract RewardsAccountingInvariantsWithStateTransitionsSingleStakePoolSingleRewardPool is
+  RewardsAccountingInvariantsWithStateTransitions,
   InvariantTestWithSingleStakePoolAndSingleRewardPool
 {}
 
-contract RewardsAccountingInvariantsMultipleStakePoolsMultipleRewardPools is
-  RewardsAccountingInvariants,
+contract RewardsAccountingInvariantsWithStateTransitionsMultipleStakePoolsMultipleRewardPools is
+  RewardsAccountingInvariantsWithStateTransitions,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 {}

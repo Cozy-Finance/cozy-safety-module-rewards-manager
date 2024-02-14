@@ -9,12 +9,12 @@ import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
 import {StakePool, RewardPool} from "../../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData, UserRewardsData, PreviewClaimableRewards} from "../../src/lib/structs/Rewards.sol";
 import {
-  InvariantTestBase,
+  InvariantTestBaseWithStateTransitions,
   InvariantTestWithSingleStakePoolAndSingleRewardPool,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 } from "./utils/InvariantTestBase.sol";
 
-abstract contract RewardsDistributorInvariants is InvariantTestBase {
+abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantTestBaseWithStateTransitions {
   using FixedPointMathLib for uint256;
 
   mapping(IERC20 rewardAsset_ => uint256) public actorRewardsToBeClaimed;
@@ -454,12 +454,12 @@ abstract contract RewardsDistributorInvariants is InvariantTestBase {
   }
 }
 
-contract RewardsDistributorInvariantsSingleStakePoolSingleRewardPool is
-  RewardsDistributorInvariants,
+contract RewardsDistributorInvariantsWithStateTransitionsSingleStakePoolSingleRewardPool is
+  RewardsDistributorInvariantsWithStateTransitions,
   InvariantTestWithSingleStakePoolAndSingleRewardPool
 {}
 
-contract RewardsDistributorInvariantsMultipleStakePoolsMultipleRewardPools is
-  RewardsDistributorInvariants,
+contract RewardsDistributorInvariantsWithStateTransitionsMultipleStakePoolsMultipleRewardPools is
+  RewardsDistributorInvariantsWithStateTransitions,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 {}

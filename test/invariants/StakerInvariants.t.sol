@@ -29,9 +29,6 @@ abstract contract StakerInvariants is InvariantTestBase {
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
-    // Can't stake if the rewards manager is paused.
-    if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
-
     InternalBalances[] memory internalBalancesBeforeStake_ = new InternalBalances[](numRewardPools);
     for (uint8 stakePoolId_; stakePoolId_ < numStakePools; stakePoolId_++) {
       StakePool memory stakePool_ = rewardsManager.stakePools(stakePoolId_);
@@ -162,9 +159,6 @@ abstract contract StakerInvariants is InvariantTestBase {
   }
 
   function invariant_cannotStakeZeroAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
-    // Can't stake if the rewards manager is paused.
-    if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
-
     uint8 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
     address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
 
@@ -174,9 +168,6 @@ abstract contract StakerInvariants is InvariantTestBase {
   }
 
   function invariant_cannotStakeWithInsufficientAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
-    // Can't stake if the rewards manager is paused.
-    if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) return;
-
     uint8 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
     address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
     uint256 assetAmount_ = rewardsManagerHandler.boundDepositAssetAmount(_randomUint256());

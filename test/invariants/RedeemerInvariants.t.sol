@@ -10,11 +10,12 @@ import {StakePool, RewardPool, AssetPool} from "../../src/lib/structs/Pools.sol"
 import {ClaimableRewardsData, UserRewardsData, PreviewClaimableRewards} from "../../src/lib/structs/Rewards.sol";
 import {
   InvariantTestBase,
+  InvariantTestBaseWithStateTransitions,
   InvariantTestWithSingleStakePoolAndSingleRewardPool,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 } from "./utils/InvariantTestBase.sol";
 
-abstract contract RedeemerInvariants is InvariantTestBase {
+abstract contract RedeemerInvariantsWithStateTransitions is InvariantTestBaseWithStateTransitions {
   using FixedPointMathLib for uint256;
 
   struct RedeemRewardPoolData {
@@ -300,12 +301,12 @@ abstract contract RedeemerInvariants is InvariantTestBase {
   }
 }
 
-contract RedeemerInvariantsSingleStakePoolSingleRewardPool is
-  RedeemerInvariants,
+contract RedeemerInvariantsWithStateTransitionsSingleStakePoolSingleRewardPool is
+  RedeemerInvariantsWithStateTransitions,
   InvariantTestWithSingleStakePoolAndSingleRewardPool
 {}
 
-contract RedeemerInvariantsMultipleStakePoolsMultipleRewardPools is
-  RedeemerInvariants,
+contract RedeemerInvariantsWithStateTransitionsMultipleStakePoolsMultipleRewardPools is
+  RedeemerInvariantsWithStateTransitions,
   InvariantTestWithMultipleStakePoolsAndMultipleRewardPools
 {}
