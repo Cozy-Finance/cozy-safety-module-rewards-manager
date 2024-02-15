@@ -315,7 +315,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
 
     _expectEmit();
     emit StakePoolCreated(1, IReceiptToken(stkReceiptTokenAddress_), asset_);
-    component.initializeStakePool(newStakePoolConfig_);
+    component.initializeStakePool(newStakePoolConfig_, 1);
 
     // One stake pool was added, so two total stake pools.
     assertEq(component.getStakePools().length, 2);
@@ -348,7 +348,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
 
     _expectEmit();
     emit RewardPoolCreated(1, newRewardPoolConfig_.asset, IReceiptToken(depositTokenAddress_));
-    component.initializeRewardPool(newRewardPoolConfig_);
+    component.initializeRewardPool(newRewardPoolConfig_, 1);
 
     // One reward pool was added, so two total reward pools.
     assertEq(component.getRewardPools().length, 2);
@@ -415,7 +415,12 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external view returns (bool) {
     return ConfiguratorLib.isValidConfiguration(
-      stakePoolConfigs_, rewardPoolConfigs_, stakePools.length, allowedStakePools, allowedRewardPools
+      stakePoolConfigs_,
+      rewardPoolConfigs_,
+      stakePools.length,
+      rewardPools.length,
+      allowedStakePools,
+      allowedRewardPools
     );
   }
 
@@ -435,14 +440,19 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     );
   }
 
-  function initializeStakePool(StakePoolConfig calldata stakePoolConfig_) external {
+  function initializeStakePool(StakePoolConfig calldata stakePoolConfig_, uint16 stakePoolId_) external {
     ConfiguratorLib.initializeStakePool(
-      stakePools, assetToStakePoolIds, stkReceiptTokenToStakePoolIds, receiptTokenFactory, stakePoolConfig_
+      stakePools,
+      assetToStakePoolIds,
+      stkReceiptTokenToStakePoolIds,
+      receiptTokenFactory,
+      stakePoolConfig_,
+      stakePoolId_
     );
   }
 
-  function initializeRewardPool(RewardPoolConfig calldata rewardPoolConfig_) external {
-    ConfiguratorLib.initializeRewardPool(rewardPools, receiptTokenFactory, rewardPoolConfig_);
+  function initializeRewardPool(RewardPoolConfig calldata rewardPoolConfig_, uint16 rewardPoolId_) external {
+    ConfiguratorLib.initializeRewardPool(rewardPools, receiptTokenFactory, rewardPoolConfig_, rewardPoolId_);
   }
 
   function _dripAndResetCumulativeRewardsValues(

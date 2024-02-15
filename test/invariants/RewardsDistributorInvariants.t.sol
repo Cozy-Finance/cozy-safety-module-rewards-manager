@@ -117,6 +117,11 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
       rewardsManagerHandler.previewClaimableRewardsForActor(stakePoolId_, actor_)[0];
 
     address receiver_ = _randomAddress();
+    uint256[] memory receiverPreBalances_ = new uint256[](numRewardPools);
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
+      receiverPreBalances_[rewardPoolId_] = rewardsManager.rewardPools(rewardPoolId_).asset.balanceOf(receiver_);
+    }
+
     vm.prank(actor_);
     rewardsManager.claimRewards(stakePoolId_, receiver_);
 
@@ -138,15 +143,18 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
 
       IERC20 rewardAsset_ = rewardsManager.rewardPools(rewardPoolId_).asset;
       require(
-        rewardAsset_.balanceOf(receiver_) == actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount,
+        rewardAsset_.balanceOf(receiver_) - receiverPreBalances_[rewardPoolId_]
+          == actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount,
         string.concat(
           "Invariant Violated: The amount of claimed rewards must match the previewed amount of claimed rewards.",
-          " rewardAsset_.balanceOf(receiver_): ",
-          Strings.toString(rewardAsset_.balanceOf(receiver_)),
+          " rewardAsset_.balanceOf(receiver_) - receiverPreBalances_[rewardPoolId_]: ",
+          Strings.toString(rewardAsset_.balanceOf(receiver_) - receiverPreBalances_[rewardPoolId_]),
           ", actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount: ",
           Strings.toString(actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount),
           ", actor: ",
           Strings.toHexString(uint160(actor_)),
+          ", receiver:",
+          Strings.toHexString(uint160(receiver_)),
           ", stakePoolId: ",
           Strings.toString(stakePoolId_),
           ", rewardPoolId: ",

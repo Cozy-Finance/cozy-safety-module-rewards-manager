@@ -57,6 +57,10 @@ contract TestBase is Test, TestAssertions {
     return uint128(_randomUint256());
   }
 
+  function _randomUint160() internal view returns (uint160) {
+    return uint160(_randomUint256());
+  }
+
   function _randomUint256() internal view returns (uint256) {
     return uint256(_randomBytes32());
   }
