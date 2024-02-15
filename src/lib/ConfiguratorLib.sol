@@ -78,16 +78,13 @@ library ConfiguratorLib {
       uint16 rewardsWeightSum_ = 0;
 
       // Existing stake pool configs.
-      for (uint256 i = 0; i < numExistingStakePools_; i++) {
+      for (uint256 i = 0; i < stakePoolConfigs_.length; i++) {
         rewardsWeightSum_ += stakePoolConfigs_[i].rewardsWeight;
-      }
 
-      // New stake pool configs.
-      for (uint256 i = numExistingStakePools_; i < stakePoolConfigs_.length; i++) {
-        rewardsWeightSum_ += stakePoolConfigs_[i].rewardsWeight;
         // New stake pool configs in the array are not sorted by asset or includes duplicates.
         if (
-          i > numExistingStakePools_ && address(stakePoolConfigs_[i].asset) <= address(stakePoolConfigs_[i - 1].asset)
+          i >= (numExistingStakePools_ + 1)
+            && address(stakePoolConfigs_[i].asset) <= address(stakePoolConfigs_[i - 1].asset)
         ) return false;
       }
 

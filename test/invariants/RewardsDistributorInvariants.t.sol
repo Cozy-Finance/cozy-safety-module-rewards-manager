@@ -110,6 +110,8 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     }
   }
 
+  mapping(IERC20 rewardAsset_ => uint256) public receiverPreviewRewardsToBeClaimed;
+
   function invariant_claimRewardsMatchesPreview() public syncCurrentTimestamp(rewardsManagerHandler) {
     address actor_ = rewardsManagerHandler.getActorWithStake(_randomUint256());
     uint16 stakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), actor_);
@@ -120,6 +122,11 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     uint256[] memory receiverPreBalances_ = new uint256[](numRewardPools);
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       receiverPreBalances_[rewardPoolId_] = rewardsManager.rewardPools(rewardPoolId_).asset.balanceOf(receiver_);
+    }
+
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
+      receiverPreviewRewardsToBeClaimed[rewardsManager.rewardPools(rewardPoolId_).asset] +=
+        actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
     }
 
     vm.prank(actor_);
@@ -144,13 +151,13 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
       IERC20 rewardAsset_ = rewardsManager.rewardPools(rewardPoolId_).asset;
       require(
         rewardAsset_.balanceOf(receiver_) - receiverPreBalances_[rewardPoolId_]
-          == actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount,
+          == receiverPreviewRewardsToBeClaimed[rewardAsset_],
         string.concat(
           "Invariant Violated: The amount of claimed rewards must match the previewed amount of claimed rewards.",
           " rewardAsset_.balanceOf(receiver_) - receiverPreBalances_[rewardPoolId_]: ",
           Strings.toString(rewardAsset_.balanceOf(receiver_) - receiverPreBalances_[rewardPoolId_]),
-          ", actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount: ",
-          Strings.toString(actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount),
+          ", receiverPreviewRewardsToBeClaimed[rewardAsset_]: ",
+          Strings.toString(receiverPreviewRewardsToBeClaimed[rewardAsset_]),
           ", actor: ",
           Strings.toHexString(uint160(actor_)),
           ", receiver:",

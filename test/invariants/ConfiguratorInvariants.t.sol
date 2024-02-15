@@ -219,10 +219,13 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     rewardsManager.updateConfigs(currentStakePoolConfigs_, rewardPoolConfigs_);
   }
 
-  function _createValidConfigUpdate() internal returns (StakePoolConfig[] memory, RewardPoolConfig[] memory) {
+  function _createValidConfigUpdate() internal view returns (StakePoolConfig[] memory, RewardPoolConfig[] memory) {
     (StakePoolConfig[] memory currentStakePoolConfigs_, RewardPoolConfig[] memory currentRewardPoolConfigs_) =
       _copyCurrentConfig();
 
+    // Foundry invariant tests seem to revert at some random point into a run when you try to deploy new reward deposit
+    // receipt tokens or stkTokens, so these tests do not add new stake pools or reward pools. Those cases are checked
+    // in unit tests.
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](currentStakePoolConfigs_.length);
     uint256 rewardsWeightSum_ = 0;
     for (uint8 i = 0; i < currentStakePoolConfigs_.length; i++) {

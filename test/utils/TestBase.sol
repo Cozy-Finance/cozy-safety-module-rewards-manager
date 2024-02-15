@@ -124,6 +124,25 @@ contract TestBase is Test, TestAssertions {
     copied_.lastDripTime = original_.lastDripTime;
   }
 
+  function sortStakePools(StakePool[] memory stakePools_) internal pure {
+    sortStakePools(stakePools_, 0);
+  }
+
+  function sortStakePools(StakePool[] memory stakePools_, uint256 startIndex) internal pure {
+    uint256 n = stakePools_.length;
+
+    require(startIndex < n, "startIndex must be less than the array length");
+
+    for (uint256 i = startIndex; i < n - 1; i++) {
+      for (uint256 j = startIndex; j < n - i + startIndex - 1; j++) {
+        if (address(stakePools_[j].asset) > address(stakePools_[j + 1].asset)) {
+          // Swap stakePools_[j] and stakePools_[j + 1]
+          (stakePools_[j], stakePools_[j + 1]) = (stakePools_[j + 1], stakePools_[j]);
+        }
+      }
+    }
+  }
+
   function sortStakePoolConfigs(StakePoolConfig[] memory stakePoolConfigs_) internal pure {
     sortStakePoolConfigs(stakePoolConfigs_, 0);
   }
