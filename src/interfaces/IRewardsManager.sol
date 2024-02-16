@@ -21,6 +21,10 @@ interface IRewardsManager {
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external;
 
+  function allowedStakePools() external view returns (uint8);
+
+  function allowedRewardPools() external view returns (uint8);
+
   function assetPools(IERC20 asset_) external view returns (AssetPool memory);
 
   /// @notice Retrieve accounting and metadata about stake pools.
@@ -104,4 +108,7 @@ interface IRewardsManager {
   function unpause() external;
 
   function cozyManager() external returns (ICozyManager);
+
+  function updateConfigs(StakePoolConfig[] calldata stakePoolConfigs_, RewardPoolConfig[] calldata rewardPoolConfigs_)
+    external;
 }

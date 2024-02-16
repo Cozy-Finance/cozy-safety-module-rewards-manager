@@ -51,7 +51,7 @@ contract RewardsManager is
     if (initialized) revert Initialized();
     if (
       !ConfiguratorLib.isValidConfiguration(
-        stakePoolConfigs_, rewardPoolConfigs_, 0, allowedStakePools, allowedRewardPools
+        stakePoolConfigs_, rewardPoolConfigs_, 0, 0, allowedStakePools, allowedRewardPools
       )
     ) revert IConfiguratorErrors.InvalidConfiguration();
 

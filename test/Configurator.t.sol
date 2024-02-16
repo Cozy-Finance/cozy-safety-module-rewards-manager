@@ -23,14 +23,18 @@ import {Configurator} from "../src/lib/Configurator.sol";
 import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {IConfiguratorEvents} from "../src/interfaces/IConfiguratorEvents.sol";
+import {IConfiguratorErrors} from "../src/interfaces/IConfiguratorErrors.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockSafetyModule} from "./utils/MockSafetyModule.sol";
 import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 
-contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
+contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErrors {
   TestableConfigurator component;
+
+  uint8 ALLOWED_STAKE_POOLS = 5;
+  uint8 ALLOWED_REWARD_POOLS = 10;
 
   function setUp() public {
     ReceiptToken receiptTokenLogic_ = new ReceiptToken();
@@ -38,18 +42,22 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     ReceiptTokenFactory receiptTokenFactory =
       new ReceiptTokenFactory(IReceiptToken(address(receiptTokenLogic_)), IReceiptToken(address(receiptTokenLogic_)));
 
-    component = new TestableConfigurator(address(this), receiptTokenFactory, 3, 3);
+    component = new TestableConfigurator(address(this), receiptTokenFactory, ALLOWED_STAKE_POOLS, ALLOWED_REWARD_POOLS);
   }
 
-  function _generateRewardPool() private returns (RewardPool memory) {
-    return RewardPool({
-      asset: IERC20(address(new MockERC20("Mock Reward Asset", "cozyMock", 6))),
-      dripModel: IDripModel(_randomAddress()),
-      depositReceiptToken: IReceiptToken(address(new ReceiptToken())),
-      undrippedRewards: _randomUint256(),
-      cumulativeDrippedRewards: 0,
-      lastDripTime: uint128(block.timestamp)
-    });
+  function _generateRewardPools(uint256 numPools_) private returns (RewardPool[] memory) {
+    RewardPool[] memory rewardPools_ = new RewardPool[](numPools_);
+    for (uint256 i = 0; i < numPools_; i++) {
+      rewardPools_[i] = RewardPool({
+        asset: IERC20(address(new MockERC20("Mock Reward Asset", "cozyMock", 6))),
+        dripModel: IDripModel(_randomAddress()),
+        depositReceiptToken: IReceiptToken(address(new ReceiptToken())),
+        undrippedRewards: _randomUint256(),
+        cumulativeDrippedRewards: 0,
+        lastDripTime: uint128(block.timestamp)
+      });
+    }
+    return rewardPools_;
   }
 
   function _generateStakePools(uint256 numPools_) private returns (StakePool[] memory) {
@@ -62,6 +70,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
         rewardsWeight: uint16(MathConstants.ZOC / numPools_)
       });
     }
+    sortStakePools(stakePools_);
     return stakePools_;
   }
 
@@ -79,10 +88,34 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     });
   }
 
-  function _setBasicConfigs() private returns (StakePoolConfig[] memory, RewardPoolConfig[] memory) {
+  function _generateValidConfigs(uint256 numStakePoolConfigs_, uint256 numRewardPoolConfigs_)
+    private
+    returns (StakePoolConfig[] memory, RewardPoolConfig[] memory)
+  {
+    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](numStakePoolConfigs_);
+    uint256 rewardsWeightSum_ = 0;
+    for (uint256 i = 0; i < numStakePoolConfigs_; i++) {
+      uint256 rewardsWeight_ = i < numStakePoolConfigs_ - 1
+        ? _randomUint256InRange(0, MathConstants.ZOC - rewardsWeightSum_)
+        : MathConstants.ZOC - rewardsWeightSum_;
+      rewardsWeightSum_ += rewardsWeight_;
+      stakePoolConfigs_[i] = _generateValidStakePoolConfig(uint16(rewardsWeight_));
+    }
+    if (numStakePoolConfigs_ > 1) sortStakePoolConfigs(stakePoolConfigs_);
+
+    RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](numRewardPoolConfigs_);
+    for (uint256 i = 0; i < numRewardPoolConfigs_; i++) {
+      rewardPoolConfigs_[i] = _generateValidRewardPoolConfig();
+    }
+    return (stakePoolConfigs_, rewardPoolConfigs_);
+  }
+
+  function _generateBasicValidConfigs() private returns (StakePoolConfig[] memory, RewardPoolConfig[] memory) {
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](2);
     stakePoolConfigs_[0] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 2));
     stakePoolConfigs_[1] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 2));
+    sortStakePoolConfigs(stakePoolConfigs_);
+
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](2);
     rewardPoolConfigs_[0] = _generateValidRewardPoolConfig();
     rewardPoolConfigs_[1] = _generateValidRewardPoolConfig();
@@ -102,8 +135,19 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     assertEq(stakePool_.rewardsWeight, stakePoolConfig_.rewardsWeight);
   }
 
-  function test_updateConfigs_basicSetup() external {
-    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+  function _convertToAllowedNumConfigs(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_)
+    private
+    view
+    returns (uint8, uint8)
+  {
+    return (numStakePoolConfigs_ % (ALLOWED_STAKE_POOLS + 1), numRewardPoolConfigs_ % (ALLOWED_REWARD_POOLS + 1));
+  }
+
+  function testFuzz_updateConfigs_OnInitialization(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_) external {
+    (numStakePoolConfigs_, numRewardPoolConfigs_) =
+      _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
 
     _expectEmit();
     emit TestableConfiguratorEvents.DripAndResetCumulativeRewardsValuesCalled();
@@ -112,17 +156,24 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
 
     component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
 
-    _assertRewardPoolUpdatesApplied(component.getRewardPool(0), rewardPoolConfigs_[0]);
-    _assertRewardPoolUpdatesApplied(component.getRewardPool(1), rewardPoolConfigs_[1]);
-    _assertStakePoolUpdatesApplied(component.getStakePool(0), stakePoolConfigs_[0]);
-    _assertStakePoolUpdatesApplied(component.getStakePool(1), stakePoolConfigs_[1]);
+    for (uint8 i = 0; i < numStakePoolConfigs_; i++) {
+      _assertStakePoolUpdatesApplied(component.getStakePool(i), stakePoolConfigs_[i]);
+    }
+    for (uint8 i = 0; i < numRewardPoolConfigs_; i++) {
+      _assertRewardPoolUpdatesApplied(component.getRewardPool(i), rewardPoolConfigs_[i]);
+    }
   }
 
-  function test_updateConfigs_basicSetup_whenPaused() external {
-    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
-
+  function testFuzz_updateConfigs_OnInitialization_WhenPaused(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_)
+    external
+  {
     component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
 
+    (numStakePoolConfigs_, numRewardPoolConfigs_) =
+      _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+
     _expectEmit();
     emit TestableConfiguratorEvents.DripAndResetCumulativeRewardsValuesCalled();
     _expectEmit();
@@ -130,80 +181,156 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
 
     component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
 
-    _assertRewardPoolUpdatesApplied(component.getRewardPool(0), rewardPoolConfigs_[0]);
-    _assertRewardPoolUpdatesApplied(component.getRewardPool(1), rewardPoolConfigs_[1]);
-    _assertStakePoolUpdatesApplied(component.getStakePool(0), stakePoolConfigs_[0]);
-    _assertStakePoolUpdatesApplied(component.getStakePool(1), stakePoolConfigs_[1]);
+    for (uint8 i = 0; i < numStakePoolConfigs_; i++) {
+      _assertStakePoolUpdatesApplied(component.getStakePool(i), stakePoolConfigs_[i]);
+    }
+    for (uint8 i = 0; i < numRewardPoolConfigs_; i++) {
+      _assertRewardPoolUpdatesApplied(component.getRewardPool(i), rewardPoolConfigs_[i]);
+    }
   }
 
-  function test_updateConfigs_revertNonOwner() external {
-    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+  function test_updateConfigs_OnInitialization_RevertsNonOwner() external {
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateBasicValidConfigs();
 
     vm.expectRevert(Ownable.Unauthorized.selector);
     vm.prank(_randomAddress());
     component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
   }
 
-  function test_isValidConfiguration_TrueValidConfig() external {
-    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+  function testFuzz_updateConfigs_OnInitialization_RevertsUnsortedStakePoolAssets(
+    uint8 numStakePoolConfigs_,
+    uint8 numRewardPoolConfigs_
+  ) external {
+    (numStakePoolConfigs_, numRewardPoolConfigs_) =
+      _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+    numStakePoolConfigs_ = numStakePoolConfigs_ > 1 ? numStakePoolConfigs_ : 2;
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+
+    uint256 swapIndex_ = _randomUint256InRange(1, numStakePoolConfigs_ - 1);
+    (stakePoolConfigs_[swapIndex_], stakePoolConfigs_[0]) = (stakePoolConfigs_[0], stakePoolConfigs_[swapIndex_]);
+
+    vm.expectRevert(InvalidConfiguration.selector);
+    component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
+  }
+
+  function testFuzz_updateConfigs_OnInitialization_RevertsNonUniqueStakePoolAssets(
+    uint8 numStakePoolConfigs_,
+    uint8 numRewardPoolConfigs_
+  ) external {
+    (numStakePoolConfigs_, numRewardPoolConfigs_) =
+      _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+    numStakePoolConfigs_ = numStakePoolConfigs_ > 1 ? numStakePoolConfigs_ : 2;
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+
+    uint256 dupIndex_ = _randomUint256InRange(1, numStakePoolConfigs_ - 1);
+    stakePoolConfigs_[dupIndex_].asset = stakePoolConfigs_[0].asset;
+
+    vm.expectRevert(InvalidConfiguration.selector);
+    component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
+  }
+
+  function testFuzz_isValidConfiguration_TrueValidConfig(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_)
+    external
+  {
+    (numStakePoolConfigs_, numRewardPoolConfigs_) =
+      _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+
     assertTrue(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function test_isValidConfiguration_FalseTooManyStakePools() external {
-    (, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
-    // Only 3 stake pools are allowed.
-    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](4);
-    stakePoolConfigs_[0] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
-    stakePoolConfigs_[1] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
-    stakePoolConfigs_[2] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
-    stakePoolConfigs_[3] = _generateValidStakePoolConfig(uint16(MathConstants.ZOC / 4));
+  function testFuzz_isValidConfiguration_FalseTooManyStakePools(uint8 numRewardPoolConfigs_) external {
+    (, numRewardPoolConfigs_) = _convertToAllowedNumConfigs(0, numRewardPoolConfigs_);
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(ALLOWED_STAKE_POOLS + 1, numRewardPoolConfigs_);
 
     assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function test_isValidConfiguration_OnlyRewardPools() external {
-    (, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
-    // No stake pools.
-    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](0);
+  function test_isValidConfiguration_TrueOnlyRewardPools() external {
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(0, ALLOWED_REWARD_POOLS);
     assertTrue(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function test_isValidConfiguration_FalseTooManyRewardsPools() external {
-    (StakePoolConfig[] memory stakePoolConfigs_,) = _setBasicConfigs();
-    // Only 3 reward pools are allowed.
-    RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](4);
-    rewardPoolConfigs_[0] = _generateValidRewardPoolConfig();
-    rewardPoolConfigs_[1] = _generateValidRewardPoolConfig();
-    rewardPoolConfigs_[2] = _generateValidRewardPoolConfig();
-    rewardPoolConfigs_[3] = _generateValidRewardPoolConfig();
+  function testFuzz_isValidConfiguration_FalseTooManyRewardPools(uint8 numStakePoolConfigs_) external {
+    (numStakePoolConfigs_,) = _convertToAllowedNumConfigs(numStakePoolConfigs_, 0);
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(numStakePoolConfigs_, ALLOWED_REWARD_POOLS + 1);
 
     assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function test_isValidConfiguration_FalseNonUniqueStakePoolAssets() external {
-    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
-    stakePoolConfigs_[1].asset = stakePoolConfigs_[0].asset;
+  function test_isValidConfiguration_TrueOnlyStakePools() external {
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(ALLOWED_STAKE_POOLS, 0);
+    assertTrue(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
+  }
+
+  function testFuzz_isValidConfiguration_FalseUnsortedStakePoolAssets(
+    uint8 numStakePoolConfigs_,
+    uint8 numRewardPoolConfigs_
+  ) external {
+    (numStakePoolConfigs_, numRewardPoolConfigs_) =
+      _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+    numStakePoolConfigs_ = numStakePoolConfigs_ > 1 ? numStakePoolConfigs_ : 2;
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+
+    uint256 swapIndex_ = _randomUint256InRange(1, numStakePoolConfigs_ - 1);
+    (stakePoolConfigs_[swapIndex_], stakePoolConfigs_[0]) = (stakePoolConfigs_[0], stakePoolConfigs_[swapIndex_]);
 
     assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function test_isValidConfiguration_FalseInvalidWeightSum() external {
-    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
-    stakePoolConfigs_[0].rewardsWeight = 0;
+  function testFuzz_isValidConfiguration_FalseNonUniqueStakePoolAssets(
+    uint8 numStakePoolConfigs_,
+    uint8 numRewardPoolConfigs_
+  ) external {
+    (numStakePoolConfigs_, numRewardPoolConfigs_) =
+      _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+    numStakePoolConfigs_ = numStakePoolConfigs_ > 1 ? numStakePoolConfigs_ : 2;
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+
+    uint256 dupIndex_ = _randomUint256InRange(1, numStakePoolConfigs_ - 1);
+    stakePoolConfigs_[dupIndex_].asset = stakePoolConfigs_[0].asset;
+
     assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function test_isValidUpdate_IsValidConfiguration() external {
-    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+  function testFuzz_isValidConfiguration_FalseInvalidWeightSum(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_)
+    external
+  {
+    (numStakePoolConfigs_, numRewardPoolConfigs_) =
+      _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+    numStakePoolConfigs_ = numStakePoolConfigs_ > 0 ? numStakePoolConfigs_ : 1;
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
 
-    assertTrue(component.isValidUpdate(stakePoolConfigs_, rewardPoolConfigs_));
+    stakePoolConfigs_[0].rewardsWeight += 1;
 
-    stakePoolConfigs_[0].rewardsWeight = 0; // Invalid weight sum
-    assertFalse(component.isValidUpdate(stakePoolConfigs_, rewardPoolConfigs_));
+    assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
+  }
+
+  function testFuzz_isValidUpdate_TrueValidConfiguration(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_)
+    external
+  {
+    (numStakePoolConfigs_, numRewardPoolConfigs_) =
+      _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
+
+    assertTrue(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
   function test_isValidUpdate_ExistingStakePoolsChecks() external {
-    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateBasicValidConfigs();
     component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
 
     // Invalid update because `invalidStakePoolConfigs_.length < numExistingStakePools`.
@@ -231,73 +358,216 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
     assertTrue(component.isValidUpdate(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function test_isValidUpdate_ExistingRewardPoolsChecks() external {
-    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setBasicConfigs();
-    component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
+  function _initializeExistingRewardsManagerSetup() internal returns (StakePool[] memory, RewardPool[] memory) {
+    StakePool[] memory stakePools_ = _generateStakePools(2);
+    RewardPool[] memory rewardPools_ = _generateRewardPools(2);
 
-    // Invalid update because `invalidRewardPoolConfigs_.length < numExistingRewardPools`.
-    RewardPoolConfig[] memory invalidRewardPoolConfigs_ = new RewardPoolConfig[](1);
-    invalidRewardPoolConfigs_[0] = rewardPoolConfigs_[0];
-    assertFalse(component.isValidUpdate(stakePoolConfigs_, invalidRewardPoolConfigs_));
+    for (uint8 i = 0; i < 2; i++) {
+      component.mockAddStakePool(stakePools_[i]);
+      component.mockAddRewardPool(rewardPools_[i]);
+    }
 
-    // Invalid update because `rewardPoolB_.asset != invalidRewardPoolConfigs_[1].asset`.
-    invalidRewardPoolConfigs_ = new RewardPoolConfig[](2);
-    invalidRewardPoolConfigs_[0] = rewardPoolConfigs_[0];
-    invalidRewardPoolConfigs_[1] =
-      RewardPoolConfig({asset: rewardPoolConfigs_[0].asset, dripModel: rewardPoolConfigs_[1].dripModel});
-    assertFalse(component.isValidUpdate(stakePoolConfigs_, invalidRewardPoolConfigs_));
-
-    // Valid update.
-    assertTrue(component.isValidUpdate(stakePoolConfigs_, rewardPoolConfigs_));
+    return (stakePools_, rewardPools_);
   }
 
-  function test_updateConfigs() external {
-    RewardPool memory rewardPoolA_ = _generateRewardPool();
-    RewardPool memory rewardPoolB_ = _generateRewardPool();
-    StakePool[] memory mockStakePools_ = _generateStakePools(2);
-    StakePool memory stakePoolA_ = mockStakePools_[0];
-    StakePool memory stakePoolB_ = mockStakePools_[1];
+  function test_updateConfigsConcrete() external {
+    (StakePool[] memory stakePools_, RewardPool[] memory rewardPools_) = _initializeExistingRewardsManagerSetup();
 
-    // Add two existing stake pools.
-    component.mockAddStakePool(stakePoolA_);
-    component.mockAddStakePool(stakePoolB_);
-
-    // Add two existing reward pools.
-    component.mockAddRewardPool(rewardPoolA_);
-    component.mockAddRewardPool(rewardPoolB_);
-
-    // Create valid config update. Adds a new reward pool and chnages the drip model of the existing reward pools.
-    RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](3);
-    rewardPoolConfigs_[0] = RewardPoolConfig({asset: rewardPoolA_.asset, dripModel: IDripModel(_randomAddress())});
-    rewardPoolConfigs_[1] = RewardPoolConfig({asset: rewardPoolB_.asset, dripModel: IDripModel(_randomAddress())});
+    // Create valid config update. Adds a new reward pools and chnages the drip model of the existing reward pools.
+    RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](5);
+    rewardPoolConfigs_[0] = RewardPoolConfig({asset: rewardPools_[0].asset, dripModel: IDripModel(_randomAddress())});
+    rewardPoolConfigs_[1] = RewardPoolConfig({asset: rewardPools_[1].asset, dripModel: IDripModel(_randomAddress())});
     rewardPoolConfigs_[2] = _generateValidRewardPoolConfig();
+    rewardPoolConfigs_[3] = RewardPoolConfig({asset: rewardPools_[0].asset, dripModel: IDripModel(_randomAddress())});
+    rewardPoolConfigs_[4] = RewardPoolConfig({asset: rewardPools_[0].asset, dripModel: IDripModel(_randomAddress())});
 
-    // Changes the rewards weights of the existing stake pools from 50%-50% to 0%-100%.
-    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](2);
+    // Adds new stake pools and changes the rewards weights of the existing stake pools from 50%-50% to 0%-100%.
+    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](5);
     stakePoolConfigs_[0].rewardsWeight = 0;
-    stakePoolConfigs_[0].asset = stakePoolA_.asset;
+    stakePoolConfigs_[0].asset = stakePools_[0].asset;
     stakePoolConfigs_[1].rewardsWeight = uint16(MathConstants.ZOC);
-    stakePoolConfigs_[1].asset = stakePoolB_.asset;
+    stakePoolConfigs_[1].asset = stakePools_[1].asset;
+    stakePoolConfigs_[2] = _generateValidStakePoolConfig(0);
+    stakePoolConfigs_[3] = _generateValidStakePoolConfig(0);
+    stakePoolConfigs_[4] = _generateValidStakePoolConfig(0);
+    sortStakePoolConfigs(stakePoolConfigs_, 2);
 
+    IReceiptTokenFactory receiptTokenFactory_ = component.getReceiptTokenFactory();
     _expectEmit();
     emit TestableConfiguratorEvents.DripAndResetCumulativeRewardsValuesCalled();
+    _expectEmit();
+    emit StakePoolCreated(
+      2,
+      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 2, IReceiptTokenFactory.PoolType.STAKE)),
+      stakePoolConfigs_[2].asset
+    );
+    _expectEmit();
+    emit StakePoolCreated(
+      3,
+      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 3, IReceiptTokenFactory.PoolType.STAKE)),
+      stakePoolConfigs_[3].asset
+    );
+    _expectEmit();
+    emit StakePoolCreated(
+      4,
+      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 4, IReceiptTokenFactory.PoolType.STAKE)),
+      stakePoolConfigs_[4].asset
+    );
+    _expectEmit();
+    emit RewardPoolCreated(
+      2,
+      rewardPoolConfigs_[2].asset,
+      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 2, IReceiptTokenFactory.PoolType.REWARD))
+    );
+    _expectEmit();
+    emit RewardPoolCreated(
+      3,
+      rewardPools_[0].asset,
+      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 3, IReceiptTokenFactory.PoolType.REWARD))
+    );
+    _expectEmit();
+    emit RewardPoolCreated(
+      4,
+      rewardPools_[0].asset,
+      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 4, IReceiptTokenFactory.PoolType.REWARD))
+    );
     _expectEmit();
     emit ConfigUpdatesApplied(stakePoolConfigs_, rewardPoolConfigs_);
 
     component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
 
     // Stake pool config updates applied.
-    StakePool[] memory stakePools_ = component.getStakePools();
-    assertEq(stakePools_.length, 2);
-    _assertStakePoolUpdatesApplied(stakePools_[0], stakePoolConfigs_[0]);
-    _assertStakePoolUpdatesApplied(stakePools_[1], stakePoolConfigs_[1]);
+    StakePool[] memory updatedStakePools_ = component.getStakePools();
+    assertEq(updatedStakePools_.length, 5);
+    for (uint8 i = 0; i < updatedStakePools_.length; i++) {
+      _assertStakePoolUpdatesApplied(updatedStakePools_[i], stakePoolConfigs_[i]);
+    }
 
     // Reward pool config updates applied.
-    RewardPool[] memory rewardPools_ = component.getRewardPools();
-    assertEq(rewardPools_.length, 3);
-    _assertRewardPoolUpdatesApplied(rewardPools_[0], rewardPoolConfigs_[0]);
-    _assertRewardPoolUpdatesApplied(rewardPools_[1], rewardPoolConfigs_[1]);
-    _assertRewardPoolUpdatesApplied(rewardPools_[2], rewardPoolConfigs_[2]);
+    RewardPool[] memory updatedRewardPools_ = component.getRewardPools();
+    assertEq(updatedRewardPools_.length, 5);
+    for (uint8 i = 0; i < updatedRewardPools_.length; i++) {
+      _assertRewardPoolUpdatesApplied(updatedRewardPools_[i], rewardPoolConfigs_[i]);
+    }
+  }
+
+  function _concatStakePoolConfigs(
+    StakePoolConfig[] memory stakePoolConfigs_,
+    StakePoolConfig[] memory newStakePoolConfigs_
+  ) private pure returns (StakePoolConfig[] memory) {
+    StakePoolConfig[] memory combinedStakePoolConfigs_ =
+      new StakePoolConfig[](stakePoolConfigs_.length + newStakePoolConfigs_.length);
+    for (uint256 i = 0; i < stakePoolConfigs_.length; i++) {
+      combinedStakePoolConfigs_[i] = stakePoolConfigs_[i];
+    }
+    for (uint256 i = 0; i < newStakePoolConfigs_.length; i++) {
+      combinedStakePoolConfigs_[i + stakePoolConfigs_.length] =
+        StakePoolConfig({asset: newStakePoolConfigs_[i].asset, rewardsWeight: 0});
+    }
+    return combinedStakePoolConfigs_;
+  }
+
+  function _concatRewardPoolConfigs(
+    RewardPoolConfig[] memory rewardPoolConfigs_,
+    RewardPoolConfig[] memory newRewardPoolConfigs_
+  ) private pure returns (RewardPoolConfig[] memory) {
+    RewardPoolConfig[] memory combinedRewardPoolConfigs_ =
+      new RewardPoolConfig[](rewardPoolConfigs_.length + newRewardPoolConfigs_.length);
+    for (uint256 i = 0; i < rewardPoolConfigs_.length; i++) {
+      combinedRewardPoolConfigs_[i] = rewardPoolConfigs_[i];
+    }
+    for (uint256 i = 0; i < newRewardPoolConfigs_.length; i++) {
+      combinedRewardPoolConfigs_[i + rewardPoolConfigs_.length] = newRewardPoolConfigs_[i];
+    }
+    return combinedRewardPoolConfigs_;
+  }
+
+  function test_updateConfigsConcrete_RevertCases() external {
+    (StakePool[] memory stakePools_, RewardPool[] memory rewardPools_) = _initializeExistingRewardsManagerSetup();
+
+    RewardPoolConfig[] memory baseRewardPoolConfigs_ = new RewardPoolConfig[](2);
+    for (uint8 i = 0; i < rewardPools_.length; i++) {
+      baseRewardPoolConfigs_[i] =
+        RewardPoolConfig({asset: rewardPools_[i].asset, dripModel: IDripModel(_randomAddress())});
+    }
+
+    StakePoolConfig[] memory baseStakePoolConfigs_ = new StakePoolConfig[](2);
+    for (uint8 i = 0; i < stakePools_.length; i++) {
+      baseStakePoolConfigs_[i] =
+        StakePoolConfig({asset: stakePools_[i].asset, rewardsWeight: stakePools_[i].rewardsWeight});
+    }
+
+    // Create an invalid configuration update: Uses an existing stake asset.
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(2, 2);
+    stakePoolConfigs_[1] = StakePoolConfig({asset: stakePools_[0].asset, rewardsWeight: 0});
+    vm.expectRevert(InvalidConfiguration.selector);
+    component.updateConfigs(
+      _concatStakePoolConfigs(baseStakePoolConfigs_, stakePoolConfigs_),
+      _concatRewardPoolConfigs(baseRewardPoolConfigs_, rewardPoolConfigs_)
+    );
+
+    // Create an invalid configuration update: Unsorted stake assets.
+    (stakePoolConfigs_, rewardPoolConfigs_) = _generateValidConfigs(5, 2);
+    (stakePoolConfigs_[2], stakePoolConfigs_[4]) = (stakePoolConfigs_[2], stakePoolConfigs_[4]);
+    vm.expectRevert(InvalidConfiguration.selector);
+    component.updateConfigs(
+      _concatStakePoolConfigs(baseStakePoolConfigs_, stakePoolConfigs_),
+      _concatRewardPoolConfigs(baseRewardPoolConfigs_, rewardPoolConfigs_)
+    );
+
+    // Create an invalid configuration update: Duplicate new stake assets.
+    (stakePoolConfigs_, rewardPoolConfigs_) = _generateValidConfigs(5, 2);
+    stakePoolConfigs_[2].asset = stakePoolConfigs_[0].asset;
+    vm.expectRevert(InvalidConfiguration.selector);
+    component.updateConfigs(
+      _concatStakePoolConfigs(baseStakePoolConfigs_, stakePoolConfigs_),
+      _concatRewardPoolConfigs(baseRewardPoolConfigs_, rewardPoolConfigs_)
+    );
+
+    // Create an invalid configuration update: Duplicate new stake assets.
+    (stakePoolConfigs_, rewardPoolConfigs_) = _generateValidConfigs(3, 2);
+    stakePoolConfigs_[2].asset = stakePoolConfigs_[0].asset;
+    vm.expectRevert(InvalidConfiguration.selector);
+    component.updateConfigs(
+      _concatStakePoolConfigs(baseStakePoolConfigs_, stakePoolConfigs_),
+      _concatRewardPoolConfigs(baseRewardPoolConfigs_, rewardPoolConfigs_)
+    );
+
+    // Create an invalid configuration update: Invalid weight sum.
+    (stakePoolConfigs_, rewardPoolConfigs_) = _generateValidConfigs(3, 2);
+    StakePoolConfig[] memory concatenatedStakePoolConfigs_ =
+      _concatStakePoolConfigs(baseStakePoolConfigs_, stakePoolConfigs_);
+    concatenatedStakePoolConfigs_[2].rewardsWeight = 1;
+    vm.expectRevert(InvalidConfiguration.selector);
+    component.updateConfigs(
+      concatenatedStakePoolConfigs_, _concatRewardPoolConfigs(baseRewardPoolConfigs_, rewardPoolConfigs_)
+    );
+
+    // Create an invalid configuration update: Too many stake pools.
+    (stakePoolConfigs_, rewardPoolConfigs_) =
+      _generateValidConfigs(ALLOWED_STAKE_POOLS - baseStakePoolConfigs_.length + 1, 2);
+    vm.expectRevert(InvalidConfiguration.selector);
+    component.updateConfigs(
+      _concatStakePoolConfigs(baseStakePoolConfigs_, stakePoolConfigs_),
+      _concatRewardPoolConfigs(baseRewardPoolConfigs_, rewardPoolConfigs_)
+    );
+
+    // Create an invalid configuration update: Duplicate new stake assets.
+    (stakePoolConfigs_, rewardPoolConfigs_) =
+      _generateValidConfigs(2, ALLOWED_REWARD_POOLS - baseRewardPoolConfigs_.length + 1);
+    vm.expectRevert(InvalidConfiguration.selector);
+    component.updateConfigs(
+      _concatStakePoolConfigs(baseStakePoolConfigs_, stakePoolConfigs_),
+      _concatRewardPoolConfigs(baseRewardPoolConfigs_, rewardPoolConfigs_)
+    );
+
+    // Create a valid configuration update.
+    (stakePoolConfigs_, rewardPoolConfigs_) = _generateValidConfigs(3, 2);
+    component.updateConfigs(
+      _concatStakePoolConfigs(baseStakePoolConfigs_, stakePoolConfigs_),
+      _concatRewardPoolConfigs(baseRewardPoolConfigs_, rewardPoolConfigs_)
+    );
   }
 
   function test_initializeStakePool() external {
@@ -315,7 +585,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
 
     _expectEmit();
     emit StakePoolCreated(1, IReceiptToken(stkReceiptTokenAddress_), asset_);
-    component.initializeStakePool(newStakePoolConfig_);
+    component.initializeStakePool(newStakePoolConfig_, 1);
 
     // One stake pool was added, so two total stake pools.
     assertEq(component.getStakePools().length, 2);
@@ -336,9 +606,9 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
   }
 
   function test_initializeRewardPool() external {
-    RewardPool memory rewardPoolA_ = _generateRewardPool();
+    RewardPool[] memory rewardPools_ = _generateRewardPools(1);
     // One existing reward pool.
-    component.mockAddRewardPool(rewardPoolA_);
+    component.mockAddRewardPool(rewardPools_[0]);
     // New reward pool config.
     RewardPoolConfig memory newRewardPoolConfig_ = _generateValidRewardPoolConfig();
 
@@ -348,7 +618,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents {
 
     _expectEmit();
     emit RewardPoolCreated(1, newRewardPoolConfig_.asset, IReceiptToken(depositTokenAddress_));
-    component.initializeRewardPool(newRewardPoolConfig_);
+    component.initializeRewardPool(newRewardPoolConfig_, 1);
 
     // One reward pool was added, so two total reward pools.
     assertEq(component.getRewardPools().length, 2);
@@ -415,7 +685,12 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external view returns (bool) {
     return ConfiguratorLib.isValidConfiguration(
-      stakePoolConfigs_, rewardPoolConfigs_, stakePools.length, allowedStakePools, allowedRewardPools
+      stakePoolConfigs_,
+      rewardPoolConfigs_,
+      stakePools.length,
+      rewardPools.length,
+      allowedStakePools,
+      allowedRewardPools
     );
   }
 
@@ -435,14 +710,19 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     );
   }
 
-  function initializeStakePool(StakePoolConfig calldata stakePoolConfig_) external {
+  function initializeStakePool(StakePoolConfig calldata stakePoolConfig_, uint16 stakePoolId_) external {
     ConfiguratorLib.initializeStakePool(
-      stakePools, assetToStakePoolIds, stkReceiptTokenToStakePoolIds, receiptTokenFactory, stakePoolConfig_
+      stakePools,
+      assetToStakePoolIds,
+      stkReceiptTokenToStakePoolIds,
+      receiptTokenFactory,
+      stakePoolConfig_,
+      stakePoolId_
     );
   }
 
-  function initializeRewardPool(RewardPoolConfig calldata rewardPoolConfig_) external {
-    ConfiguratorLib.initializeRewardPool(rewardPools, receiptTokenFactory, rewardPoolConfig_);
+  function initializeRewardPool(RewardPoolConfig calldata rewardPoolConfig_, uint16 rewardPoolId_) external {
+    ConfiguratorLib.initializeRewardPool(rewardPools, receiptTokenFactory, rewardPoolConfig_, rewardPoolId_);
   }
 
   function _dripAndResetCumulativeRewardsValues(

@@ -22,19 +22,19 @@ library ConfiguratorLib {
     uint16 allowedRewardPools_
   ) internal view returns (bool) {
     uint256 numExistingStakePools_ = stakePools_.length;
+    uint256 numExistingRewardPools_ = rewardPools_.length;
 
     // Validate the configuration parameters.
     if (
       !isValidConfiguration(
-        stakePoolConfigs_, rewardPoolConfigs_, numExistingStakePools_, allowedStakePools_, allowedRewardPools_
+        stakePoolConfigs_,
+        rewardPoolConfigs_,
+        numExistingStakePools_,
+        numExistingRewardPools_,
+        allowedStakePools_,
+        allowedRewardPools_
       )
     ) return false;
-
-    uint256 numExistingRewardPools_ = rewardPools_.length;
-    // Validate number of stake and reward pools. It is only possible to add new pools, not remove existing ones.
-    if (stakePoolConfigs_.length < numExistingStakePools_ || rewardPoolConfigs_.length < numExistingRewardPools_) {
-      return false;
-    }
 
     // Validate existing stake pools.
     for (uint16 i = 0; i < numExistingStakePools_; i++) {
@@ -55,11 +55,11 @@ library ConfiguratorLib {
   }
 
   /// @notice Returns true if the provided configs are generically valid, false otherwise.
-  /// @dev Does not include rewards manager-specific checks, e.g. checks based on its existing stake and reward pools.
   function isValidConfiguration(
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     uint256 numExistingStakePools_,
+    uint256 numExistingRewardPools_,
     uint16 allowedStakePools_,
     uint16 allowedRewardPools_
   ) internal pure returns (bool) {
@@ -69,20 +69,17 @@ library ConfiguratorLib {
     }
 
     // Validate number of reward pools.
-    if (rewardPoolConfigs_.length > allowedRewardPools_) return false;
+    if (rewardPoolConfigs_.length > allowedRewardPools_ || rewardPoolConfigs_.length < numExistingRewardPools_) {
+      return false;
+    }
 
     // Validate stake pool rewards weights sum, and unique assets for new stake pools.
     if (stakePoolConfigs_.length != 0) {
       uint16 rewardsWeightSum_ = 0;
 
-      // Existing stake pool configs.
-      for (uint256 i = 0; i < numExistingStakePools_; i++) {
+      for (uint256 i = 0; i < stakePoolConfigs_.length; i++) {
         rewardsWeightSum_ += stakePoolConfigs_[i].rewardsWeight;
-      }
 
-      // New stake pool configs.
-      for (uint256 i = numExistingStakePools_; i < stakePoolConfigs_.length; i++) {
-        rewardsWeightSum_ += stakePoolConfigs_[i].rewardsWeight;
         // New stake pool configs in the array are not sorted by asset or includes duplicates.
         if (
           i > numExistingStakePools_ && address(stakePoolConfigs_[i].asset) <= address(stakePoolConfigs_[i - 1].asset)
@@ -140,28 +137,28 @@ library ConfiguratorLib {
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) public {
     // Update existing stake pool weights. No need to update the stake pool asset since it cannot change.
-    uint256 numExistingStakePools_ = stakePools_.length;
-    for (uint256 i = 0; i < numExistingStakePools_; i++) {
+    uint16 numExistingStakePools_ = uint16(stakePools_.length);
+    for (uint16 i = 0; i < numExistingStakePools_; i++) {
       StakePool storage stakePool_ = stakePools_[i];
       stakePool_.rewardsWeight = stakePoolConfigs_[i].rewardsWeight;
     }
 
     // Initialize new stake pools.
-    for (uint256 i = numExistingStakePools_; i < stakePoolConfigs_.length; i++) {
+    for (uint16 i = numExistingStakePools_; i < stakePoolConfigs_.length; i++) {
       initializeStakePool(
-        stakePools_, assetToStakePoolIds_, stkReceiptTokenToStakePoolIds_, receiptTokenFactory_, stakePoolConfigs_[i]
+        stakePools_, assetToStakePoolIds_, stkReceiptTokenToStakePoolIds_, receiptTokenFactory_, stakePoolConfigs_[i], i
       );
     }
 
     // Update existing reward pool drip models. No need to update the reward pool asset since it cannot change.
-    uint256 numExistingRewardPools_ = rewardPools_.length;
-    for (uint256 i = 0; i < numExistingRewardPools_; i++) {
+    uint16 numExistingRewardPools_ = uint16(rewardPools_.length);
+    for (uint16 i = 0; i < numExistingRewardPools_; i++) {
       rewardPools_[i].dripModel = rewardPoolConfigs_[i].dripModel;
     }
 
     // Initialize new reward pools.
-    for (uint256 i = numExistingRewardPools_; i < rewardPoolConfigs_.length; i++) {
-      initializeRewardPool(rewardPools_, receiptTokenFactory_, rewardPoolConfigs_[i]);
+    for (uint16 i = numExistingRewardPools_; i < rewardPoolConfigs_.length; i++) {
+      initializeRewardPool(rewardPools_, receiptTokenFactory_, rewardPoolConfigs_[i], i);
     }
 
     emit IConfiguratorEvents.ConfigUpdatesApplied(stakePoolConfigs_, rewardPoolConfigs_);
@@ -173,10 +170,9 @@ library ConfiguratorLib {
     mapping(IERC20 => IdLookup) storage assetToStakePoolIds_,
     mapping(IReceiptToken stkReceiptToken_ => IdLookup stakePoolId_) storage stkReceiptTokenToStakePoolIds_,
     IReceiptTokenFactory receiptTokenFactory_,
-    StakePoolConfig calldata stakePoolConfig_
+    StakePoolConfig calldata stakePoolConfig_,
+    uint16 stakePoolId_
   ) internal {
-    uint16 stakePoolId_ = uint16(stakePools_.length);
-
     IReceiptToken stkReceiptToken_ = receiptTokenFactory_.deployReceiptToken(
       stakePoolId_, IReceiptTokenFactory.PoolType.STAKE, stakePoolConfig_.asset.decimals()
     );
@@ -198,10 +194,9 @@ library ConfiguratorLib {
   function initializeRewardPool(
     RewardPool[] storage rewardPools_,
     IReceiptTokenFactory receiptTokenFactory_,
-    RewardPoolConfig calldata rewardPoolConfig_
+    RewardPoolConfig calldata rewardPoolConfig_,
+    uint16 rewardPoolId_
   ) internal {
-    uint16 rewardPoolId_ = uint16(rewardPools_.length);
-
     IReceiptToken rewardDepositReceiptToken_ = receiptTokenFactory_.deployReceiptToken(
       rewardPoolId_, IReceiptTokenFactory.PoolType.REWARD, rewardPoolConfig_.asset.decimals()
     );
