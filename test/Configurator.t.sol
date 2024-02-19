@@ -610,11 +610,11 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     RewardPoolConfig memory newRewardPoolConfig_ = _generateValidRewardPoolConfig();
 
     IReceiptTokenFactory receiptTokenFactory_ = component.getReceiptTokenFactory();
-    address depositTokenAddress_ =
+    address depositReceiptTokenAddress_ =
       receiptTokenFactory_.computeAddress(address(component), 1, IReceiptTokenFactory.PoolType.REWARD);
 
     _expectEmit();
-    emit RewardPoolCreated(1, IReceiptToken(depositTokenAddress_), newRewardPoolConfig_.asset);
+    emit RewardPoolCreated(1, IReceiptToken(depositReceiptTokenAddress_), newRewardPoolConfig_.asset);
     component.initializeRewardPool(newRewardPoolConfig_, 1);
 
     // One reward pool was added, so two total reward pools.

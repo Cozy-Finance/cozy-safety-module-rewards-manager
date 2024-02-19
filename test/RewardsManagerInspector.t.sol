@@ -13,8 +13,8 @@ import "./utils/Stub.sol";
 
 contract RewardsManagerInspectorTest is TestBase {
   MockERC20 mockAsset = new MockERC20("Mock Asset Token", "cozyAsset", 18);
-  MockERC20 mockRewardPoolReceiptToken = new MockERC20("Mock Cozy Deposit Token", "cozyDep", 6);
-  MockERC20 mockStakePoolReceiptToken = new MockERC20("Mock Cozy stake Token", "cozyStk", 6);
+  MockERC20 mockRewardPoolReceiptToken = new MockERC20("Mock Cozy Deposit Receipt Token", "cozyDep", 6);
+  MockERC20 mockStakePoolReceiptToken = new MockERC20("Mock Cozy Stake Receipt Token", "cozyStk", 6);
 
   TestableRewardsManagerInspector component = new TestableRewardsManagerInspector();
 

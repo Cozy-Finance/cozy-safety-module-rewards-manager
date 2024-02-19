@@ -211,31 +211,34 @@ contract RewardsManagerHandler is TestBase {
     return currentActor;
   }
 
-  function redeemUndrippedRewards(uint256 depositTokenRedeemAmount_, address receiver_, uint256 seed_)
+  function redeemUndrippedRewards(uint256 depositReceiptTokenRedeemAmount_, address receiver_, uint256 seed_)
     public
     virtual
     useActorWithRewardDeposits(seed_)
     countCall("redeemUndrippedRewards")
     advanceTime(seed_)
   {
-    IERC20 depositToken_ = getRewardPool(rewardsManager, currentRewardPoolId).depositReceiptToken;
-    uint256 actorDepositTokenBalance_ = depositToken_.balanceOf(currentActor);
-    if (actorDepositTokenBalance_ == 0) {
+    IERC20 depositReceiptToken_ = getRewardPool(rewardsManager, currentRewardPoolId).depositReceiptToken;
+    uint256 actorDepositReceiptTokenBalance_ = depositReceiptToken_.balanceOf(currentActor);
+    if (actorDepositReceiptTokenBalance_ == 0) {
       invalidCalls["redeemUndrippedRewards"] += 1;
       return;
     }
 
-    depositTokenRedeemAmount_ = bound(depositTokenRedeemAmount_, 1, actorDepositTokenBalance_);
+    depositReceiptTokenRedeemAmount_ = bound(depositReceiptTokenRedeemAmount_, 1, actorDepositReceiptTokenBalance_);
     vm.startPrank(currentActor);
-    depositToken_.approve(address(rewardsManager), depositTokenRedeemAmount_);
-    uint256 assetAmount_ =
-      rewardsManager.redeemUndrippedRewards(currentRewardPoolId, depositTokenRedeemAmount_, receiver_, currentActor);
+    depositReceiptToken_.approve(address(rewardsManager), depositReceiptTokenRedeemAmount_);
+    uint256 assetAmount_ = rewardsManager.redeemUndrippedRewards(
+      currentRewardPoolId, depositReceiptTokenRedeemAmount_, receiver_, currentActor
+    );
     vm.stopPrank();
 
     ghost_rewardPoolCumulative[currentRewardPoolId].redeemAssetAmount += assetAmount_;
-    ghost_rewardPoolCumulative[currentRewardPoolId].redeemSharesAmount += depositTokenRedeemAmount_;
+    ghost_rewardPoolCumulative[currentRewardPoolId].redeemSharesAmount += depositReceiptTokenRedeemAmount_;
 
-    if (depositTokenRedeemAmount_ == actorDepositTokenBalance_) actorsWithRewardDeposits.remove(currentActor);
+    if (depositReceiptTokenRedeemAmount_ == actorDepositReceiptTokenBalance_) {
+      actorsWithRewardDeposits.remove(currentActor);
+    }
   }
 
   function unstake(address receiver_, uint256 seed_)

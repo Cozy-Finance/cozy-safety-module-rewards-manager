@@ -40,10 +40,11 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     depositReceiptTokenAmount_ = _executeRewardDeposit(rewardsPool_.asset, rewardAssetAmount_, receiver_, rewardsPool_);
   }
 
-  /// @notice Redeem by burning `depositReceiptTokenAmount_` of `rewardPoolId_` reward pool deposit tokens and sending
+  /// @notice Redeem by burning `depositReceiptTokenAmount_` of `rewardPoolId_` reward pool deposit receipt tokens and
+  /// sending
   /// `rewardAssetAmount_` of `rewardPoolId_` reward pool assets to `receiver_`. Reward pool assets can only be redeemed
   /// if they have not been dripped yet.
-  /// @dev Assumes that user has approved the RewardsManager to spend its deposit tokens.
+  /// @dev Assumes that user has approved the RewardsManager to spend its deposit receipt tokens.
   function redeemUndrippedRewards(
     uint16 rewardPoolId_,
     uint256 depositReceiptTokenAmount_,

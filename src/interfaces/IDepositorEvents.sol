@@ -19,7 +19,7 @@ interface IDepositorEvents {
     address indexed receiver_,
     address indexed owner_,
     IReceiptToken indexed depositReceiptToken_,
-    uint256 depositTokenAmount_,
+    uint256 depositReceiptTokenAmount_,
     uint256 rewardAssetAmount_
   );
 }
