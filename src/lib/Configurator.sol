@@ -4,7 +4,6 @@ pragma solidity 0.8.22;
 import {Governable} from "cozy-safety-module-shared/lib/Governable.sol";
 import {ConfiguratorLib} from "./ConfiguratorLib.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
-import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./structs/Configs.sol";
 import {StakePool, RewardPool} from "./structs/Pools.sol";
 

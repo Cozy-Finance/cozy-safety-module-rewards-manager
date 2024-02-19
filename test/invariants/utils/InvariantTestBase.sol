@@ -59,8 +59,8 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
     selectors[9] = RewardsManagerHandler.dripRewards.selector;
     selectors[10] = RewardsManagerHandler.dripRewardPool.selector;
     selectors[11] = RewardsManagerHandler.claimRewards.selector;
-    selectors[12] = RewardsManagerHandler.stkTokenTransfer.selector;
-    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkTokenTransfer.selector;
+    selectors[12] = RewardsManagerHandler.stkReceiptTokenTransfer.selector;
+    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer.selector;
     selectors[14] = RewardsManagerHandler.redeemUndrippedRewards.selector;
     return selectors;
   }
@@ -104,8 +104,8 @@ abstract contract InvariantTestBaseWithStateTransitions is InvariantTestBase {
     selectors[9] = RewardsManagerHandler.dripRewards.selector;
     selectors[10] = RewardsManagerHandler.dripRewardPool.selector;
     selectors[11] = RewardsManagerHandler.claimRewards.selector;
-    selectors[12] = RewardsManagerHandler.stkTokenTransfer.selector;
-    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkTokenTransfer.selector;
+    selectors[12] = RewardsManagerHandler.stkReceiptTokenTransfer.selector;
+    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer.selector;
     selectors[14] = RewardsManagerHandler.redeemUndrippedRewards.selector;
     // State transition selectors
     selectors[15] = RewardsManagerHandler.pause.selector;
@@ -130,8 +130,8 @@ abstract contract InvariantTestWithSingleStakePoolAndSingleRewardPool is Invaria
     rewardsManager =
       cozyManager.createRewardsManager(owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32());
 
-    vm.label(address(getStakePool(rewardsManager, 0).stkReceiptToken), "stakePool0StkToken");
-    vm.label(address(getRewardPool(rewardsManager, 0).depositReceiptToken), "rewardPool0DepositToken");
+    vm.label(address(getStakePool(rewardsManager, 0).stkReceiptToken), "stakePool0StkReceiptToken");
+    vm.label(address(getRewardPool(rewardsManager, 0).depositReceiptToken), "rewardPool0DepositReceiptToken");
   }
 }
 
@@ -179,14 +179,14 @@ abstract contract InvariantTestWithMultipleStakePoolsAndMultipleRewardPools is I
     for (uint256 i_; i_ < numStakePools_; i_++) {
       vm.label(
         address(getStakePool(rewardsManager, i_).stkReceiptToken),
-        string.concat("stakePool", Strings.toString(i_), "StkToken")
+        string.concat("stakePool", Strings.toString(i_), "StkReceiptToken")
       );
     }
 
     for (uint256 i_; i_ < numRewardPools_; i_++) {
       vm.label(
         address(getRewardPool(rewardsManager, i_).depositReceiptToken),
-        string.concat("rewardPool", Strings.toString(i_), "DepositToken")
+        string.concat("rewardPool", Strings.toString(i_), "DepositReceiptToken")
       );
     }
   }

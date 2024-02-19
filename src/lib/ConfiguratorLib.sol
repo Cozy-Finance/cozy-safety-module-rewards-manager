@@ -212,6 +212,6 @@ library ConfiguratorLib {
       })
     );
 
-    emit IConfiguratorEvents.RewardPoolCreated(rewardPoolId_, rewardPoolConfig_.asset, rewardDepositReceiptToken_);
+    emit IConfiguratorEvents.RewardPoolCreated(rewardPoolId_, rewardDepositReceiptToken_, rewardPoolConfig_.asset);
   }
 }

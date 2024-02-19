@@ -265,13 +265,13 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     }
   }
 
-  function invariant_updateUserRewardsForStkTokenTransferAccounting()
+  function invariant_updateUserRewardsForStkReceiptTokenTransferAccounting()
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
     address from_ = _randomAddress();
     address to_ = _randomAddress();
-    rewardsManagerHandler.updateUserRewardsForStkTokenTransfer(from_, to_, _randomUint256());
+    rewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer(from_, to_, _randomUint256());
 
     uint16 stakePoolId_ = rewardsManagerHandler.currentStakePoolId();
     UserRewardsData[] memory fromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);
@@ -283,7 +283,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     );
   }
 
-  function invariant_updateUserRewardsForStkTokenTransferAccountingForExistingStakers()
+  function invariant_updateUserRewardsForStkReceiptTokenTransferAccountingForExistingStakers()
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
@@ -298,7 +298,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     UserRewardsData[] memory preToUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, to_);
 
     vm.prank(address(getStakePool(rewardsManager, stakePoolId_).stkReceiptToken));
-    rewardsManager.updateUserRewardsForStkTokenTransfer(from_, to_);
+    rewardsManager.updateUserRewardsForStkReceiptTokenTransfer(from_, to_);
 
     UserRewardsData[] memory postFromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);
     UserRewardsData[] memory postToUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, to_);
@@ -312,7 +312,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
       require(
         preFromUserRewards_[rewardPoolId_].accruedRewards <= postFromUserRewards_[rewardPoolId_].accruedRewards,
         string.concat(
-          "Invariant Violated: The from user pre-accrued rewards must be less than or equal to the post-accrued rewards after updateUserRewardsForStkTokenTransfer.",
+          "Invariant Violated: The from user pre-accrued rewards must be less than or equal to the post-accrued rewards after updateUserRewardsForStkReceiptTokenTransfer.",
           " preAccruedRewards: ",
           Strings.toString(preFromUserRewards_[rewardPoolId_].accruedRewards),
           ", postAccruedRewards: ",
@@ -331,7 +331,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
       require(
         preToUserRewards_[rewardPoolId_].accruedRewards <= postToUserRewards_[rewardPoolId_].accruedRewards,
         string.concat(
-          "Invariant Violated: The to user pre-accrued rewards must be less than or equal to the post-accrued rewards after updateUserRewardsForStkTokenTransfer.",
+          "Invariant Violated: The to user pre-accrued rewards must be less than or equal to the post-accrued rewards after updateUserRewardsForStkReceiptTokenTransfer.",
           " preAccruedRewards: ",
           Strings.toString(preToUserRewards_[rewardPoolId_].accruedRewards),
           ", postAccruedRewards: ",
@@ -347,7 +347,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     }
   }
 
-  function invariant_updateUserRewardsForStkTokenTransferRevertsForUnauthorizedAddress()
+  function invariant_updateUserRewardsForStkReceiptTokenTransferRevertsForUnauthorizedAddress()
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
@@ -358,12 +358,12 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
 
     vm.expectRevert(Ownable.Unauthorized.selector);
     vm.prank(unauthorizedAddress_);
-    rewardsManager.updateUserRewardsForStkTokenTransfer(_randomAddress(), _randomAddress());
+    rewardsManager.updateUserRewardsForStkReceiptTokenTransfer(_randomAddress(), _randomAddress());
   }
 
-  function invariant_stkTokenTransferAccounting() public syncCurrentTimestamp(rewardsManagerHandler) {
+  function invariant_stkReceiptTokenTransferAccounting() public syncCurrentTimestamp(rewardsManagerHandler) {
     address to_ = _randomAddress();
-    (address from_,) = rewardsManagerHandler.stkTokenTransfer(_randomUint64(), to_, _randomUint256());
+    (address from_,) = rewardsManagerHandler.stkReceiptTokenTransfer(_randomUint64(), to_, _randomUint256());
     if (from_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
 
     uint16 stakePoolId_ = rewardsManagerHandler.currentStakePoolId();
@@ -466,7 +466,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     require(
       fromUserRewards_.length == numRewardPools && toUserRewards_.length == numRewardPools,
       string.concat(
-        "Invariant Violated: The length of the user rewards data must be equal to the number of reward pools after updateUserRewardsForStkTokenTransfer.",
+        "Invariant Violated: The length of the user rewards data must be equal to the number of reward pools after updateUserRewardsForStkReceiptTokenTransfer.",
         " fromUserRewards_.length: ",
         Strings.toString(fromUserRewards_.length),
         ", toUserRewards_.length: ",
@@ -481,7 +481,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
       require(
         fromUserRewards_[rewardPoolId_].indexSnapshot == globalIndexSnapshot_,
         string.concat(
-          "Invariant Violated: The user rewards index snapshot must be equal to the global rewards index snapshot after updateUserRewardsForStkTokenTransfer.",
+          "Invariant Violated: The user rewards index snapshot must be equal to the global rewards index snapshot after updateUserRewardsForStkReceiptTokenTransfer.",
           " userindexSnapshot: ",
           Strings.toString(fromUserRewards_[rewardPoolId_].indexSnapshot),
           ", globalIndexSnapshot: ",
@@ -498,7 +498,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
       require(
         toUserRewards_[rewardPoolId_].indexSnapshot == globalIndexSnapshot_,
         string.concat(
-          "Invariant Violated: The user rewards index snapshot must be equal to the global rewards index snapshot after updateUserRewardsForStkTokenTransfer.",
+          "Invariant Violated: The user rewards index snapshot must be equal to the global rewards index snapshot after updateUserRewardsForStkReceiptTokenTransfer.",
           " userindexSnapshot: ",
           Strings.toString(toUserRewards_[rewardPoolId_].indexSnapshot),
           ", globalIndexSnapshot: ",

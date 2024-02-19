@@ -29,7 +29,7 @@ abstract contract Staker is RewardsManagerCommon {
 
   error InsufficientBalance();
 
-  /// @notice Stake by minting `assetAmount_` stkTokens to `receiver_` after depositing exactly
+  /// @notice Stake by minting `assetAmount_` stkReceiptTokens to `receiver_` after depositing exactly
   /// `assetAmount_` of `stakePoolId_` stake pool asset.
   /// @dev Assumes that `from_` has already approved this contract to transfer `assetAmount_` of the
   /// `stakePoolId_` stake pool asset.
@@ -49,7 +49,7 @@ abstract contract Staker is RewardsManagerCommon {
     _executeStake(stakePoolId_, assetAmount_, receiver_, assetPool_, stakePool_);
   }
 
-  /// @notice Stake by minting `assetAmount_` stkTokens to `receiver_`.
+  /// @notice Stake by minting `assetAmount_` stkReceiptTokens to `receiver_`.
   /// @dev Assumes that `assetAmount_` of `stakePoolId_` stake pool asset has already been
   /// transferred to this rewards manager contract.
   function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external {
@@ -67,7 +67,7 @@ abstract contract Staker is RewardsManagerCommon {
   /// @notice Unstakes by burning `stkReceiptTokenAmount_` of `stakePoolId_` stake pool stake receipt tokens and
   /// sending `stkReceiptTokenAmount_` of `stakePoolId_` stake pool asset to `receiver_`. Also
   /// claims any outstanding rewards for `stakePoolId_` stake pool and sends them to `receiver_`.
-  /// @dev Assumes that user has approved this rewards manager to spend its stake tokens.
+  /// @dev Assumes that user has approved this rewards manager to spend its stkReceiptTokens.
   function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external {
     if (stkReceiptTokenAmount_ == 0) revert AmountIsZero();
 
@@ -103,7 +103,7 @@ abstract contract Staker is RewardsManagerCommon {
     stakePool_.amount += assetAmount_;
     assetPool_.amount += assetAmount_;
 
-    // Update user rewards before minting any new stkTokens.
+    // Update user rewards before minting any new stkReceiptTokens.
     IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[stakePoolId_];
     _dripAndApplyPendingDrippedRewards(stakePool_, claimableRewards_);

@@ -8,7 +8,7 @@ import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceip
 import {CozyManager} from "../../src/CozyManager.sol";
 import {ReceiptToken} from "cozy-safety-module-shared/ReceiptToken.sol";
 import {ReceiptTokenFactory} from "cozy-safety-module-shared/ReceiptTokenFactory.sol";
-import {StkToken} from "../../src/StkToken.sol";
+import {StkReceiptToken} from "../../src/StkReceiptToken.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../../src/lib/structs/Configs.sol";
 import {RewardsManager} from "../../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../../src/RewardsManagerFactory.sol";
@@ -17,8 +17,8 @@ import {TestBase} from "../utils/TestBase.sol";
 
 contract MockDeployer is TestBase {
   RewardsManagerFactory rewardsManagerFactory;
-  ReceiptToken depositTokenLogic;
-  StkToken stkTokenLogic;
+  ReceiptToken depositReceiptTokenLogic;
+  StkReceiptToken stkReceiptTokenLogic;
   ReceiptTokenFactory receiptTokenFactory;
   IRewardsManager rewardsManagerLogic;
   ICozyManager cozyManager;
@@ -32,8 +32,8 @@ contract MockDeployer is TestBase {
   function deployMockProtocol() public virtual {
     uint256 nonce_ = vm.getNonce(address(this));
     IRewardsManager computedAddrRewardsManagerLogic_ = IRewardsManager(vm.computeCreateAddress(address(this), nonce_));
-    IReceiptToken depositTokenLogic_ = IReceiptToken(vm.computeCreateAddress(address(this), nonce_ + 2));
-    IReceiptToken stkTokenLogic_ = IReceiptToken(vm.computeCreateAddress(address(this), nonce_ + 3));
+    IReceiptToken depositReceiptTokenLogic_ = IReceiptToken(vm.computeCreateAddress(address(this), nonce_ + 2));
+    IReceiptToken stkReceiptTokenLogic_ = IReceiptToken(vm.computeCreateAddress(address(this), nonce_ + 3));
     IReceiptTokenFactory computedAddrReceiptTokenFactory_ =
       IReceiptTokenFactory(vm.computeCreateAddress(address(this), nonce_ + 4));
     ICozyManager computedAddrCozyManager_ = ICozyManager(vm.computeCreateAddress(address(this), nonce_ + 5));
@@ -51,11 +51,11 @@ contract MockDeployer is TestBase {
     rewardsManagerLogic.initialize(owner, pauser, new StakePoolConfig[](0), new RewardPoolConfig[](0));
     rewardsManagerFactory = new RewardsManagerFactory(computedAddrCozyManager_, computedAddrRewardsManagerLogic_);
 
-    depositTokenLogic = new ReceiptToken();
-    stkTokenLogic = new StkToken();
-    depositTokenLogic.initialize(address(0), "", "", 0);
-    stkTokenLogic.initialize(address(0), "", "", 0);
-    receiptTokenFactory = new ReceiptTokenFactory(depositTokenLogic_, stkTokenLogic_);
+    depositReceiptTokenLogic = new ReceiptToken();
+    stkReceiptTokenLogic = new StkReceiptToken();
+    depositReceiptTokenLogic.initialize(address(0), "", "", 0);
+    stkReceiptTokenLogic.initialize(address(0), "", "", 0);
+    receiptTokenFactory = new ReceiptTokenFactory(depositReceiptTokenLogic_, stkReceiptTokenLogic_);
     cozyManager = new CozyManager(owner, pauser, rewardsManagerFactory);
   }
 }

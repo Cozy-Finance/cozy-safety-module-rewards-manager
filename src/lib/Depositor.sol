@@ -22,14 +22,14 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     returns (uint256 depositReceiptTokenAmount_)
   {
     RewardPool storage rewardsPool_ = rewardPools[rewardPoolId_];
-    IERC20 underlyingToken_ = rewardsPool_.asset;
+    IERC20 asset_ = rewardsPool_.asset;
 
     // Pull in deposited assets. After the transfer we ensure we no longer need any assets. This check is
     // required to support fee on transfer tokens, for example if USDT enables a fee.
     // Also, we need to transfer before minting or ERC777s could reenter.
-    underlyingToken_.safeTransferFrom(from_, address(this), rewardAssetAmount_);
+    asset_.safeTransferFrom(from_, address(this), rewardAssetAmount_);
 
-    depositReceiptTokenAmount_ = _executeRewardDeposit(underlyingToken_, rewardAssetAmount_, receiver_, rewardsPool_);
+    depositReceiptTokenAmount_ = _executeRewardDeposit(asset_, rewardAssetAmount_, receiver_, rewardsPool_);
   }
 
   function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_)
@@ -40,10 +40,11 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     depositReceiptTokenAmount_ = _executeRewardDeposit(rewardsPool_.asset, rewardAssetAmount_, receiver_, rewardsPool_);
   }
 
-  /// @notice Redeem by burning `depositReceiptTokenAmount_` of `rewardPoolId_` reward pool deposit tokens and sending
+  /// @notice Redeem by burning `depositReceiptTokenAmount_` of `rewardPoolId_` reward pool deposit receipt tokens and
+  /// sending
   /// `rewardAssetAmount_` of `rewardPoolId_` reward pool assets to `receiver_`. Reward pool assets can only be redeemed
   /// if they have not been dripped yet.
-  /// @dev Assumes that user has approved the SafetyModule to spend its deposit tokens.
+  /// @dev Assumes that user has approved the RewardsManager to spend its deposit receipt tokens.
   function redeemUndrippedRewards(
     uint16 rewardPoolId_,
     uint256 depositReceiptTokenAmount_,
