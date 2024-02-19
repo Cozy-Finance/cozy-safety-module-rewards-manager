@@ -7,6 +7,8 @@ import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 
 abstract contract StateChanger is RewardsManagerCommon, Governable, IStateChangerEvents {
+  /// @notice Pause the rewards manager.
+  /// @dev Only the owner, pauser, or Cozy manager can pause the rewards manager.
   function pause() external {
     if (msg.sender != owner && msg.sender != pauser && msg.sender != address(cozyManager)) revert Unauthorized();
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidStateTransition();
@@ -17,6 +19,8 @@ abstract contract StateChanger is RewardsManagerCommon, Governable, IStateChange
     emit RewardsManagerStateUpdated(RewardsManagerState.PAUSED);
   }
 
+  /// @notice Unpause the rewards manager.
+  /// @dev Only the owner or Cozy manager can unpause the rewards manager.
   function unpause() external {
     if (msg.sender != owner && msg.sender != address(cozyManager)) revert Unauthorized();
     if (rewardsManagerState == RewardsManagerState.ACTIVE) revert InvalidStateTransition();
