@@ -11,7 +11,7 @@ import {ScriptUtils} from "./utils/ScriptUtils.sol";
 import {CozyManager} from "../src/CozyManager.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
-import {StkToken} from "../src/StkToken.sol";
+import {StkReceiptToken} from "../src/StkReceiptToken.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../src/lib/structs/Configs.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
@@ -26,10 +26,10 @@ import {IRewardsManagerFactory} from "../src/interfaces/IRewardsManagerFactory.s
  *        2. (1)  Deploy: RewardsManager logic
  *        3. (2)  Transaction: RewardsManager logic initialization
  *        4. (3)  Deploy: RewardsManagerFactory
- *        5. (4)  Deploy: DepositToken logic
- *        6. (5)  Transaction: DepositToken logic initialization
- *        7. (6)  Deploy: StkToken logic
- *        8. (7)  Transaction: StkToken logic initialization
+ *        5. (4)  Deploy: DepositReceiptToken logic
+ *        6. (5)  Transaction: DepositReceiptToken logic initialization
+ *        7. (6)  Deploy: StkReceiptToken logic
+ *        8. (7)  Transaction: StkReceiptToken logic initialization
  *        9. (8)  Deploy: ReceiptTokenFactory
  *
  * To run this script:
@@ -68,8 +68,8 @@ contract DeployProtocol is ScriptUtils {
   CozyManager manager;
   RewardsManager rewardsManagerLogic;
   RewardsManagerFactory rewardsManagerFactory;
-  ReceiptToken depositTokenLogic;
-  StkToken stkTokenLogic;
+  ReceiptToken depositReceiptTokenLogic;
+  StkReceiptToken stkReceiptTokenLogic;
   ReceiptTokenFactory receiptTokenFactory;
 
   function run(string memory fileName_) public virtual {
@@ -98,10 +98,10 @@ contract DeployProtocol is ScriptUtils {
     // nonce + 2 is initialization of the RewardsManager logic.
     IRewardsManagerFactory computedAddrRewardsManagerFactory_ =
       IRewardsManagerFactory(vm.computeCreateAddress(msg.sender, nonce_ + 3));
-    IReceiptToken computedAddrDepositTokenLogic_ = IReceiptToken(vm.computeCreateAddress(msg.sender, nonce_ + 4));
-    // nonce + 5 is initialization of the DepositToken logic.
-    IReceiptToken computedAddrStkTokenLogic_ = IReceiptToken(vm.computeCreateAddress(msg.sender, nonce_ + 6));
-    // nonce + 7 is initialization of the StkToken logic.
+    IReceiptToken computedAddrDepositReceiptTokenLogic_ = IReceiptToken(vm.computeCreateAddress(msg.sender, nonce_ + 4));
+    // nonce + 5 is initialization of the DepositReceiptToken logic.
+    IReceiptToken computedAddrStkReceiptTokenLogic_ = IReceiptToken(vm.computeCreateAddress(msg.sender, nonce_ + 6));
+    // nonce + 7 is initialization of the StkReceiptToken logic.
     IReceiptTokenFactory computedAddrReceiptTokenFactory_ =
       IReceiptTokenFactory(vm.computeCreateAddress(msg.sender, nonce_ + 8));
 
@@ -136,29 +136,34 @@ contract DeployProtocol is ScriptUtils {
       "RewardsManagerFactory address mismatch"
     );
 
-    // -------- Deploy: DepositToken Logic --------
+    // -------- Deploy: DepositReceiptToken Logic --------
     vm.broadcast();
-    depositTokenLogic = new ReceiptToken();
-    console2.log("DepositToken logic deployed:", address(depositTokenLogic));
+    depositReceiptTokenLogic = new ReceiptToken();
+    console2.log("DepositReceiptToken logic deployed:", address(depositReceiptTokenLogic));
     require(
-      address(depositTokenLogic) == address(computedAddrDepositTokenLogic_), "DepositToken logic address mismatch"
+      address(depositReceiptTokenLogic) == address(computedAddrDepositReceiptTokenLogic_),
+      "DepositReceiptToken logic address mismatch"
     );
 
     vm.broadcast();
-    depositTokenLogic.initialize(address(0), "", "", 0);
+    depositReceiptTokenLogic.initialize(address(0), "", "", 0);
 
-    // -------- Deploy: StkToken Logic --------
+    // -------- Deploy: StkReceiptToken Logic --------
     vm.broadcast();
-    stkTokenLogic = new StkToken();
-    console2.log("StkToken logic deployed:", address(stkTokenLogic));
-    require(address(stkTokenLogic) == address(computedAddrStkTokenLogic_), "StkToken logic address mismatch");
+    stkReceiptTokenLogic = new StkReceiptToken();
+    console2.log("StkReceiptToken logic deployed:", address(stkReceiptTokenLogic));
+    require(
+      address(stkReceiptTokenLogic) == address(computedAddrStkReceiptTokenLogic_),
+      "StkReceiptToken logic address mismatch"
+    );
 
     vm.broadcast();
-    stkTokenLogic.initialize(address(0), "", "", 0);
+    stkReceiptTokenLogic.initialize(address(0), "", "", 0);
 
     // -------- Deploy: ReceiptTokenFactory --------
     vm.broadcast();
-    receiptTokenFactory = new ReceiptTokenFactory(computedAddrDepositTokenLogic_, computedAddrStkTokenLogic_);
+    receiptTokenFactory =
+      new ReceiptTokenFactory(computedAddrDepositReceiptTokenLogic_, computedAddrStkReceiptTokenLogic_);
     console2.log("ReceiptTokenFactory deployed:", address(receiptTokenFactory));
     require(
       address(receiptTokenFactory) == address(computedAddrReceiptTokenFactory_), "ReceiptTokenFactory address mismatch"
