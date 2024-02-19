@@ -24,7 +24,7 @@ import {
 import {IdLookup} from "../src/lib/structs/Pools.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockDripModel} from "./utils/MockDripModel.sol";
-import {MockStkToken} from "./utils/MockStkToken.sol";
+import {MockStkReceiptToken} from "./utils/MockStkToken.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 
@@ -63,8 +63,9 @@ contract RewardsDistributorUnitTest is TestBase {
   function _setUpStakePools(uint256 numStakePools_, bool zeroStakeAmount_) internal {
     for (uint16 i = 0; i < numStakePools_; i++) {
       MockERC20 mockStakeAsset_ = new MockERC20("Mock Stake Asset", "MockStakeAsset", 6);
-      IReceiptToken stkReceiptToken_ =
-        IReceiptToken(address(new MockStkToken(address(component), "Mock StkReceiptToken", "MockStkReceiptToken", 6)));
+      IReceiptToken stkReceiptToken_ = IReceiptToken(
+        address(new MockStkReceiptToken(address(component), "Mock StkReceiptToken", "MockStkReceiptToken", 6))
+      );
       uint256 stakeAmount_ = zeroStakeAmount_ ? 0 : _randomUint64();
 
       StakePool memory stakePool_ = StakePool({
@@ -105,8 +106,9 @@ contract RewardsDistributorUnitTest is TestBase {
   function _setUpConcrete() internal {
     // Set-up two stake pools.
     MockERC20 mockStakeAssetA_ = new MockERC20("Mock Stake Asset A", "MockStakeAssetA", 6);
-    IReceiptToken stkReceiptTokenA_ =
-      IReceiptToken(address(new MockStkToken(address(component), "Mock StkReceiptToken A", "MockStkReceiptTokenA", 6)));
+    IReceiptToken stkReceiptTokenA_ = IReceiptToken(
+      address(new MockStkReceiptToken(address(component), "Mock StkReceiptToken A", "MockStkReceiptTokenA", 6))
+    );
     uint256 stakeAmountA_ = 100e6;
     StakePool memory stakePoolA_ = StakePool({
       amount: stakeAmountA_,
@@ -116,8 +118,9 @@ contract RewardsDistributorUnitTest is TestBase {
     });
 
     MockERC20 mockStakeAssetB_ = new MockERC20("Mock Stake Asset B", "MockStakeAssetB", 6);
-    IReceiptToken stkReceiptTokenB_ =
-      IReceiptToken(address(new MockStkToken(address(component), "Mock StkReceiptToken", "MockStkReceiptTokenB", 6)));
+    IReceiptToken stkReceiptTokenB_ = IReceiptToken(
+      address(new MockStkReceiptToken(address(component), "Mock StkReceiptToken", "MockStkReceiptTokenB", 6))
+    );
     uint256 stakeAmountB_ = 200e6;
     StakePool memory stakePoolB_ = StakePool({
       amount: stakeAmountB_,
@@ -977,7 +980,7 @@ contract RewardsDistributorStkTokenTransferUnitTest is RewardsDistributorUnitTes
   function test_revertsOnUnauthorizedUserRewardsUpdate() public {
     vm.startPrank(_randomAddress());
     vm.expectRevert(Ownable.Unauthorized.selector);
-    component.updateUserRewardsForStkTokenTransfer(_randomAddress(), _randomAddress());
+    component.updateUserRewardsForStkReceiptTokenTransfer(_randomAddress(), _randomAddress());
     vm.stopPrank();
   }
 }

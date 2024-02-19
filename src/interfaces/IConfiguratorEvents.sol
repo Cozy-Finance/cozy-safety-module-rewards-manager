@@ -10,7 +10,7 @@ interface IConfiguratorEvents {
   event StakePoolCreated(uint16 indexed stakePoolId, IReceiptToken stkReceiptToken, IERC20 asset);
 
   /// @notice Emitted when an reward pool is created.
-  event RewardPoolCreated(uint16 indexed rewardPoolId, IERC20 rewardAsset, IReceiptToken depositReceiptToken);
+  event RewardPoolCreated(uint16 indexed rewardPoolId, IReceiptToken depositReceiptToken, IERC20 asset);
 
   /// @dev Emitted when a rewards manager's configuration updates are applied.
   event ConfigUpdatesApplied(StakePoolConfig[] stakePoolConfigs, RewardPoolConfig[] rewardPoolConfigs);

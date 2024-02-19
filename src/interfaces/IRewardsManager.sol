@@ -47,8 +47,8 @@ interface IRewardsManager {
     view
     returns (uint256 depositReceiptTokenAmount_);
 
-  /// @notice Updates the reward module's user rewards data prior to a stkToken transfer.
-  function updateUserRewardsForStkTokenTransfer(address from_, address to_) external;
+  /// @notice Updates the reward module's user rewards data prior to a stkReceiptToken transfer.
+  function updateUserRewardsForStkReceiptTokenTransfer(address from_, address to_) external;
 
   function receiptTokenFactory() external view returns (address);
 

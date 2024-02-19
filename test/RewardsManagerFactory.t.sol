@@ -10,7 +10,7 @@ import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
-import {StkToken} from "../src/StkToken.sol";
+import {StkReceiptToken} from "../src/StkReceiptToken.sol";
 import {StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../src/lib/structs/Configs.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
@@ -25,7 +25,7 @@ contract RewardsManagerFactoryTest is TestBase {
   RewardsManagerFactory rewardsManagerFactory;
 
   ReceiptToken safetyModuleReceiptTokenLogic;
-  StkToken stkTokenLogic;
+  StkReceiptToken stkReceiptTokenLogic;
   IReceiptTokenFactory receiptTokenFactory;
 
   ICozyManager cozyManager = ICozyManager(_randomAddress());
@@ -35,13 +35,13 @@ contract RewardsManagerFactoryTest is TestBase {
 
   function setUp() public {
     safetyModuleReceiptTokenLogic = new ReceiptToken();
-    stkTokenLogic = new StkToken();
+    stkReceiptTokenLogic = new StkReceiptToken();
 
     safetyModuleReceiptTokenLogic.initialize(address(0), "", "", 0);
-    stkTokenLogic.initialize(address(0), "", "", 0);
+    stkReceiptTokenLogic.initialize(address(0), "", "", 0);
 
     receiptTokenFactory = new ReceiptTokenFactory(
-      IReceiptToken(address(safetyModuleReceiptTokenLogic)), IReceiptToken(address(stkTokenLogic))
+      IReceiptToken(address(safetyModuleReceiptTokenLogic)), IReceiptToken(address(stkReceiptTokenLogic))
     );
 
     rewardsManagerLogic = new RewardsManager(cozyManager, receiptTokenFactory, 30, 25);

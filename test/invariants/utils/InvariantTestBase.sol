@@ -60,7 +60,7 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
     selectors[10] = RewardsManagerHandler.dripRewardPool.selector;
     selectors[11] = RewardsManagerHandler.claimRewards.selector;
     selectors[12] = RewardsManagerHandler.stkTokenTransfer.selector;
-    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkTokenTransfer.selector;
+    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer.selector;
     selectors[14] = RewardsManagerHandler.redeemUndrippedRewards.selector;
     return selectors;
   }
@@ -105,7 +105,7 @@ abstract contract InvariantTestBaseWithStateTransitions is InvariantTestBase {
     selectors[10] = RewardsManagerHandler.dripRewardPool.selector;
     selectors[11] = RewardsManagerHandler.claimRewards.selector;
     selectors[12] = RewardsManagerHandler.stkTokenTransfer.selector;
-    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkTokenTransfer.selector;
+    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer.selector;
     selectors[14] = RewardsManagerHandler.redeemUndrippedRewards.selector;
     // State transition selectors
     selectors[15] = RewardsManagerHandler.pause.selector;

@@ -265,13 +265,13 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     }
   }
 
-  function invariant_updateUserRewardsForStkTokenTransferAccounting()
+  function invariant_updateUserRewardsForStkReceiptTokenTransferAccounting()
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
     address from_ = _randomAddress();
     address to_ = _randomAddress();
-    rewardsManagerHandler.updateUserRewardsForStkTokenTransfer(from_, to_, _randomUint256());
+    rewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer(from_, to_, _randomUint256());
 
     uint16 stakePoolId_ = rewardsManagerHandler.currentStakePoolId();
     UserRewardsData[] memory fromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);
@@ -298,7 +298,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     UserRewardsData[] memory preToUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, to_);
 
     vm.prank(address(getStakePool(rewardsManager, stakePoolId_).stkReceiptToken));
-    rewardsManager.updateUserRewardsForStkTokenTransfer(from_, to_);
+    rewardsManager.updateUserRewardsForStkReceiptTokenTransfer(from_, to_);
 
     UserRewardsData[] memory postFromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);
     UserRewardsData[] memory postToUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, to_);
@@ -347,7 +347,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     }
   }
 
-  function invariant_updateUserRewardsForStkTokenTransferRevertsForUnauthorizedAddress()
+  function invariant_updateUserRewardsForStkReceiptTokenTransferRevertsForUnauthorizedAddress()
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
@@ -358,7 +358,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
 
     vm.expectRevert(Ownable.Unauthorized.selector);
     vm.prank(unauthorizedAddress_);
-    rewardsManager.updateUserRewardsForStkTokenTransfer(_randomAddress(), _randomAddress());
+    rewardsManager.updateUserRewardsForStkReceiptTokenTransfer(_randomAddress(), _randomAddress());
   }
 
   function invariant_stkTokenTransferAccounting() public syncCurrentTimestamp(rewardsManagerHandler) {

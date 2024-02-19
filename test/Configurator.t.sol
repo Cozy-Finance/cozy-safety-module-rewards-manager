@@ -4,14 +4,12 @@ pragma solidity 0.8.22;
 import {ReceiptToken} from "cozy-safety-module-shared/ReceiptToken.sol";
 import {ReceiptTokenFactory} from "cozy-safety-module-shared/ReceiptTokenFactory.sol";
 import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
-import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
 import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
 import {ICommonErrors} from "cozy-safety-module-shared/interfaces/ICommonErrors.sol";
 import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
-import {StkToken} from "../src/StkToken.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../src/lib/structs/Configs.sol";
 import {StakePool, RewardPool, IdLookup} from "../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
@@ -25,7 +23,6 @@ import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {IConfiguratorEvents} from "../src/interfaces/IConfiguratorEvents.sol";
 import {IConfiguratorErrors} from "../src/interfaces/IConfiguratorErrors.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
-import {MockSafetyModule} from "./utils/MockSafetyModule.sol";
 import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
@@ -416,20 +413,20 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     _expectEmit();
     emit RewardPoolCreated(
       2,
-      rewardPoolConfigs_[2].asset,
-      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 2, IReceiptTokenFactory.PoolType.REWARD))
+      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 2, IReceiptTokenFactory.PoolType.REWARD)),
+      rewardPoolConfigs_[2].asset
     );
     _expectEmit();
     emit RewardPoolCreated(
       3,
-      rewardPools_[0].asset,
-      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 3, IReceiptTokenFactory.PoolType.REWARD))
+      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 3, IReceiptTokenFactory.PoolType.REWARD)),
+      rewardPools_[0].asset
     );
     _expectEmit();
     emit RewardPoolCreated(
       4,
-      rewardPools_[0].asset,
-      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 4, IReceiptTokenFactory.PoolType.REWARD))
+      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 4, IReceiptTokenFactory.PoolType.REWARD)),
+      rewardPools_[0].asset
     );
     _expectEmit();
     emit ConfigUpdatesApplied(stakePoolConfigs_, rewardPoolConfigs_);
@@ -617,7 +614,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
       receiptTokenFactory_.computeAddress(address(component), 1, IReceiptTokenFactory.PoolType.REWARD);
 
     _expectEmit();
-    emit RewardPoolCreated(1, newRewardPoolConfig_.asset, IReceiptToken(depositTokenAddress_));
+    emit RewardPoolCreated(1, IReceiptToken(depositTokenAddress_), newRewardPoolConfig_.asset);
     component.initializeRewardPool(newRewardPoolConfig_, 1);
 
     // One reward pool was added, so two total reward pools.

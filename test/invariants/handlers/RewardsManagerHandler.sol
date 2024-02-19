@@ -294,29 +294,29 @@ contract RewardsManagerHandler is TestBase {
       return (currentActor, 0);
     }
 
-    uint256 boundedStkTokenTransferAmount_ = bound(uint256(stkTokenTransferAmount_), 0, actorStkTokenBalance_);
+    uint256 boundedStkReceiptTokenTransferAmount_ = bound(uint256(stkTokenTransferAmount_), 0, actorStkTokenBalance_);
 
     vm.startPrank(currentActor);
-    // This will call `updateUserRewardsForStkTokenTransfer` in the RewardsManager.
-    stkToken_.transfer(to_, boundedStkTokenTransferAmount_);
+    // This will call `updateUserRewardsForStkReceiptTokenTransfer` in the RewardsManager.
+    stkToken_.transfer(to_, boundedStkReceiptTokenTransferAmount_);
     vm.stopPrank();
 
-    if (boundedStkTokenTransferAmount_ == actorStkTokenBalance_) actorsWithStakes.remove(currentActor);
+    if (boundedStkReceiptTokenTransferAmount_ == actorStkTokenBalance_) actorsWithStakes.remove(currentActor);
 
-    return (currentActor, boundedStkTokenTransferAmount_);
+    return (currentActor, boundedStkReceiptTokenTransferAmount_);
   }
 
-  function updateUserRewardsForStkTokenTransfer(address from_, address to_, uint256 seed_)
+  function updateUserRewardsForStkReceiptTokenTransfer(address from_, address to_, uint256 seed_)
     public
     virtual
     useValidStakePoolId(seed_)
-    countCall("updateUserRewardsForStkTokenTransfer")
+    countCall("updateUserRewardsForStkReceiptTokenTransfer")
     advanceTime(seed_)
   {
     IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
 
     vm.prank(address(stkToken_));
-    rewardsManager.updateUserRewardsForStkTokenTransfer(from_, to_);
+    rewardsManager.updateUserRewardsForStkReceiptTokenTransfer(from_, to_);
   }
 
   function claimRewards(address receiver_, uint256 seed_)
