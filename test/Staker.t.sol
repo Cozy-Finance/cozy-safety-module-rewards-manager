@@ -31,15 +31,15 @@ contract StakerUnitTest is TestBase {
 
   MockERC20 mockAsset = new MockERC20("Mock Asset", "MOCK", 6);
   MockERC20 mockStakeAsset = new MockERC20("Mock Stake Asset", "MOCK Stake", 6);
-  MockERC20 mockStkToken = new MockERC20("Mock Cozy Stake Token", "cozyStk", 6);
-  MockERC20 mockDepositToken = new MockERC20("Mock Cozy Deposit Token", "cozyDep", 6);
+  MockERC20 mockStkReceiptToken = new MockERC20("Mock Cozy Stake Receipt Token", "cozyStk", 6);
+  MockERC20 mockDepositToken = new MockERC20("Mock Cozy Deposit Receipt Token", "cozyDep", 6);
   TestableStaker component = new TestableStaker();
   uint256 cumulativeDrippedRewards_ = 290e18;
   uint256 cumulativeClaimedRewards_ = 90e18;
   uint256 initialIndexSnapshot_ = 11;
 
   event Staked(
-    address indexed caller_, address indexed receiver_, IReceiptToken indexed stkToken_, uint256 assetAmount_
+    address indexed caller_, address indexed receiver_, IReceiptToken indexed stkReceiptToken_, uint256 assetAmount_
   );
 
   event Unstaked(
@@ -57,7 +57,7 @@ contract StakerUnitTest is TestBase {
   function setUp() public {
     StakePool memory initialStakePool_ = StakePool({
       asset: IReceiptToken(address(mockStakeAsset)),
-      stkReceiptToken: IReceiptToken(address(mockStkToken)),
+      stkReceiptToken: IReceiptToken(address(mockStkReceiptToken)),
       amount: initialStakeAmount,
       rewardsWeight: 1e4
     });
@@ -72,17 +72,17 @@ contract StakerUnitTest is TestBase {
     component.mockSetClaimableRewardsData(0, 0, initialIndexSnapshot_, cumulativeClaimedRewards_);
 
     deal(address(mockStakeAsset), address(component), initialStakeAmount);
-    mockStkToken.mint(address(0), initialStakeAmount);
+    mockStkReceiptToken.mint(address(0), initialStakeAmount);
   }
 
-  function _overrideSetUpToZeroStkTokenSupply() internal {
+  function _overrideSetUpToZeroStkReceiptTokenSupply() internal {
     component.mockSetStakeAmount(0);
     component.mockSetAssetPoolAmount(0);
     deal(address(mockStakeAsset), address(component), 0);
-    vm.mockCall(address(mockStkToken), abi.encodeWithSelector(IERC20.totalSupply.selector), abi.encode(0));
+    vm.mockCall(address(mockStkReceiptToken), abi.encodeWithSelector(IERC20.totalSupply.selector), abi.encode(0));
   }
 
-  function test_stake_StkTokensAndStorageUpdates_NonZeroSupply() external {
+  function test_stake_StkReceiptTokensAndStorageUpdates_NonZeroSupply() external {
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
@@ -94,7 +94,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_);
+    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
     component.stake(0, amountToStake_, receiver_, staker_);
@@ -108,8 +108,9 @@ contract StakerUnitTest is TestBase {
     assertEq(finalAssetPool_.amount, amountToStake_ + initialStakeAmount);
     assertEq(mockStakeAsset.balanceOf(address(component)), amountToStake_ + initialStakeAmount);
 
-    // Because `stkToken.totalSupply() > 0`, the index snapshot and cumulative claimed rewards should change.
-    // Since this updates before the user is minted stkTokens, the `stkToken.totalSupply() == initialStakeAmount`.
+    // Because `stkReceiptToken.totalSupply() > 0`, the index snapshot and cumulative claimed rewards should change.
+    // Since this updates before the user is minted stkReceiptTokens, the `stkReceiptToken.totalSupply() ==
+    // initialStakeAmount`.
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
@@ -118,11 +119,11 @@ contract StakerUnitTest is TestBase {
     assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeDrippedRewards_);
 
     assertEq(mockStakeAsset.balanceOf(staker_), 0);
-    assertEq(mockStkToken.balanceOf(receiver_), amountToStake_);
+    assertEq(mockStkReceiptToken.balanceOf(receiver_), amountToStake_);
   }
 
-  function test_stake_StkTokensAndStorageUpdates_ZeroSupply() external {
-    _overrideSetUpToZeroStkTokenSupply();
+  function test_stake_StkReceiptTokensAndStorageUpdates_ZeroSupply() external {
+    _overrideSetUpToZeroStkReceiptTokenSupply();
 
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
@@ -135,7 +136,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_);
+    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
     component.stake(0, amountToStake_, receiver_, staker_);
@@ -148,12 +149,13 @@ contract StakerUnitTest is TestBase {
     assertEq(finalAssetPool_.amount, amountToStake_);
     assertEq(mockStakeAsset.balanceOf(address(component)), amountToStake_);
 
-    // Because `stkToken.totalSupply() == 0` when the user stakes, the index snapshot and cumulative claimed rewards
+    // Because `stkReceiptToken.totalSupply() == 0` when the user stakes, the index snapshot and cumulative claimed
+    // rewards
     // should not change.
     assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_);
     assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeClaimedRewards_);
     assertEq(mockStakeAsset.balanceOf(staker_), 0);
-    assertEq(mockStkToken.balanceOf(receiver_), amountToStake_);
+    assertEq(mockStkReceiptToken.balanceOf(receiver_), amountToStake_);
   }
 
   function test_stake_RevertWhenPaused() external {
@@ -201,7 +203,7 @@ contract StakerUnitTest is TestBase {
     component.stake(0, amountToStake_, receiver_, staker_);
   }
 
-  function test_stakeWithoutTransfer_StkTokensAndStorageUpdates_NonZeroSupply() external {
+  function test_stakeWithoutTransfer_StkReceiptTokensAndStorageUpdates_NonZeroSupply() external {
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
@@ -213,7 +215,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.transfer(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_);
+    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
     component.stakeWithoutTransfer(0, amountToStake_, receiver_);
@@ -226,11 +228,11 @@ contract StakerUnitTest is TestBase {
     assertEq(mockStakeAsset.balanceOf(address(component)), amountToStake_ + initialStakeAmount);
 
     assertEq(mockStakeAsset.balanceOf(staker_), 0);
-    assertEq(mockStkToken.balanceOf(receiver_), amountToStake_);
+    assertEq(mockStkReceiptToken.balanceOf(receiver_), amountToStake_);
   }
 
-  function test_stakeWithoutTransfer_StkTokensAndStorageUpdates_ZeroSupply() external {
-    _overrideSetUpToZeroStkTokenSupply();
+  function test_stakeWithoutTransfer_StkReceiptTokensAndStorageUpdates_ZeroSupply() external {
+    _overrideSetUpToZeroStkReceiptTokenSupply();
 
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
@@ -243,7 +245,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.transfer(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountToStake_);
+    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
     component.stakeWithoutTransfer(0, amountToStake_, receiver_);
@@ -256,12 +258,13 @@ contract StakerUnitTest is TestBase {
     assertEq(finalAssetPool_.amount, amountToStake_);
     assertEq(mockStakeAsset.balanceOf(address(component)), amountToStake_);
 
-    // Because `stkToken.totalSupply() == 0` when the user stakes, the index snapshot and cumulative claimed rewards
+    // Because `stkReceiptToken.totalSupply() == 0` when the user stakes, the index snapshot and cumulative claimed
+    // rewards
     // should not change.
     assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_);
     assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeClaimedRewards_);
     assertEq(mockStakeAsset.balanceOf(staker_), 0);
-    assertEq(mockStkToken.balanceOf(receiver_), amountToStake_);
+    assertEq(mockStkReceiptToken.balanceOf(receiver_), amountToStake_);
   }
 
   function test_stakeWithoutTransfer_RevertWhenPaused() external {
@@ -347,7 +350,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountStaked_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkToken)), amountStaked_);
+    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
 
     vm.prank(staker_);
     component.stake(0, amountStaked_, receiver_, staker_);
@@ -358,12 +361,12 @@ contract StakerUnitTest is TestBase {
     address unstakeReceiver_ = _randomAddress();
 
     vm.prank(receiver_);
-    mockStkToken.approve(address(component), amountStaked_);
+    mockStkReceiptToken.approve(address(component), amountStaked_);
 
     _expectEmit();
     emit Transfer(address(component), unstakeReceiver_, amountStaked_);
     _expectEmit();
-    emit Unstaked(receiver_, unstakeReceiver_, receiver_, IReceiptToken(address(mockStkToken)), amountStaked_);
+    emit Unstaked(receiver_, unstakeReceiver_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
 
     vm.prank(receiver_);
     component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
@@ -379,8 +382,9 @@ contract StakerUnitTest is TestBase {
 
     ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
 
-    // Because `stkToken.totalSupply() > 0` before unstaking, the index snapshot and cumulative claimed rewards should
-    // change. Since this updates when the user stakes, `stkToken.totalSupply() == initialStakeAmount`.
+    // Because `stkReceiptToken.totalSupply() > 0` before unstaking, the index snapshot and cumulative claimed rewards
+    // should
+    // change. Since this updates when the user stakes, `stkReceiptToken.totalSupply() == initialStakeAmount`.
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
@@ -401,18 +405,22 @@ contract StakerUnitTest is TestBase {
     assertEq(mockStakeAsset.balanceOf(address(component)), amountStaked_ + initialStakeAmount);
 
     vm.prank(receiver_);
-    mockStkToken.approve(address(component), amountStaked_);
+    mockStkReceiptToken.approve(address(component), amountStaked_);
 
-    uint256 stkTokenAmountToUnstake_ = amountStaked_ / 2;
+    uint256 stkReceiptTokenAmountToUnstake_ = amountStaked_ / 2;
     _expectEmit();
-    emit Transfer(address(component), unstakeReceiver_, stkTokenAmountToUnstake_);
+    emit Transfer(address(component), unstakeReceiver_, stkReceiptTokenAmountToUnstake_);
     _expectEmit();
     emit Unstaked(
-      receiver_, unstakeReceiver_, receiver_, IReceiptToken(address(mockStkToken)), stkTokenAmountToUnstake_
+      receiver_,
+      unstakeReceiver_,
+      receiver_,
+      IReceiptToken(address(mockStkReceiptToken)),
+      stkReceiptTokenAmountToUnstake_
     );
 
     vm.prank(receiver_);
-    component.unstake(0, stkTokenAmountToUnstake_, unstakeReceiver_, receiver_);
+    component.unstake(0, stkReceiptTokenAmountToUnstake_, unstakeReceiver_, receiver_);
 
     assertEq(mockStakeAsset.balanceOf(unstakeReceiver_), amountStaked_ / 2);
 
@@ -423,8 +431,9 @@ contract StakerUnitTest is TestBase {
     assertEq(finalAssetPool_.amount, initialStakeAmount + (amountStaked_ / 2));
 
     ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
-    // Because `stkToken.totalSupply() > 0` before unstaking, the index snapshot and cumulative claimed rewards should
-    // change. Since this updates when the user stakes, `stkToken.totalSupply() == initialStakeAmount`.
+    // Because `stkReceiptToken.totalSupply() > 0` before unstaking, the index snapshot and cumulative claimed rewards
+    // should
+    // change. Since this updates when the user stakes, `stkReceiptToken.totalSupply() == initialStakeAmount`.
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
@@ -438,7 +447,7 @@ contract StakerUnitTest is TestBase {
     address unstakeReceiver_ = _randomAddress();
 
     vm.prank(receiver_);
-    mockStkToken.approve(address(component), amountStaked_);
+    mockStkReceiptToken.approve(address(component), amountStaked_);
 
     vm.prank(receiver_);
     component.unstake(0, amountStaked_ / 2, unstakeReceiver_, receiver_);
@@ -463,7 +472,7 @@ contract StakerUnitTest is TestBase {
     address unstakeReceiver_ = _randomAddress();
 
     vm.prank(receiver_);
-    mockStkToken.approve(address(component), amountStaked_);
+    mockStkReceiptToken.approve(address(component), amountStaked_);
 
     component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
 
@@ -476,7 +485,7 @@ contract StakerUnitTest is TestBase {
     _expectEmit();
     emit Transfer(address(component), unstakeReceiver_, amountStaked_);
     _expectEmit();
-    emit Unstaked(receiver_, unstakeReceiver_, receiver_, IReceiptToken(address(mockStkToken)), amountStaked_);
+    emit Unstaked(receiver_, unstakeReceiver_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
     vm.prank(receiver_);
     component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
 
@@ -491,8 +500,9 @@ contract StakerUnitTest is TestBase {
 
     ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
 
-    // Because `stkToken.totalSupply() > 0` before unstaking, the index snapshot and cumulative claimed rewards should
-    // change. Since this updates when the user stakes, `stkToken.totalSupply() == initialStakeAmount`.
+    // Because `stkReceiptToken.totalSupply() > 0` before unstaking, the index snapshot and cumulative claimed rewards
+    // should
+    // change. Since this updates when the user stakes, `stkReceiptToken.totalSupply() == initialStakeAmount`.
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
@@ -516,12 +526,13 @@ contract StakerUnitTest is TestBase {
     address spender_ = _randomAddress();
 
     vm.prank(receiver_);
-    mockStkToken.approve(spender_, amountStaked_ + 1); // Allowance is 1 extra.
+    mockStkReceiptToken.approve(spender_, amountStaked_ + 1); // Allowance is 1 extra.
 
     vm.prank(spender_);
     component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
 
-    assertEq(mockStkToken.allowance(receiver_, spender_), 1, "depositToken allowance"); // Only 1 allowance left because
+    assertEq(mockStkReceiptToken.allowance(receiver_, spender_), 1, "depositToken allowance"); // Only 1 allowance left
+      // because
       // of subtraction.
     assertEq(mockStakeAsset.balanceOf(unstakeReceiver_), amountStaked_);
   }
@@ -532,7 +543,7 @@ contract StakerUnitTest is TestBase {
     address spender_ = _randomAddress();
 
     vm.prank(receiver_);
-    mockStkToken.approve(spender_, amountStaked_ - 1); // Allowance is 1 less.
+    mockStkReceiptToken.approve(spender_, amountStaked_ - 1); // Allowance is 1 less.
 
     _expectPanic(PANIC_MATH_UNDEROVERFLOW);
     vm.prank(spender_);
@@ -547,7 +558,7 @@ contract StakerUnitTest is TestBase {
 
     (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
     vm.prank(receiver_);
-    mockStkToken.approve(address(component), amountStaked_ + 1);
+    mockStkReceiptToken.approve(address(component), amountStaked_ + 1);
 
     vm.prank(receiver_);
     _expectPanic(PANIC_MATH_UNDEROVERFLOW);

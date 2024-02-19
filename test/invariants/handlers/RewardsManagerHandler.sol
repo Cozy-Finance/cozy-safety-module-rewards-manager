@@ -244,25 +244,25 @@ contract RewardsManagerHandler is TestBase {
     useActorWithStakes(seed_)
     countCall("unstake")
     advanceTime(seed_)
-    returns (uint256 stkTokenUnstakeAmount_)
+    returns (uint256 stkReceiptTokenUnstakeAmount_)
   {
-    IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
-    uint256 actorStkTokenBalance_ = stkToken_.balanceOf(currentActor);
-    if (actorStkTokenBalance_ == 0) {
+    IERC20 stkReceiptToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
+    uint256 actorStkReceiptTokenBalance_ = stkReceiptToken_.balanceOf(currentActor);
+    if (actorStkReceiptTokenBalance_ == 0) {
       invalidCalls["unstake"] += 1;
       return 0;
     }
 
     _incrementGhostRewardsToBeClaimed(currentStakePoolId, currentActor);
 
-    stkTokenUnstakeAmount_ = bound(_randomUint256(), 1, actorStkTokenBalance_);
+    stkReceiptTokenUnstakeAmount_ = bound(_randomUint256(), 1, actorStkReceiptTokenBalance_);
     vm.startPrank(currentActor);
-    stkToken_.approve(address(rewardsManager), stkTokenUnstakeAmount_);
-    rewardsManager.unstake(currentStakePoolId, stkTokenUnstakeAmount_, receiver_, currentActor);
+    stkReceiptToken_.approve(address(rewardsManager), stkReceiptTokenUnstakeAmount_);
+    rewardsManager.unstake(currentStakePoolId, stkReceiptTokenUnstakeAmount_, receiver_, currentActor);
     vm.stopPrank();
 
-    if (stkTokenUnstakeAmount_ == actorStkTokenBalance_) actorsWithStakes.remove(currentActor);
-    ghost_stakePoolCumulative[currentStakePoolId].unstakeAssetAmount += stkTokenUnstakeAmount_;
+    if (stkReceiptTokenUnstakeAmount_ == actorStkReceiptTokenBalance_) actorsWithStakes.remove(currentActor);
+    ghost_stakePoolCumulative[currentStakePoolId].unstakeAssetAmount += stkReceiptTokenUnstakeAmount_;
   }
 
   function dripRewards(uint256 seed_) public virtual countCall("dripRewards") advanceTime(seed_) {
@@ -279,29 +279,30 @@ contract RewardsManagerHandler is TestBase {
     rewardsManager.dripRewardPool(currentRewardPoolId);
   }
 
-  function stkTokenTransfer(uint64 stkTokenTransferAmount_, address to_, uint256 seed_)
+  function stkReceiptTokenTransfer(uint64 stkReceiptTokenTransferAmount_, address to_, uint256 seed_)
     public
     virtual
     useActorWithStakes(seed_)
-    countCall("stkTokenTransfer")
+    countCall("stkReceiptTokenTransfer")
     advanceTime(seed_)
     returns (address actor_, uint256 amount_)
   {
-    IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
-    uint256 actorStkTokenBalance_ = stkToken_.balanceOf(currentActor);
-    if (actorStkTokenBalance_ == 0) {
-      invalidCalls["stkTokenTransfer"] += 1;
+    IERC20 stkReceiptToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
+    uint256 actorStkReceiptTokenBalance_ = stkReceiptToken_.balanceOf(currentActor);
+    if (actorStkReceiptTokenBalance_ == 0) {
+      invalidCalls["stkReceiptTokenTransfer"] += 1;
       return (currentActor, 0);
     }
 
-    uint256 boundedStkReceiptTokenTransferAmount_ = bound(uint256(stkTokenTransferAmount_), 0, actorStkTokenBalance_);
+    uint256 boundedStkReceiptTokenTransferAmount_ =
+      bound(uint256(stkReceiptTokenTransferAmount_), 0, actorStkReceiptTokenBalance_);
 
     vm.startPrank(currentActor);
     // This will call `updateUserRewardsForStkReceiptTokenTransfer` in the RewardsManager.
-    stkToken_.transfer(to_, boundedStkReceiptTokenTransferAmount_);
+    stkReceiptToken_.transfer(to_, boundedStkReceiptTokenTransferAmount_);
     vm.stopPrank();
 
-    if (boundedStkReceiptTokenTransferAmount_ == actorStkTokenBalance_) actorsWithStakes.remove(currentActor);
+    if (boundedStkReceiptTokenTransferAmount_ == actorStkReceiptTokenBalance_) actorsWithStakes.remove(currentActor);
 
     return (currentActor, boundedStkReceiptTokenTransferAmount_);
   }
@@ -313,9 +314,9 @@ contract RewardsManagerHandler is TestBase {
     countCall("updateUserRewardsForStkReceiptTokenTransfer")
     advanceTime(seed_)
   {
-    IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
+    IERC20 stkReceiptToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
 
-    vm.prank(address(stkToken_));
+    vm.prank(address(stkReceiptToken_));
     rewardsManager.updateUserRewardsForStkReceiptTokenTransfer(from_, to_);
   }
 
@@ -326,9 +327,9 @@ contract RewardsManagerHandler is TestBase {
     advanceTime(seed_)
     returns (address actor_)
   {
-    IERC20 stkToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
-    uint256 actorStkTokenBalance_ = stkToken_.balanceOf(currentActor);
-    if (actorStkTokenBalance_ == 0) {
+    IERC20 stkReceiptToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
+    uint256 actorStkReceiptTokenBalance_ = stkReceiptToken_.balanceOf(currentActor);
+    if (actorStkReceiptTokenBalance_ == 0) {
       invalidCalls["claimRewards"] += 1;
       return currentActor;
     }
@@ -400,8 +401,8 @@ contract RewardsManagerHandler is TestBase {
     console2.log("dripRewards", calls["dripRewards"]);
     console2.log("dripRewardPool", calls["dripRewardPool"]);
     console2.log("claimRewards", calls["claimRewards"]);
-    console2.log("stkTokenTransfer", calls["stkTokenTransfer"]);
-    console2.log("updateUserRewardsForStkTokenTransfer", calls["updateUserRewardsForStkTokenTransfer"]);
+    console2.log("stkReceiptTokenTransfer", calls["stkReceiptTokenTransfer"]);
+    console2.log("updateUserRewardsForStkReceiptTokenTransfer", calls["updateUserRewardsForStkReceiptTokenTransfer"]);
     console2.log("redeemUndrippedRewards", calls["redeemUndrippedRewards"]);
     console2.log("pause", calls["pause"]);
     console2.log("unpause", calls["unpause"]);
@@ -423,8 +424,10 @@ contract RewardsManagerHandler is TestBase {
     console2.log("dripRewards", invalidCalls["dripRewards"]);
     console2.log("dripRewardPool", invalidCalls["dripRewardPool"]);
     console2.log("claimRewards", invalidCalls["claimRewards"]);
-    console2.log("stkTokenTransfer", invalidCalls["stkTokenTransfer"]);
-    console2.log("updateUserRewardsForStkTokenTransfer", invalidCalls["updateUserRewardsForStkTokenTransfer"]);
+    console2.log("stkReceiptTokenTransfer", invalidCalls["stkReceiptTokenTransfer"]);
+    console2.log(
+      "updateUserRewardsForStkReceiptTokenTransfer", invalidCalls["updateUserRewardsForStkReceiptTokenTransfer"]
+    );
     console2.log("redeemUndrippedRewards", invalidCalls["redeemUndrippedRewards"]);
     console2.log("pause", invalidCalls["pause"]);
     console2.log("unpause", invalidCalls["unpause"]);

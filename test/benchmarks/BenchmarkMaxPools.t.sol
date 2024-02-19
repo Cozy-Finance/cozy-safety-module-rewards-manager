@@ -234,7 +234,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     vm.stopPrank();
   }
 
-  function test_stkTokenTransfer() public {
+  function test_stkReceiptTokenTransfer() public {
     (uint16 stakePoolId_,, address receiver_) = _randomSingleActionFixture(true);
 
     StakePool memory stakePool_ = getStakePool(IRewardsManager(address(rewardsManager)), stakePoolId_);
@@ -246,7 +246,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     vm.startPrank(receiver_);
     uint256 gasInitial_ = gasleft();
     stkReceiptToken_.transfer(_randomAddress(), stkReceiptToken_.balanceOf(receiver_));
-    console2.log("Gas used for stkToken_.transfer: %s", gasInitial_ - gasleft());
+    console2.log("Gas used for stkReceiptToken_.transfer: %s", gasInitial_ - gasleft());
     vm.stopPrank();
   }
 

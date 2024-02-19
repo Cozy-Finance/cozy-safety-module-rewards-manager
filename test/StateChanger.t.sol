@@ -244,7 +244,7 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
   }
 
   function _updateUserRewards(
-    uint256, /*userStkTokenBalance_*/
+    uint256, /*userStkReceiptTokenBalance_*/
     mapping(uint16 => ClaimableRewardsData) storage, /*claimableRewards_*/
     UserRewardsData[] storage /*userRewards_*/
   ) internal view override {
