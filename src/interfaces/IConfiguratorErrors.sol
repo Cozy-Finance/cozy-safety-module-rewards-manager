@@ -2,6 +2,6 @@
 pragma solidity ^0.8.0;
 
 interface IConfiguratorErrors {
-  /// @dev Thrown when an update's configuration does not meet all requirements.
+  /// @notice Thrown when an config update does not meet all requirements.
   error InvalidConfiguration();
 }
