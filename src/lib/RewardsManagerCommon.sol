@@ -9,12 +9,9 @@ import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";
 import {StakePool, RewardPool} from "./structs/Pools.sol";
 
 abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErrors {
-  /// @notice Claim staking rewards for a given stake pool.
   /// @dev Defined in RewardsDistributor.
   function _claimRewards(uint16 stakePoolId_, address receiver_, address owner_) internal virtual;
 
-  /// @notice Updates the balances for each reward pool by applying a drip factor on them, and increment the
-  /// claimable rewards index for each claimable rewards pool.
   /// @dev Defined in RewardsDistributor.
   function dripRewards() public virtual;
 
@@ -24,7 +21,7 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
   /// @dev Defined in RewardsManagerInspector.
   function _poolAmountWithFloor(uint256 poolAmount_) internal pure virtual returns (uint256);
 
-  /// @dev Helper to assert that the rewards manager has a balance of tokens that matches the required amount for a
+  /// @notice Helper to assert that the rewards manager has a balance of tokens that matches the required amount for a
   /// deposit/stake.
   /// @dev Defined in Depositor.
   function _assertValidDepositBalance(IERC20 token_, uint256 tokenPoolBalance_, uint256 depositAmount_)
@@ -32,7 +29,7 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
     view
     virtual;
 
-  // @dev Returns the next amount of rewards/fees to be dripped given a base amount and a drip model.
+  /// @notice Returns the next amount of rewards/fees to be dripped given a base amount, drip model and last drip time.
   /// @dev Defined in RewardsDistributor.
   function _getNextDripAmount(uint256 totalBaseAmount_, IDripModel dripModel_, uint256 lastDripTime_)
     internal
@@ -40,7 +37,7 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
     virtual
     returns (uint256);
 
-  // @dev Compute the next amount of rewards/fees to be dripped given a base amount and a drip factor.
+  /// @notice Compute the next amount of rewards/fees to be dripped given a base amount and a drip factor.
   /// @dev Defined in RewardsDistributor.
   function _computeNextDripAmount(uint256 totalBaseAmount_, uint256 dripFactor_)
     internal

@@ -13,12 +13,21 @@ import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol
 abstract contract Staker is RewardsManagerCommon {
   using SafeERC20 for IERC20;
 
-  /// @dev Emitted when a user stakes.
+  /// @notice Emitted when a user stakes.
+  /// @param caller_ The address that called the stake function.
+  /// @param receiver_ The address that received the stkReceiptTokens.
+  /// @param stkReceiptToken_ The stkReceiptToken that was minted.
+  /// @param assetAmount_ The amount of the underlying asset staked.
   event Staked(
     address indexed caller_, address indexed receiver_, IReceiptToken indexed stkReceiptToken_, uint256 assetAmount_
   );
 
-  /// @dev Emitted when a user unstakes.
+  /// @notice Emitted when a user unstakes.
+  /// @param caller_ The address that called the unstake function.
+  /// @param receiver_ The address that received the unstaked assets.
+  /// @param owner_ The owner of the stkReceiptTokens being unstaked.
+  /// @param stkReceiptToken_ The stkReceiptToken that was burned.
+  /// @param stkReceiptTokenAmount_ The amount of stkReceiptTokens burned.
   event Unstaked(
     address caller_,
     address indexed receiver_,
@@ -27,12 +36,14 @@ abstract contract Staker is RewardsManagerCommon {
     uint256 stkReceiptTokenAmount_
   );
 
-  error InsufficientBalance();
-
-  /// @notice Stake by minting `assetAmount_` stkReceiptTokens to `receiver_` after depositing exactly
-  /// `assetAmount_` of `stakePoolId_` stake pool asset.
-  /// @dev Assumes that `from_` has already approved this contract to transfer `assetAmount_` of the
+  /// @notice Stake by minting `assetAmount_` stkReceiptTokens to `receiver_` after depositing exactly `assetAmount_` of
   /// `stakePoolId_` stake pool asset.
+  /// @dev Assumes that `from_` has already approved this contract to transfer `assetAmount_` of the `stakePoolId_`
+  /// stake pool asset.
+  /// @param stakePoolId_ The ID of the stake pool to stake in.
+  /// @param assetAmount_ The amount of the underlying asset to stake.
+  /// @param receiver_ The address that will receive the stkReceiptTokens.
+  /// @param from_ The address that will transfer the underlying stake asset to the rewards manager.
   function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_, address from_) external {
     if (assetAmount_ == 0) revert AmountIsZero();
 
@@ -50,8 +61,11 @@ abstract contract Staker is RewardsManagerCommon {
   }
 
   /// @notice Stake by minting `assetAmount_` stkReceiptTokens to `receiver_`.
-  /// @dev Assumes that `assetAmount_` of `stakePoolId_` stake pool asset has already been
-  /// transferred to this rewards manager contract.
+  /// @dev Assumes that `assetAmount_` of `stakePoolId_` stake pool asset has already been transferred to this rewards
+  /// manager contract.
+  /// @param stakePoolId_ The ID of the stake pool to stake in.
+  /// @param assetAmount_ The amount of the underlying asset to stake.
+  /// @param receiver_ The address that will receive the stkReceiptTokens.
   function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external {
     if (assetAmount_ == 0) revert AmountIsZero();
 
@@ -65,9 +79,15 @@ abstract contract Staker is RewardsManagerCommon {
   }
 
   /// @notice Unstakes by burning `stkReceiptTokenAmount_` of `stakePoolId_` stake pool stake receipt tokens and
-  /// sending `stkReceiptTokenAmount_` of `stakePoolId_` stake pool asset to `receiver_`. Also
-  /// claims any outstanding rewards for `stakePoolId_` stake pool and sends them to `receiver_`.
+  /// sending `stkReceiptTokenAmount_` of `stakePoolId_` stake pool asset to `receiver_`. Also, claims ALL outstanding
+  /// user rewards and sends them to `receiver_`.
   /// @dev Assumes that user has approved this rewards manager to spend its stkReceiptTokens.
+  /// @dev The `receiver_` is transferred ALL claimable rewards of the `owner_`, not just those associated with the
+  /// input amount, `stkReceiptTokenAmount_`.
+  /// @param stakePoolId_ The ID of the stake pool to unstake from.
+  /// @param stkReceiptTokenAmount_ The amount of stkReceiptTokens to unstake.
+  /// @param receiver_ The address that will receive the unstaked assets.
+  /// @param owner_ The owner of the stkReceiptTokens being unstaked.
   function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external {
     if (stkReceiptTokenAmount_ == 0) revert AmountIsZero();
 

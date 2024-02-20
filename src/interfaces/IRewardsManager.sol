@@ -13,71 +13,25 @@ import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 import {ICozyManager} from "./ICozyManager.sol";
 
 interface IRewardsManager {
-  /// @notice Replaces the constructor for minimal proxies.
-  function initialize(
-    address owner_,
-    address pauser_,
-    StakePoolConfig[] calldata stakePoolConfigs_,
-    RewardPoolConfig[] calldata rewardPoolConfigs_
-  ) external;
+  function allowedRewardPools() external view returns (uint8);
 
   function allowedStakePools() external view returns (uint8);
 
-  function allowedRewardPools() external view returns (uint8);
-
   function assetPools(IERC20 asset_) external view returns (AssetPool memory);
-
-  /// @notice Retrieve accounting and metadata about stake pools.
-  function stakePools(uint256 id_) external view returns (StakePool memory);
-
-  /// @notice Retrieve accounting and metadata about reward pools.
-  /// @dev Claimable reward pool IDs are mapped 1:1 with reward pool IDs.
-  function rewardPools(uint256 id_) external view returns (RewardPool memory);
-
-  function getUserRewards(uint16 stakePoolId_, address user) external view returns (UserRewardsData[] memory);
 
   function claimableRewards(uint16 stakePoolId_, uint16 rewardPoolId_)
     external
     view
     returns (ClaimableRewardsData memory);
 
-  /// @notice Converts a reward pool's reward asset amount to the corresponding reward deposit receipt token amount.
+  function claimRewards(uint16 stakePoolId_, address receiver_) external;
+
   function convertRewardAssetToReceiptTokenAmount(uint256 rewardPoolId_, uint256 rewardAssetAmount_)
     external
     view
     returns (uint256 depositReceiptTokenAmount_);
 
-  /// @notice Updates the reward module's user rewards data prior to a stkReceiptToken transfer.
-  function updateUserRewardsForStkReceiptTokenTransfer(address from_, address to_) external;
-
-  function receiptTokenFactory() external view returns (address);
-
-  function owner() external view returns (address);
-
-  function pause() external;
-
-  function pauser() external view returns (address);
-
-  function redeemUndrippedRewards(
-    uint16 rewardPoolId_,
-    uint256 depositReceiptTokenAmount_,
-    address receiver_,
-    address owner_
-  ) external returns (uint256 rewardAssetAmount_);
-
-  function previewUndrippedRewardsRedemption(uint16 rewardPoolId_, uint256 depositReceiptTokenAmount_)
-    external
-    view
-    returns (uint256 rewardAssetAmount_);
-
-  function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external;
-
-  function claimRewards(uint16 stakePoolId_, address receiver_) external;
-
-  function previewClaimableRewards(uint16[] calldata stakePoolIds_, address owner_)
-    external
-    view
-    returns (PreviewClaimableRewards[] memory previewClaimableRewards_);
+  function cozyManager() external returns (ICozyManager);
 
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_, address from_)
     external
@@ -87,28 +41,68 @@ interface IRewardsManager {
     external
     returns (uint256 depositReceiptTokenAmount_);
 
-  function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_, address from_) external;
-
-  function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external;
-
-  function dripRewards() external;
-
   function dripRewardPool(uint16 rewardPoolId_) external;
 
-  function getRewardPools() external view returns (RewardPool[] memory);
-
-  function getStakePools() external view returns (StakePool[] memory);
+  function dripRewards() external;
 
   function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory);
 
   function getClaimableRewards(uint16 stakePoolId_) external view returns (ClaimableRewardsData[] memory);
 
+  function getRewardPools() external view returns (RewardPool[] memory);
+
+  function getStakePools() external view returns (StakePool[] memory);
+
+  function getUserRewards(uint16 stakePoolId_, address user) external view returns (UserRewardsData[] memory);
+
+  function initialize(
+    address owner_,
+    address pauser_,
+    StakePoolConfig[] calldata stakePoolConfigs_,
+    RewardPoolConfig[] calldata rewardPoolConfigs_
+  ) external;
+
+  function owner() external view returns (address);
+
+  function pause() external;
+
+  function pauser() external view returns (address);
+
+  function previewClaimableRewards(uint16[] calldata stakePoolIds_, address owner_)
+    external
+    view
+    returns (PreviewClaimableRewards[] memory);
+
+  function previewUndrippedRewardsRedemption(uint16 rewardPoolId_, uint256 depositReceiptTokenAmount_)
+    external
+    view
+    returns (uint256 rewardAssetAmount_);
+
+  function redeemUndrippedRewards(
+    uint16 rewardPoolId_,
+    uint256 depositReceiptTokenAmount_,
+    address receiver_,
+    address owner_
+  ) external returns (uint256 rewardAssetAmount_);
+
+  function receiptTokenFactory() external view returns (address);
+
+  function rewardPools(uint256 id_) external view returns (RewardPool memory);
+
   function rewardsManagerState() external view returns (RewardsManagerState);
+
+  function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_, address from_) external;
+
+  function stakePools(uint256 id_) external view returns (StakePool memory);
+
+  function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external;
 
   function unpause() external;
 
-  function cozyManager() external returns (ICozyManager);
-
   function updateConfigs(StakePoolConfig[] calldata stakePoolConfigs_, RewardPoolConfig[] calldata rewardPoolConfigs_)
     external;
+
+  function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external;
+
+  function updateUserRewardsForStkReceiptTokenTransfer(address from_, address to_) external;
 }

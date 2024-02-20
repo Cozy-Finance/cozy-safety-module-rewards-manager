@@ -15,36 +15,56 @@ import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDepositorEvents {
   using SafeERC20 for IERC20;
 
-  uint8 internal constant REWARDS_POOL_FLOOR = 1;
-
+  /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool on behalf of `from_` and mint
+  /// `depositReceiptTokenAmount_` tokens to `receiver_`.
+  /// @dev Assumes that `from_` has approved the rewards manager to spend `rewardAssetAmount_` of the reward pool's
+  /// asset.
+  /// @param rewardPoolId_ The ID of the reward pool.
+  /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
+  /// @param receiver_ The address to mint the deposit receipt tokens to.
+  /// @param from_ The address to pull the reward pool's asset from.
+  /// @return depositReceiptTokenAmount_ The amount of deposit receipt tokens minted.
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_, address from_)
     external
     returns (uint256 depositReceiptTokenAmount_)
   {
-    RewardPool storage rewardsPool_ = rewardPools[rewardPoolId_];
-    IERC20 asset_ = rewardsPool_.asset;
+    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
+    IERC20 asset_ = rewardPool_.asset;
 
     // Pull in deposited assets. After the transfer we ensure we no longer need any assets. This check is
     // required to support fee on transfer tokens, for example if USDT enables a fee.
     // Also, we need to transfer before minting or ERC777s could reenter.
     asset_.safeTransferFrom(from_, address(this), rewardAssetAmount_);
 
-    depositReceiptTokenAmount_ = _executeRewardDeposit(asset_, rewardAssetAmount_, receiver_, rewardsPool_);
+    depositReceiptTokenAmount_ = _executeRewardDeposit(asset_, rewardAssetAmount_, receiver_, rewardPool_);
   }
 
+  /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool and mint
+  /// `depositReceiptTokenAmount_` tokens to `receiver_`.
+  /// @dev Assumes that the user has already transferred `rewardAssetAmount_` of the reward pool's asset to the rewards
+  /// manager.
+  /// @param rewardPoolId_ The ID of the reward pool.
+  /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
+  /// @param receiver_ The address to mint the deposit receipt tokens to.
+  /// @return depositReceiptTokenAmount_ The amount of deposit receipt tokens minted.
   function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_)
     external
     returns (uint256 depositReceiptTokenAmount_)
   {
-    RewardPool storage rewardsPool_ = rewardPools[rewardPoolId_];
-    depositReceiptTokenAmount_ = _executeRewardDeposit(rewardsPool_.asset, rewardAssetAmount_, receiver_, rewardsPool_);
+    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
+    depositReceiptTokenAmount_ = _executeRewardDeposit(rewardPool_.asset, rewardAssetAmount_, receiver_, rewardPool_);
   }
 
   /// @notice Redeem by burning `depositReceiptTokenAmount_` of `rewardPoolId_` reward pool deposit receipt tokens and
-  /// sending
-  /// `rewardAssetAmount_` of `rewardPoolId_` reward pool assets to `receiver_`. Reward pool assets can only be redeemed
+  /// sending `rewardAssetAmount_` of `rewardPoolId_` reward pool assets to `receiver_`. Reward pool assets can only be
+  /// redeemed
   /// if they have not been dripped yet.
-  /// @dev Assumes that user has approved the RewardsManager to spend its deposit receipt tokens.
+  /// @dev Assumes that user has approved the rewards manager to spend its deposit receipt tokens.
+  /// @param rewardPoolId_ The ID of the reward pool.
+  /// @param depositReceiptTokenAmount_ The amount of deposit receipt tokens to burn.
+  /// @param receiver_ The address to send the reward pool's asset to.
+  /// @param owner_ The owner of the deposit receipt tokens.
+  /// @return rewardAssetAmount_ The amount of the reward pool's asset redeemed.
   function redeemUndrippedRewards(
     uint16 rewardPoolId_,
     uint256 depositReceiptTokenAmount_,
@@ -52,8 +72,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     address owner_
   ) external returns (uint256 rewardAssetAmount_) {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    RewardsManagerState rewardsManagerState_ = rewardsManagerState;
-    if (rewardsManagerState_ == RewardsManagerState.ACTIVE) _dripRewardPool(rewardPool_);
+    if (rewardsManagerState == RewardsManagerState.ACTIVE) _dripRewardPool(rewardPool_);
 
     IReceiptToken depositReceiptToken_ = rewardPool_.depositReceiptToken;
     rewardAssetAmount_ = _previewRedemption(
@@ -75,6 +94,11 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     );
   }
 
+  /// @notice Preview the amount of undripped rewards that can be redeemed for `depositReceiptTokenAmount_` from a given
+  /// reward pool.
+  /// @param rewardPoolId_ The ID of the reward pool.
+  /// @param depositReceiptTokenAmount_ The amount of deposit receipt tokens to redeem.
+  /// @return rewardAssetAmount_ The amount of the reward pool's asset that can be redeemed.
   function previewUndrippedRewardsRedemption(uint16 rewardPoolId_, uint256 depositReceiptTokenAmount_)
     external
     view

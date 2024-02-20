@@ -7,12 +7,26 @@ import {IRewardsManagerFactory} from "./IRewardsManagerFactory.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 
 interface ICozyManager is IGovernable {
+  /// @notice Cozy protocol RewardsManagerFactory.
+  function rewardsManagerFactory() external view returns (IRewardsManagerFactory rewardsManagerFactory_);
+
+  /// @notice Batch pauses rewardsManagers_. The manager's pauser or owner can perform this action.
+  /// @param rewardsManagers_ The array of rewards managers to pause.
+  function pause(IRewardsManager[] calldata rewardsManagers_) external;
+
+  /// @notice Batch unpauses rewardsManagers_. The manager's owner can perform this action.
+  /// @param rewardsManagers_ The array of rewards managers to unpause.
+  function unpause(IRewardsManager[] calldata rewardsManagers_) external;
+
   /// @notice Deploys a new Rewards Manager with the provided parameters.
   /// @param owner_ The owner of the rewards manager.
   /// @param pauser_ The pauser of the rewards manager.
-  /// @param stakePoolConfigs_ The array of stake pool configs, sorted by underlying asset address.
-  /// @param rewardPoolConfigs_  The array of new reward pool configs, sorted by reward pool ID.
+  /// @param stakePoolConfigs_ The array of stake pool configs. These configs must obey requirements described in
+  /// `Configurator.updateConfigs`.
+  /// @param rewardPoolConfigs_  The array of reward pool configs. These configs must obey requirements described in
+  /// `Configurator.updateConfigs`.
   /// @param salt_ Used to compute the resulting address of the rewards manager.
+  /// @return rewardsManager_ The newly created rewards manager.
   function createRewardsManager(
     address owner_,
     address pauser_,
@@ -20,10 +34,4 @@ interface ICozyManager is IGovernable {
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     bytes32 salt_
   ) external returns (IRewardsManager rewardsManager_);
-
-  function pause(IRewardsManager[] calldata rewardsManagers_) external;
-
-  function rewardsManagerFactory() external view returns (IRewardsManagerFactory rewardsManagerFactory_);
-
-  function unpause(IRewardsManager[] calldata rewardsManagers_) external;
 }

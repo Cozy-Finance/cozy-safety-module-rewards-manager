@@ -9,21 +9,26 @@ import {StakePool, RewardPool} from "./structs/Pools.sol";
 
 abstract contract Configurator is RewardsManagerCommon, Governable {
   /// @notice Execute config update to the rewards manager.
-  /// @param stakePoolConfigs_ The array of new stake pool configs, sorted by associated stake pool ID. The array
-  /// may also include config for new stake pools, which must be sorted by underlying asset address.
-  /// @param rewardPoolConfigs_  The array of new reward pool configs, sorted by associated reward pool ID. The array
-  /// may also include config for new reward pools.
+  /// @param stakePoolConfigs_ The array of new stake pool configs. The array must contain configs for all existing
+  /// stake pools sorted by stake pool ID (with potentially updated rewards weights, but the same underlying asset).
+  /// Appended to the existing stake pool configs, the array may also include new stake pool configs, which must be
+  /// sorted by the underlying asset address and must be unique (i.e., no two stake pools can have the same underlying
+  /// asset). The rewards weight of the stake pools must sum to ZOC.
+  /// @param rewardPoolConfigs_ The array of new reward pool configs (with potentially updated drip models, but the same
+  /// underlying asset). The array must contain configs for all existing reward pools sorted by reward pool ID. Appended
+  /// to the existing stake pool configs, the array may also include new reward pool configs.
   function updateConfigs(StakePoolConfig[] calldata stakePoolConfigs_, RewardPoolConfig[] calldata rewardPoolConfigs_)
     external
     onlyOwner
   {
-    // A config update may change the rewards weights, which breaks the invariants that we use to do claimable rewards
+    // A config update may change the rewards weights, which breaks the invariants that used to do claimable rewards
     // accounting. It may no longer hold that:
-    //    claimableRewards[stakePool][rewardPool].cumulativeClaimedRewards <=
-    //        rewardPools[rewardPool].cumulativeDrippedRewards*stakePools[stakePool].rewardsWeight
-    // So, before applying the update, we drip rewards, update claimable reward indices and reset the cumulative rewards
-    // values to 0. This is also executed when a configuration update occurs in the PAUSED state, but the drip does
-    // not occur. Rewards are dripped at the time the rewards manager was paused.
+    //    claimableRewards[stakePoolId][rewardPoolId].cumulativeClaimedRewards <=
+    //        rewardPools[rewardPoolId].cumulativeDrippedRewards.mulDivDown(stakePools[stakePoolId].rewardsWeight, ZOC)
+    // To mantain the invariant, before applying the update: we drip rewards, update claimable reward indices and
+    // reset the cumulative rewards values to 0. This reset is also executed when a config update occurs in the PAUSED
+    // state, but in that case, the rewards are not dripped; the rewards are dripped when the rewards manager first
+    // transitions to PAUSED.
     StakePool[] storage stakePools_ = stakePools;
     RewardPool[] storage rewardPools_ = rewardPools;
     _dripAndResetCumulativeRewardsValues(stakePools_, rewardPools_);

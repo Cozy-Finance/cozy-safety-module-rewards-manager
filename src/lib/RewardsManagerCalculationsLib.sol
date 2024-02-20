@@ -9,9 +9,8 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 library RewardsManagerCalculationsLib {
   using FixedPointMathLib for uint256;
 
-  uint256 internal constant POOL_AMOUNT_FLOOR = 1;
-
-  /// @notice The `tokenAmount_` that the rewards manager would exchange for `assetAmount_` of receipt token provided.
+  /// @notice The `receiptTokenAmount_` of the receipt tokens that the rewards manager would exchange for `assetAmount_`
+  /// of underlying asset provided.
   /// @dev See the ERC-4626 spec for more info.
   function convertToReceiptTokenAmount(uint256 assetAmount_, uint256 receiptTokenSupply_, uint256 poolAmount_)
     internal
@@ -22,8 +21,8 @@ library RewardsManagerCalculationsLib {
       receiptTokenSupply_ == 0 ? assetAmount_ : assetAmount_.mulDivDown(receiptTokenSupply_, poolAmount_);
   }
 
-  /// @notice The `assetAmount_` that the rewards manager would exchange for `receiptTokenAmount_` of the receipt
-  /// token.
+  /// @notice The `assetAmount_` of the underlying asset that the rewards manager would exchange for
+  /// `receiptTokenAmount_` of the receipt token provided.
   /// @dev See the ERC-4626 spec for more info.
   function convertToAssetAmount(uint256 receiptTokenAmount_, uint256 receiptTokenSupply_, uint256 poolAmount_)
     internal

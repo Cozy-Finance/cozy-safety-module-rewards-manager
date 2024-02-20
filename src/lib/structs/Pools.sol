@@ -6,35 +6,42 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 
 struct AssetPool {
-  // The total balance of assets held by a RewardsManager, should be equivalent to
-  // token.balanceOf(address(this)), discounting any assets directly sent
-  // to the RewardsManager via direct transfer.
+  // The total balance of assets held by a rewards manager. This should be equivalent to asset.balanceOf(address(this)),
+  // discounting any assets directly sent to the rewards manager via direct transfer.
   uint256 amount;
 }
 
 struct StakePool {
+  // The balance of the underlying asset held by the stake pool.
   uint256 amount;
+  // The underlying asset of the stake pool.
   IERC20 asset;
+  // The receipt token for the stake pool.
   IReceiptToken stkReceiptToken;
-  /// @dev The weighting of each stkReceiptToken's claim to all reward pools in terms of a ZOC. Must sum to 1.
-  /// e.g. stkReceiptTokenA = 10%, means they're eligible for up to 10% of each pool, scaled to their balance of
-  /// stkReceiptTokenA
-  /// wrt totalSupply.
+  // The weighting of each stkReceiptToken's claim to all reward pools in terms of a ZOC. Must sum to ZOC. e.g.
+  // stkReceiptTokenA = 10%, means stake pool A is eligible for up to 10% of rewards dripped from all reward pools.
   uint16 rewardsWeight;
 }
 
 struct RewardPool {
+  // The amount of undripped rewards held by the reward pool.
   uint256 undrippedRewards;
-  /// @dev The cumulative amount of rewards dripped to the pool since the last weight change. This value is reset to 0
-  /// anytime rewards weights are updated.
+  // The cumulative amount of rewards dripped since the last config update. This value is reset to 0 on each config
+  // update.
   uint256 cumulativeDrippedRewards;
+  // The last time undripped rewards were dripped from the reward pool.
   uint128 lastDripTime;
+  // The underlying asset of the reward pool.
   IERC20 asset;
+  // The drip model for the reward pool.
   IDripModel dripModel;
+  // The receipt token for the reward pool.
   IReceiptToken depositReceiptToken;
 }
 
 struct IdLookup {
+  // The index of the item in an array.
   uint16 index;
+  // Whether the item exists.
   bool exists;
 }
