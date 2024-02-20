@@ -645,6 +645,7 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
   // -------- Mock setters --------
   function mockAddStakePool(StakePool memory stakePool_) external {
     stakePools.push(stakePool_);
+    assetToStakePoolIds[stakePool_.asset] = IdLookup({exists: true, index: uint16(stakePools.length - 1)});
   }
 
   function mockAddRewardPool(RewardPool memory rewardPool_) external {
