@@ -23,8 +23,6 @@ contract RewardsManager is
   Staker,
   StateChanger
 {
-  bool public initialized;
-
   /// @dev Thrown if the contract is already initialized.
   error Initialized();
 

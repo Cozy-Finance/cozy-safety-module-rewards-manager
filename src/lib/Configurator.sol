@@ -24,13 +24,11 @@ abstract contract Configurator is RewardsManagerCommon, Governable {
     // So, before applying the update, we drip rewards, update claimable reward indices and reset the cumulative rewards
     // values to 0. This is also executed when a configuration update occurs in the PAUSED state, but the drip does
     // not occur. Rewards are dripped at the time the rewards manager was paused.
-    StakePool[] storage stakePools_ = stakePools;
-    RewardPool[] storage rewardPools_ = rewardPools;
-    _dripAndResetCumulativeRewardsValues(stakePools_, rewardPools_);
+    _dripAndResetCumulativeRewardsValues(stakePools, rewardPools);
 
     ConfiguratorLib.updateConfigs(
-      stakePools_,
-      rewardPools_,
+      stakePools,
+      rewardPools,
       assetToStakePoolIds,
       stkReceiptTokenToStakePoolIds,
       receiptTokenFactory,

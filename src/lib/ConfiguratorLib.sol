@@ -102,7 +102,7 @@ library ConfiguratorLib {
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     uint16 allowedStakePools_,
     uint16 allowedRewardPools_
-  ) public {
+  ) internal {
     if (
       !isValidUpdate(
         stakePools_,
@@ -135,12 +135,11 @@ library ConfiguratorLib {
     IReceiptTokenFactory receiptTokenFactory_,
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_
-  ) public {
+  ) internal {
     // Update existing stake pool weights. No need to update the stake pool asset since it cannot change.
     uint16 numExistingStakePools_ = uint16(stakePools_.length);
     for (uint16 i = 0; i < numExistingStakePools_; i++) {
-      StakePool storage stakePool_ = stakePools_[i];
-      stakePool_.rewardsWeight = stakePoolConfigs_[i].rewardsWeight;
+      stakePools_[i].rewardsWeight = stakePoolConfigs_[i].rewardsWeight;
     }
 
     // Initialize new stake pools.

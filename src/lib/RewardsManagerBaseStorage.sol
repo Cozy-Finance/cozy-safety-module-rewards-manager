@@ -37,6 +37,9 @@ abstract contract RewardsManagerBaseStorage {
   /// @dev Mapping of asset to stake pool id.
   mapping(IERC20 asset_ => IdLookup stakePoolId_) public assetToStakePoolIds;
 
+  /// @dev True if the rewards manager has been initialized.
+  bool public initialized;
+
   /// @dev The state of this rewards manager.
   RewardsManagerState public rewardsManagerState;
 
