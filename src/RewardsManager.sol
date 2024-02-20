@@ -23,9 +23,13 @@ contract RewardsManager is
   Staker,
   StateChanger
 {
-  /// @dev Thrown if the contract is already initialized.
+  /// @notice Thrown if the rewards manager is already initialized.
   error Initialized();
 
+  /// @param cozyManager_ The Cozy protocol manager.
+  /// @param receiptTokenFactory_ The Cozy protocol receipt token factory.
+  /// @param allowedStakePools_ The number of allowed stake pools.
+  /// @param allowedRewardPools_ The number of allowed reward pools.
   constructor(
     ICozyManager cozyManager_,
     IReceiptTokenFactory receiptTokenFactory_,
@@ -40,6 +44,13 @@ contract RewardsManager is
     allowedRewardPools = allowedRewardPools_;
   }
 
+  /// @notice Initializes the rewards manager with the provided parameters.
+  /// @param owner_ The owner of the rewards manager.
+  /// @param pauser_ The pauser of the rewards manager.
+  /// @param stakePoolConfigs_ The array of stake pool configs. These configs must obey requirements described in
+  /// `Configurator.updateConfigs`.
+  /// @param rewardPoolConfigs_ The array of reward pool configs. These configs must obey requirements described in
+  /// `Configurator.updateConfigs`.
   function initialize(
     address owner_,
     address pauser_,

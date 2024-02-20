@@ -40,6 +40,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint256 numUserRewardAssets;
   }
 
+  /// @notice Drip rewards for all reward pools.
   function dripRewards() public override {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     uint256 numRewardAssets_ = rewardPools.length;
@@ -48,15 +49,23 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     }
   }
 
+  /// @notice Drip rewards for a specific reward pool.
+  /// @param rewardPoolId_ The ID of the reward pool to drip rewards for.
   function dripRewardPool(uint16 rewardPoolId_) external {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     _dripRewardPool(rewardPools[rewardPoolId_]);
   }
 
+  /// @notice Claim rewards for a specific stake pool and transfer rewards to `receiver_`.
+  /// @param stakePoolId_ The ID of the stake pool to claim rewards for.
+  /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(uint16 stakePoolId_, address receiver_) external {
     _claimRewards(stakePoolId_, receiver_, msg.sender);
   }
 
+  /// @notice Preview the claimable rewards for a given set of stake pools.
+  /// @param stakePoolIds_ The IDs of the stake pools to preview claimable rewards for.
+  /// @param owner_ The address of the user to preview claimable rewards for.
   function previewClaimableRewards(uint16[] calldata stakePoolIds_, address owner_)
     external
     view
@@ -75,10 +84,13 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     }
   }
 
-  /// @notice stkReceiptTokens are expected to call this before the actual underlying ERC-20 transfer (e.g.
-  /// `super.transfer(address to, uint256 amount_)`). Otherwise, the `from_` user will not accrue less historical
+  /// @notice Update the user rewards data to prepare for a transfer of stkReceiptTokens.
+  /// @dev stkReceiptTokens are expected to call this before the actual underlying ERC-20 transfer (e.g.
+  /// `super.transfer(address to_, uint256 amount_)`). Otherwise, the `from_` user will have accrued less historical
   /// rewards they are entitled to as their new balance is smaller after the transfer. Also, the `to_` user will accure
   /// more historical rewards than they are entitled to as their new balance is larger after the transfer.
+  /// @param from_ The address of the user transferring stkReceiptTokens.
+  /// @param to_ The address of the user receiving stkReceiptTokens.
   function updateUserRewardsForStkReceiptTokenTransfer(address from_, address to_) external {
     // Check that only a registered stkReceiptToken can call this function.
     IdLookup memory idLookup_ = stkReceiptTokenToStakePoolIds[IReceiptToken(msg.sender)];
@@ -178,7 +190,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     nextClaimableRewardsData_.cumulativeClaimedRewards = claimableRewardsData_.cumulativeClaimedRewards;
     nextClaimableRewardsData_.indexSnapshot = claimableRewardsData_.indexSnapshot;
     // If `stkReceiptTokenSupply_ == 0`, then we get a divide by zero error if we try to update the index snapshot. To
-    // avoid this, we wait until the `stkReceiptTokenSupply_ > 0`, to apply all accumualted unclaimed dripped rewards to
+    // avoid this, we wait until the `stkReceiptTokenSupply_ > 0`, to apply all accumulated unclaimed dripped rewards to
     // the claimable rewards data. We have to update the index snapshot and cumulative claimed rewards at the same time
     // to keep accounting correct.
     if (stkReceiptTokenSupply_ > 0) {
@@ -290,6 +302,9 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     }
   }
 
+  /// @dev Drips rewards for all reward pools and resets the cumulative rewards values to 0. This function is only
+  /// called on config updates (`Configurator.updateConfigs`), because config updates may change the rewards weights,
+  /// which breaks the invariants that used to do claimable rewards accounting.
   function _dripAndResetCumulativeRewardsValues(StakePool[] storage stakePools_, RewardPool[] storage rewardPools_)
     internal
     override

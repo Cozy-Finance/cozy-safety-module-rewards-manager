@@ -7,9 +7,6 @@ import {IRewardsManager} from "./interfaces/IRewardsManager.sol";
 import {IRewardsManagerFactory} from "./interfaces/IRewardsManagerFactory.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./lib/structs/Configs.sol";
 
-/**
- * @notice Deploys new Rewards Managers.
- */
 contract RewardsManagerFactory is IRewardsManagerFactory {
   using Clones for address;
 
@@ -19,12 +16,13 @@ contract RewardsManagerFactory is IRewardsManagerFactory {
   /// @notice Address of the Rewards Manager logic contract used to deploy new Rewards Managers.
   IRewardsManager public immutable rewardsManagerLogic;
 
-  /// @dev Thrown when the caller is not authorized to perform the action.
+  /// @notice Thrown when the caller is not authorized to perform the action.
   error Unauthorized();
 
-  /// @dev Thrown if an address parameter is invalid.
+  /// @notice Thrown if an address parameter is invalid.
   error InvalidAddress();
 
+  /// @param cozyManager_ The Cozy protocol manager.
   /// @param rewardsManagerLogic_ Logic contract for deploying new Rewards Managers.
   constructor(ICozyManager cozyManager_, IRewardsManager rewardsManagerLogic_) {
     _assertAddressNotZero(address(cozyManager_));
@@ -36,9 +34,12 @@ contract RewardsManagerFactory is IRewardsManagerFactory {
   /// @notice Creates a new Rewards Manager contract with the specified configuration.
   /// @param owner_ The owner of the rewards manager.
   /// @param pauser_ The pauser of the rewards manager.
-  /// @param stakePoolConfigs_ The configuration for the stake pools.
-  /// @param rewardPoolConfigs_ The configuration for the reward pools.
+  /// @param stakePoolConfigs_ The configuration for the stake pools. These configs must obey requirements described in
+  /// `Configurator.updateConfigs`.
+  /// @param rewardPoolConfigs_ The configuration for the reward pools. These configs must obey requirements described
+  /// in `Configurator.updateConfigs`.
   /// @param baseSalt_ Used to compute the resulting address of the rewards manager.
+  /// @return rewardsManager_ The deployed rewards manager.
   function deployRewardsManager(
     address owner_,
     address pauser_,
@@ -59,11 +60,15 @@ contract RewardsManagerFactory is IRewardsManagerFactory {
   /// @dev Rewards Manager addresses are uniquely determined by their salt because the deployer is always the factory,
   /// and the use of minimal proxies means they all have identical bytecode and therefore an identical bytecode hash.
   /// @dev The `baseSalt_` is the user-provided salt, not the final salt after hashing with the chain ID.
+  /// @param baseSalt_ The user-provided salt.
+  /// @return The resulting address of the rewards manager.
   function computeAddress(bytes32 baseSalt_) external view returns (address) {
     return Clones.predictDeterministicAddress(address(rewardsManagerLogic), salt(baseSalt_), address(this));
   }
 
   /// @notice Given the `baseSalt_`, return the salt that will be used for deployment.
+  /// @param baseSalt_ The user-provided salt.
+  /// @return The resulting salt that will be used for deployment.
   function salt(bytes32 baseSalt_) public view returns (bytes32) {
     // We take the user-provided salt and concatenate it with the chain ID before hashing. This is
     // required because CREATE2 with a user provided salt or CREATE both make it easy for an
