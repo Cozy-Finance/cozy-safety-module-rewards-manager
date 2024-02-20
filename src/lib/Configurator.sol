@@ -29,13 +29,11 @@ abstract contract Configurator is RewardsManagerCommon, Governable {
     // reset the cumulative rewards values to 0. This reset is also executed when a config update occurs in the PAUSED
     // state, but in that case, the rewards are not dripped; the rewards are dripped when the rewards manager first
     // transitions to PAUSED.
-    StakePool[] storage stakePools_ = stakePools;
-    RewardPool[] storage rewardPools_ = rewardPools;
-    _dripAndResetCumulativeRewardsValues(stakePools_, rewardPools_);
+    _dripAndResetCumulativeRewardsValues(stakePools, rewardPools);
 
     ConfiguratorLib.updateConfigs(
-      stakePools_,
-      rewardPools_,
+      stakePools,
+      rewardPools,
       assetToStakePoolIds,
       stkReceiptTokenToStakePoolIds,
       receiptTokenFactory,

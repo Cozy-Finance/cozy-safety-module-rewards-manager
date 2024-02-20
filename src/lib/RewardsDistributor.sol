@@ -197,6 +197,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
       // Round down, in favor of leaving assets in the pool.
       uint256 unclaimedDrippedRewards_ = cumulativeDrippedRewards_.mulDivDown(rewardsWeight_, MathConstants.ZOC)
         - claimableRewardsData_.cumulativeClaimedRewards;
+
       nextClaimableRewardsData_.cumulativeClaimedRewards += unclaimedDrippedRewards_;
       // Round down, in favor of leaving assets in the claimable reward pool.
       nextClaimableRewardsData_.indexSnapshot += unclaimedDrippedRewards_.divWadDown(stkReceiptTokenSupply_);

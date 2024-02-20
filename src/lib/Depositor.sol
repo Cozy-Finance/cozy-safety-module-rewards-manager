@@ -85,9 +85,11 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     if (rewardAssetAmount_ == 0) revert RoundsToZero(); // Check for rounding error since we round down in conversion.
 
     depositReceiptToken_.burn(msg.sender, owner_, depositReceiptTokenAmount_);
+
+    IERC20 asset_ = rewardPool_.asset;
     rewardPool_.undrippedRewards -= rewardAssetAmount_;
-    assetPools[rewardPool_.asset].amount -= rewardAssetAmount_;
-    rewardPool_.asset.safeTransfer(receiver_, rewardAssetAmount_);
+    assetPools[asset_].amount -= rewardAssetAmount_;
+    asset_.safeTransfer(receiver_, rewardAssetAmount_);
 
     emit RedeemedUndrippedRewards(
       msg.sender, receiver_, owner_, depositReceiptToken_, depositReceiptTokenAmount_, rewardAssetAmount_
@@ -105,14 +107,13 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     returns (uint256 rewardAssetAmount_)
   {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    uint256 lastDripTime_ = rewardPool_.lastDripTime;
 
     rewardAssetAmount_ = _previewRedemption(
       rewardPool_.depositReceiptToken,
       depositReceiptTokenAmount_,
       rewardPool_.dripModel,
       rewardPool_.undrippedRewards,
-      lastDripTime_
+      rewardPool_.lastDripTime
     );
   }
 

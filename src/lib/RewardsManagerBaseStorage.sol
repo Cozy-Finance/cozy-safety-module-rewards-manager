@@ -42,6 +42,9 @@ abstract contract RewardsManagerBaseStorage {
   /// @dev Used for checking that new stake pools have unique underlying assets in config updates.
   mapping(IERC20 asset_ => IdLookup stakePoolId_) public assetToStakePoolIds;
 
+  /// @dev True if the rewards manager has been initialized.
+  bool public initialized;
+
   /// @notice The state of this rewards manager.
   RewardsManagerState public rewardsManagerState;
 

@@ -23,9 +23,6 @@ contract RewardsManager is
   Staker,
   StateChanger
 {
-  /// @notice Tracks if the rewards manager has been initialized.
-  bool public initialized;
-
   /// @notice Thrown if the rewards manager is already initialized.
   error Initialized();
 

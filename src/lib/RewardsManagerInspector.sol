@@ -18,12 +18,13 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
     view
     returns (uint256 depositReceiptTokenAmount_)
   {
+    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
     depositReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToReceiptTokenAmount(
       rewardAssetAmount_,
-      rewardPools[rewardPoolId_].depositReceiptToken.totalSupply(),
+      rewardPool_.depositReceiptToken.totalSupply(),
       /// We set a floor to avoid divide-by-zero errors that would occur when the supply of deposit receipt tokens >
       /// 0, but the `poolAmount` == 0, which can occur due to drip.
-      _poolAmountWithFloor(rewardPools[rewardPoolId_].undrippedRewards)
+      _poolAmountWithFloor(rewardPool_.undrippedRewards)
     );
   }
 
@@ -36,12 +37,13 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
     view
     returns (uint256 rewardAssetAmount_)
   {
+    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
     rewardAssetAmount_ = RewardsManagerCalculationsLib.convertToAssetAmount(
       depositReceiptTokenAmount_,
-      rewardPools[rewardPoolId_].depositReceiptToken.totalSupply(),
+      rewardPool_.depositReceiptToken.totalSupply(),
       // We set a floor to avoid divide-by-zero errors that would occur when the supply of depositReceiptTokens >
       // 0, but the `poolAmount` == 0, which can occur due to drip.
-      _poolAmountWithFloor(rewardPools[rewardPoolId_].undrippedRewards)
+      _poolAmountWithFloor(rewardPool_.undrippedRewards)
     );
   }
 
