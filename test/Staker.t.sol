@@ -35,7 +35,7 @@ contract StakerUnitTest is TestBase {
   MockERC20 mockDepositReceiptToken = new MockERC20("Mock Cozy Deposit Receipt Token", "cozyDep", 6);
   TestableStaker component = new TestableStaker();
   uint256 cumulativeDrippedRewards_ = 290e18;
-  uint256 cumulativeClaimedRewards_ = 90e18;
+  uint256 cumulativeClaimableRewards_ = 90e18;
   uint256 initialIndexSnapshot_ = 11;
 
   event Staked(
@@ -69,7 +69,7 @@ contract StakerUnitTest is TestBase {
     AssetPool memory initialRewardsPool_ = AssetPool({amount: cumulativeDrippedRewards_});
     component.mockAddAssetPool(IERC20(address(mockAsset)), initialRewardsPool_);
     mockAsset.mint(address(component), cumulativeDrippedRewards_);
-    component.mockSetClaimableRewardsData(0, 0, initialIndexSnapshot_, cumulativeClaimedRewards_);
+    component.mockSetClaimableRewardsData(0, 0, initialIndexSnapshot_, cumulativeClaimableRewards_);
 
     deal(address(mockStakeAsset), address(component), initialStakeAmount);
     mockStkReceiptToken.mint(address(0), initialStakeAmount);
@@ -114,9 +114,9 @@ contract StakerUnitTest is TestBase {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(initialStakeAmount)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).divWadDown(initialStakeAmount)
     );
-    assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeDrippedRewards_);
+    assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
 
     assertEq(mockStakeAsset.balanceOf(staker_), 0);
     assertEq(mockStkReceiptToken.balanceOf(receiver_), amountToStake_);
@@ -153,7 +153,7 @@ contract StakerUnitTest is TestBase {
     // rewards
     // should not change.
     assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_);
-    assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeClaimedRewards_);
+    assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeClaimableRewards_);
     assertEq(mockStakeAsset.balanceOf(staker_), 0);
     assertEq(mockStkReceiptToken.balanceOf(receiver_), amountToStake_);
   }
@@ -262,7 +262,7 @@ contract StakerUnitTest is TestBase {
     // rewards
     // should not change.
     assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_);
-    assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeClaimedRewards_);
+    assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeClaimableRewards_);
     assertEq(mockStakeAsset.balanceOf(staker_), 0);
     assertEq(mockStkReceiptToken.balanceOf(receiver_), amountToStake_);
   }
@@ -388,9 +388,9 @@ contract StakerUnitTest is TestBase {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(initialStakeAmount)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).divWadDown(initialStakeAmount)
     );
-    assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeDrippedRewards_);
+    assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
   }
 
   function test_unstake_unstakePartial() public {
@@ -437,9 +437,9 @@ contract StakerUnitTest is TestBase {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(initialStakeAmount)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).divWadDown(initialStakeAmount)
     );
-    assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeDrippedRewards_);
+    assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
   }
 
   function test_unstake_canUnstakeTotalInMultipleUnstakes() external {
@@ -506,9 +506,9 @@ contract StakerUnitTest is TestBase {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimedRewards_).divWadDown(initialStakeAmount)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).divWadDown(initialStakeAmount)
     );
-    assertEq(finalClaimableRewardsData_.cumulativeClaimedRewards, cumulativeDrippedRewards_);
+    assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
   }
 
   function test_unstake_cannotUnstakeIfAmountIsZero() external {
@@ -604,11 +604,11 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManager
     uint16 stakePoolId_,
     uint16 rewardPoolid_,
     uint256 indexSnapshot_,
-    uint256 cumulativeClaimedRewards_
+    uint256 cumulativeClaimableRewards_
   ) external {
     claimableRewards[stakePoolId_][rewardPoolid_] = ClaimableRewardsData({
       indexSnapshot: indexSnapshot_.safeCastTo128(),
-      cumulativeClaimedRewards: cumulativeClaimedRewards_
+      cumulativeClaimableRewards: cumulativeClaimableRewards_
     });
   }
 

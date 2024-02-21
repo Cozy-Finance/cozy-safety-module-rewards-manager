@@ -16,30 +16,30 @@ import {
 abstract contract RewardsAccountingInvariantsWithStateTransitions is InvariantTestBaseWithStateTransitions {
   using FixedPointMathLib for uint256;
 
-  function invariant_cumulativeClaimedRewardsLteScaledCumulativeDrippedRewards()
+  function invariant_cumulativeClaimableRewardsLteScaledCumulativeDrippedRewards()
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       uint256 cumulativeDrippedRewards_ = rewardsManager.rewardPools(rewardPoolId_).cumulativeDrippedRewards;
-      uint256 sumCumulativeClaimedRewards_ = 0;
+      uint256 sumCumulativeClaimableRewards_ = 0;
 
       for (uint16 stakePoolId_ = 0; stakePoolId_ < numStakePools; stakePoolId_++) {
-        uint256 cumulativeClaimedRewards_ =
-          rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_).cumulativeClaimedRewards;
-        sumCumulativeClaimedRewards_ += cumulativeClaimedRewards_;
+        uint256 cumulativeClaimableRewards_ =
+          rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_).cumulativeClaimableRewards;
+        sumCumulativeClaimableRewards_ += cumulativeClaimableRewards_;
 
         uint256 rewardsWeight_ = rewardsManager.stakePools(stakePoolId_).rewardsWeight;
         uint256 scaledCumulativeDrippedRewards_ =
           cumulativeDrippedRewards_.mulDivDown(rewardsWeight_, MathConstants.ZOC);
         require(
-          cumulativeClaimedRewards_ <= scaledCumulativeDrippedRewards_,
+          cumulativeClaimableRewards_ <= scaledCumulativeDrippedRewards_,
           string.concat(
             "Invariant Violated: The cumulative claimed rewards for a specific (stake pool, reward pool) pair must be less than or equal to the scaled cumulative dripped rewards for the pair.",
             " scaledCumulativeDrippedRewards: ",
             Strings.toString(scaledCumulativeDrippedRewards_),
-            ", cumulativeClaimedRewards: ",
-            Strings.toString(cumulativeClaimedRewards_),
+            ", cumulativeClaimableRewards: ",
+            Strings.toString(cumulativeClaimableRewards_),
             ", stakePoolId: ",
             Strings.toString(stakePoolId_),
             ", rewardPoolId: ",
@@ -49,11 +49,11 @@ abstract contract RewardsAccountingInvariantsWithStateTransitions is InvariantTe
       }
 
       require(
-        sumCumulativeClaimedRewards_ <= cumulativeDrippedRewards_,
+        sumCumulativeClaimableRewards_ <= cumulativeDrippedRewards_,
         string.concat(
           "Invariant Violated: Invariant Violated: The sum of every stake pool's cumulative claimed rewards from a reward pool must be less than or equal to the cumulative dripped rewards from the reward pool.",
           " totalClaimedRewards: ",
-          Strings.toString(sumCumulativeClaimedRewards_),
+          Strings.toString(sumCumulativeClaimableRewards_),
           ", cumulativeDrippedRewards: ",
           Strings.toString(cumulativeDrippedRewards_),
           ", rewardPoolId: ",
@@ -76,17 +76,17 @@ abstract contract RewardsAccountingInvariantsWithStateTransitions is InvariantTe
     for (uint16 stakePoolId_ = 0; stakePoolId_ < numStakePools; stakePoolId_++) {
       for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
         uint256 sumUserAccruedRewards_ = sumUserAccruedRewards[stakePoolId_][rewardPoolId_];
-        uint256 cumulativeClaimedRewards_ =
-          rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_).cumulativeClaimedRewards;
+        uint256 cumulativeClaimableRewards_ =
+          rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_).cumulativeClaimableRewards;
 
         require(
-          sumUserAccruedRewards_ <= cumulativeClaimedRewards_,
+          sumUserAccruedRewards_ <= cumulativeClaimableRewards_,
           string.concat(
             "Invariant Violated: The sum of user accrued rewards for a (stake pool, reward pool) pair must be less than or equal to the cumulative claimed rewards for the pair.",
             " sumUserAccruedRewards: ",
             Strings.toString(sumUserAccruedRewards_),
             ", cumulativeClaimedRewards: ",
-            Strings.toString(cumulativeClaimedRewards_),
+            Strings.toString(cumulativeClaimableRewards_),
             ", stakePoolId: ",
             Strings.toString(stakePoolId_),
             ", rewardPoolId: ",

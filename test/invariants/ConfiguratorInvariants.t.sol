@@ -294,8 +294,8 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
       for (uint8 stakePoolId_ = 0; stakePoolId_ < numStakePools; stakePoolId_++) {
         ClaimableRewardsData memory claimableRewards_ = rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_);
         require(
-          claimableRewards_.cumulativeClaimedRewards == 0,
-          "Claimable rewards cumulative claimed rewards must be reset to 0 before a config update."
+          claimableRewards_.cumulativeClaimableRewards == 0,
+          "Claimable rewards cumulative claimable rewards must be reset to 0 before a config update."
         );
         require(
           claimableRewards_.indexSnapshot >= preClaimableRewards_[stakePoolId_][rewardPoolId_].indexSnapshot,

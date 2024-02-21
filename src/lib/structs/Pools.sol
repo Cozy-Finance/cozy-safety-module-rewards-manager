@@ -18,8 +18,9 @@ struct StakePool {
   IERC20 asset;
   // The receipt token for the stake pool.
   IReceiptToken stkReceiptToken;
-  // The weighting of each stkReceiptToken's claim to all reward pools in terms of a ZOC. Must sum to ZOC. e.g.
-  // stkReceiptTokenA = 10%, means stake pool A is eligible for up to 10% of rewards dripped from all reward pools.
+  // The weighting of each stake pool's claim to all reward pools in terms of a ZOC. Must sum to ZOC. e.g.
+  // stakePoolA.rewardsWeight = 10%, means stake pool A is eligible for up to 10% of rewards dripped from all reward
+  // pools.
   uint16 rewardsWeight;
 }
 
