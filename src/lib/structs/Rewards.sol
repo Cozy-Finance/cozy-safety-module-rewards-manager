@@ -14,9 +14,8 @@ struct UserRewardsData {
 
 // Used to track the total rewards all users are entitled to for a given (stake pool, reward pool) pair.
 struct ClaimableRewardsData {
-  // The cumulative amount of rewards that have been claimed on behalf of all users. This value is reset to 0 on each
-  // config update.
-  uint256 cumulativeClaimedRewards;
+  // The cumulative amount of rewards that are claimable. This value is reset to 0 on each config update.
+  uint256 cumulativeClaimableRewards;
   // The index snapshot the relevant claimable rewards data, when the cumulative claimed rewards were updated. The index
   // snapshot must update each time the cumulative claimed rewards are updated.
   uint256 indexSnapshot;

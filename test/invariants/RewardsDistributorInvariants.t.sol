@@ -187,17 +187,18 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       _invariant_dripRewardPoolChanged(preRewardPools_[rewardPoolId_], postRewardPools_[rewardPoolId_]);
 
-      uint256 preCumulativeClaimedRewards_ = preClaimableRewards_[stakePoolId_][rewardPoolId_].cumulativeClaimedRewards;
-      uint256 postCumulativeClaimedRewards_ =
-        postClaimableRewards_[stakePoolId_][rewardPoolId_].cumulativeClaimedRewards;
+      uint256 preCumulativeClaimableRewards_ =
+        preClaimableRewards_[stakePoolId_][rewardPoolId_].cumulativeClaimableRewards;
+      uint256 postCumulativeClaimableRewards_ =
+        postClaimableRewards_[stakePoolId_][rewardPoolId_].cumulativeClaimableRewards;
       require(
-        preCumulativeClaimedRewards_ <= postCumulativeClaimedRewards_,
+        preCumulativeClaimableRewards_ <= postCumulativeClaimableRewards_,
         string.concat(
           "Invariant Violated: The post-cumulative claimed rewards must be greater than or equal to the pre-cumulative claimed rewards after claimRewards.",
           " preCumulativeClaimedRewards: ",
-          Strings.toString(preCumulativeClaimedRewards_),
+          Strings.toString(preCumulativeClaimableRewards_),
           ", postCumulativeClaimedRewards: ",
-          Strings.toString(postCumulativeClaimedRewards_),
+          Strings.toString(postCumulativeClaimableRewards_),
           ", stakePoolId: ",
           Strings.toString(stakePoolId_),
           ", rewardPoolId: ",
@@ -208,13 +209,13 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
       uint256 scaledCumulativeDrippedRewards_ =
         postRewardPools_[rewardPoolId_].cumulativeDrippedRewards.mulDivDown(stakePool_.rewardsWeight, MathConstants.ZOC);
       require(
-        postCumulativeClaimedRewards_ == scaledCumulativeDrippedRewards_,
+        postCumulativeClaimableRewards_ == scaledCumulativeDrippedRewards_,
         string.concat(
           "Invariant Violated: The post-cumulative claimed rewards must be equal to the scaled cumulative dripped rewards after claimRewards.",
           " scaledCumulativeDrippedRewards: ",
           Strings.toString(scaledCumulativeDrippedRewards_),
           ", postCumulativeClaimedRewards: ",
-          Strings.toString(postCumulativeClaimedRewards_),
+          Strings.toString(postCumulativeClaimableRewards_),
           ", stakePoolId: ",
           Strings.toString(stakePoolId_),
           ", rewardPoolId: ",

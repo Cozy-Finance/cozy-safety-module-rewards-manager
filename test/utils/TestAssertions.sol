@@ -86,9 +86,9 @@ abstract contract TestAssertions is Test {
 
   function assertEq(ClaimableRewardsData memory actual_, ClaimableRewardsData memory expected_) internal {
     assertEq(
-      actual_.cumulativeClaimedRewards,
-      expected_.cumulativeClaimedRewards,
-      "ClaimableRewardsData.cumulativeClaimedRewards"
+      actual_.cumulativeClaimableRewards,
+      expected_.cumulativeClaimableRewards,
+      "ClaimableRewardsData.cumulativeClaimableRewards"
     );
     assertEq(actual_.indexSnapshot, expected_.indexSnapshot, "ClaimableRewardsData.indexSnapshot");
   }

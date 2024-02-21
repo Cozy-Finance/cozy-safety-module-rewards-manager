@@ -713,7 +713,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
       // Check that claimable rewards are updated.
       assertGt(newClaimableRewards_[i].indexSnapshot, oldClaimableRewards_[i].indexSnapshot);
-      assertGt(newClaimableRewards_[i].cumulativeClaimedRewards, oldClaimableRewards_[i].cumulativeClaimedRewards);
+      assertGt(newClaimableRewards_[i].cumulativeClaimableRewards, oldClaimableRewards_[i].cumulativeClaimableRewards);
 
       // Check that user rewards are updated and transferred to receiver.
       assertEq(rewardAsset_.balanceOf(receiver_), accruedRewards_);
@@ -987,7 +987,7 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
 
 contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistributorUnitTest {
   function _expectedClaimableRewardsData(uint256 indexSnapshot) internal pure returns (ClaimableRewardsData memory) {
-    return ClaimableRewardsData({indexSnapshot: indexSnapshot, cumulativeClaimedRewards: 0});
+    return ClaimableRewardsData({indexSnapshot: indexSnapshot, cumulativeClaimableRewards: 0});
   }
 
   function test_dripAndResetCumulativeRewardsValues_ZeroStkReceiptTokenSupply() public {
@@ -1056,7 +1056,7 @@ contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistri
     for (uint16 i = 0; i < numRewardPools_; i++) {
       assertEq(rewardPools_[i].cumulativeDrippedRewards, 0);
       for (uint16 j = 0; j < numStakePools_; j++) {
-        assertEq(claimableRewards_[j][i].cumulativeClaimedRewards, 0);
+        assertEq(claimableRewards_[j][i].cumulativeClaimableRewards, 0);
       }
     }
   }
@@ -1111,10 +1111,12 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
     uint16 stakePoolId_,
     uint16 rewardPoolId_,
     uint128 claimableRewardsIndex_,
-    uint128 cumulativeClaimedRewards_
+    uint128 cumulativeClaimableRewards_
   ) external {
-    claimableRewards[stakePoolId_][rewardPoolId_] =
-      ClaimableRewardsData({indexSnapshot: claimableRewardsIndex_, cumulativeClaimedRewards: cumulativeClaimedRewards_});
+    claimableRewards[stakePoolId_][rewardPoolId_] = ClaimableRewardsData({
+      indexSnapshot: claimableRewardsIndex_,
+      cumulativeClaimableRewards: cumulativeClaimableRewards_
+    });
   }
 
   function mockRegisterStkReceiptToken(uint16 stakePoolId_, IReceiptToken stkReceiptToken_) external {
