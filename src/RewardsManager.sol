@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.22;
+pragma solidity 0.8.22;
 
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
 import {Configurator} from "./lib/Configurator.sol";
@@ -68,6 +68,7 @@ contract RewardsManager is
     // logic contract. When the rewards manager is initialized for the minimal proxy, we update the owner and pauser.
     __initGovernable(owner_, pauser_);
 
+    initialized = true;
     ConfiguratorLib.applyConfigUpdates(
       stakePools,
       rewardPools,
@@ -77,6 +78,5 @@ contract RewardsManager is
       stakePoolConfigs_,
       rewardPoolConfigs_
     );
-    initialized = true;
   }
 }
