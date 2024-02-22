@@ -63,6 +63,15 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     _claimRewards(stakePoolId_, receiver_, msg.sender);
   }
 
+  /// @notice Claim rewards for a set of stake pools and transfer rewards to `receiver_`.
+  /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
+  /// @param receiver_ The address to transfer the claimed rewards to.
+  function claimRewards(uint16[] calldata stakePoolIds_, address receiver_) external {
+    for (uint256 i = 0; i < stakePoolIds_.length; i++) {
+      _claimRewards(stakePoolIds_[i], receiver_, msg.sender);
+    }
+  }
+
   /// @notice Preview the claimable rewards for a given set of stake pools.
   /// @param stakePoolIds_ The IDs of the stake pools to preview claimable rewards for.
   /// @param owner_ The address of the user to preview claimable rewards for.

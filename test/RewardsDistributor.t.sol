@@ -848,6 +848,52 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     assertApproxEqAbs(rewardAssetB_.balanceOf(receiver_), 6_249_999, 1); // ~= 250000000 * 0.1 * 0.25
     assertApproxEqAbs(rewardAssetC_.balanceOf(receiver_), 247, 1); // ~= 9899 * 0.1 * 0.25
   }
+
+  function test_claimRewardsConcreteBatch() public {
+    _setUpConcrete();
+
+    address user_ = _randomAddress();
+    address receiver_ = _randomAddress();
+
+    // User stakes 800e6, increasing stkReceiptTokenSupply to 1e18. User owns 80% of total stake, 1000e6.
+    _stake(1, 800e6, user_, user_);
+    skip(2 * ONE_YEAR);
+    // User stakes 100e6, increasing stkReceiptTokenSupply to 0.2e18. User owns 50% of total stake, 200e6.
+    _stake(0, 100e6, user_, user_);
+    skip(ONE_YEAR);
+
+    IERC20 rewardAssetA_ = component.getRewardPool(0).asset;
+    IERC20 rewardAssetB_ = component.getRewardPool(1).asset;
+    IERC20 rewardAssetC_ = component.getRewardPool(2).asset;
+
+    // These values should match exactly the accounting in `test_claimRewardsConcrete`.
+    uint256 rewardsReceivedPoolA_ = 49 + 2138;
+    uint256 rewardsReceivedPoolB_ = 7_031_250 + 416_250_000;
+    uint256 rewardsReceivedPoolC_ = 7198;
+
+    _expectEmit();
+    emit ClaimedRewards(0, rewardAssetA_, 49, user_, receiver_);
+    _expectEmit();
+    emit ClaimedRewards(0, rewardAssetB_, 7_031_250, user_, receiver_);
+    _expectEmit();
+    emit ClaimedRewards(1, rewardAssetA_, 2138, user_, receiver_);
+    _expectEmit();
+    emit ClaimedRewards(1, rewardAssetB_, 416_250_000, user_, receiver_);
+    _expectEmit();
+    emit ClaimedRewards(1, rewardAssetC_, 7198, user_, receiver_);
+
+    uint16[] memory stakePoolIds_ = new uint16[](2);
+    stakePoolIds_[0] = 0;
+    stakePoolIds_[1] = 1;
+    vm.startPrank(user_);
+    component.claimRewards(stakePoolIds_, receiver_);
+    vm.stopPrank();
+
+    // Check that the rewards receiver received the assets.
+    assertEq(rewardAssetA_.balanceOf(receiver_), rewardsReceivedPoolA_);
+    assertEq(rewardAssetB_.balanceOf(receiver_), rewardsReceivedPoolB_);
+    assertEq(rewardAssetC_.balanceOf(receiver_), rewardsReceivedPoolC_);
+  }
 }
 
 contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributorUnitTest {
