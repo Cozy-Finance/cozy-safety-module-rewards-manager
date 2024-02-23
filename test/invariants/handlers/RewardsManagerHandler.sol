@@ -105,7 +105,7 @@ contract RewardsManagerHandler is TestBase {
     advanceTime(seed_)
     returns (address actor_)
   {
-    _depositRewardAssets(assetAmount_, "depositRewardAssets");
+    _depositRewardAssets(assetAmount_);
 
     return currentActor;
   }
@@ -119,7 +119,7 @@ contract RewardsManagerHandler is TestBase {
     advanceTime(seed_)
     returns (address actor_)
   {
-    _depositRewardAssets(assetAmount_, "depositRewardAssetsWithExistingActor");
+    _depositRewardAssets(assetAmount_);
 
     return currentActor;
   }
@@ -134,7 +134,7 @@ contract RewardsManagerHandler is TestBase {
     advanceTime(seed_)
     returns (address actor_)
   {
-    _depositRewardAssetsWithoutTransfer(assetAmount_, "depositRewardAssetsWithoutTransfer");
+    _depositRewardAssetsWithoutTransfer(assetAmount_);
 
     return currentActor;
   }
@@ -148,7 +148,7 @@ contract RewardsManagerHandler is TestBase {
     advanceTime(seed_)
     returns (address actor_)
   {
-    _depositRewardAssetsWithoutTransfer(assetAmount_, "depositRewardAssetsWithoutTransferWithExistingActor");
+    _depositRewardAssetsWithoutTransfer(assetAmount_);
 
     return currentActor;
   }
@@ -163,7 +163,7 @@ contract RewardsManagerHandler is TestBase {
     advanceTime(seed_)
     returns (address actor_)
   {
-    _stake(assetAmount_, "stake");
+    _stake(assetAmount_);
 
     return currentActor;
   }
@@ -177,7 +177,7 @@ contract RewardsManagerHandler is TestBase {
     advanceTime(seed_)
     returns (address actor_)
   {
-    _stake(assetAmount_, "stakeWithExistingActor");
+    _stake(assetAmount_);
 
     return currentActor;
   }
@@ -192,7 +192,7 @@ contract RewardsManagerHandler is TestBase {
     advanceTime(seed_)
     returns (address actor_)
   {
-    _stakeWithoutTransfer(assetAmount_, "stakeWithoutTransfer");
+    _stakeWithoutTransfer(assetAmount_);
 
     return currentActor;
   }
@@ -206,7 +206,7 @@ contract RewardsManagerHandler is TestBase {
     advanceTime(seed_)
     returns (address actor_)
   {
-    _stakeWithoutTransfer(assetAmount_, "stakeWithoutTransferWithExistingActor");
+    _stakeWithoutTransfer(assetAmount_);
 
     return currentActor;
   }
@@ -469,7 +469,7 @@ contract RewardsManagerHandler is TestBase {
     currentRewardPoolId = rewardPoolId_;
     currentActor = actor_;
 
-    _depositRewardAssets(assets_, "depositRewardAssetsWithExistingActor");
+    _depositRewardAssets(assets_);
 
     // _depositReserveAssets increments invalidCalls by 1 if the rewards manager is paused.
     if (invalidCallsBefore_ < invalidCalls["depositRewardAssetsWithExistingActor"]) {
@@ -496,7 +496,7 @@ contract RewardsManagerHandler is TestBase {
     return numActors_ == 0 ? DEFAULT_ADDRESS : actors.at(seed_ % numActors_);
   }
 
-  function _depositRewardAssets(uint256 assetAmount_, string memory callName_) internal {
+  function _depositRewardAssets(uint256 assetAmount_) internal {
     assetAmount_ = boundDepositAssetAmount(assetAmount_);
     IERC20 asset_ = getRewardPool(rewardsManager, currentRewardPoolId).asset;
     deal(address(asset_), currentActor, asset_.balanceOf(currentActor) + assetAmount_, true);
@@ -512,7 +512,7 @@ contract RewardsManagerHandler is TestBase {
     ghost_actorRewardDepositCount[currentActor][currentRewardPoolId] += 1;
   }
 
-  function _depositRewardAssetsWithoutTransfer(uint256 assetAmount_, string memory callName_) internal {
+  function _depositRewardAssetsWithoutTransfer(uint256 assetAmount_) internal {
     assetAmount_ = boundDepositAssetAmount(assetAmount_);
     IERC20 asset_ = getRewardPool(rewardsManager, currentRewardPoolId).asset;
     _simulateTransferToRewardsManager(asset_, assetAmount_);
@@ -527,7 +527,7 @@ contract RewardsManagerHandler is TestBase {
     ghost_actorRewardDepositCount[currentActor][currentRewardPoolId] += 1;
   }
 
-  function _stake(uint256 assetAmount_, string memory callName_) internal {
+  function _stake(uint256 assetAmount_) internal {
     assetAmount_ = boundDepositAssetAmount(assetAmount_);
     IERC20 asset_ = getStakePool(rewardsManager, currentStakePoolId).asset;
     deal(address(asset_), currentActor, asset_.balanceOf(currentActor) + assetAmount_, true);
@@ -543,7 +543,7 @@ contract RewardsManagerHandler is TestBase {
     ghost_actorStakeCount[currentActor][currentStakePoolId] += 1;
   }
 
-  function _stakeWithoutTransfer(uint256 assetAmount_, string memory callName_) internal {
+  function _stakeWithoutTransfer(uint256 assetAmount_) internal {
     assetAmount_ = boundDepositAssetAmount(assetAmount_);
     IERC20 asset_ = getStakePool(rewardsManager, currentStakePoolId).asset;
     _simulateTransferToRewardsManager(asset_, assetAmount_);
