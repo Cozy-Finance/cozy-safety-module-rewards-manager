@@ -36,7 +36,8 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     // Also, we need to transfer before minting or ERC777s could reenter.
     asset_.safeTransferFrom(from_, address(this), rewardAssetAmount_);
 
-    depositReceiptTokenAmount_ = _executeRewardDeposit(asset_, rewardAssetAmount_, receiver_, rewardPool_);
+    depositReceiptTokenAmount_ =
+      _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, receiver_, rewardPool_);
   }
 
   /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool and mint
@@ -52,7 +53,8 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     returns (uint256 depositReceiptTokenAmount_)
   {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    depositReceiptTokenAmount_ = _executeRewardDeposit(rewardPool_.asset, rewardAssetAmount_, receiver_, rewardPool_);
+    depositReceiptTokenAmount_ =
+      _executeRewardDeposit(rewardPoolId_, rewardPool_.asset, rewardAssetAmount_, receiver_, rewardPool_);
   }
 
   /// @notice Redeem by burning `depositReceiptTokenAmount_` of `rewardPoolId_` reward pool deposit receipt tokens and
@@ -92,7 +94,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     asset_.safeTransfer(receiver_, rewardAssetAmount_);
 
     emit RedeemedUndrippedRewards(
-      msg.sender, receiver_, owner_, depositReceiptToken_, depositReceiptTokenAmount_, rewardAssetAmount_
+      msg.sender, receiver_, owner_, rewardPoolId_, depositReceiptToken_, depositReceiptTokenAmount_, rewardAssetAmount_
     );
   }
 
@@ -118,6 +120,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
   }
 
   function _executeRewardDeposit(
+    uint16 rewardPoolId_,
     IERC20 token_,
     uint256 rewardAssetAmount_,
     address receiver_,
@@ -138,7 +141,9 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     assetPools[token_].amount += rewardAssetAmount_;
 
     depositReceiptToken_.mint(receiver_, depositReceiptTokenAmount_);
-    emit Deposited(msg.sender, receiver_, depositReceiptToken_, rewardAssetAmount_, depositReceiptTokenAmount_);
+    emit Deposited(
+      msg.sender, receiver_, rewardPoolId_, depositReceiptToken_, rewardAssetAmount_, depositReceiptTokenAmount_
+    );
   }
 
   function _previewRedemption(

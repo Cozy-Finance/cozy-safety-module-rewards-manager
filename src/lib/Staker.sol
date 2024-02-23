@@ -16,23 +16,30 @@ abstract contract Staker is RewardsManagerCommon {
   /// @notice Emitted when a user stakes.
   /// @param caller_ The address that called the stake function.
   /// @param receiver_ The address that received the stkReceiptTokens.
+  /// @param stakePoolId_ The stake pool ID that the user staked in.
   /// @param stkReceiptToken_ The stkReceiptToken that was minted.
   /// @param assetAmount_ The amount of the underlying asset staked.
   event Staked(
-    address indexed caller_, address indexed receiver_, IReceiptToken indexed stkReceiptToken_, uint256 assetAmount_
+    address indexed caller_,
+    address indexed receiver_,
+    uint16 indexed stakePoolId_,
+    IReceiptToken stkReceiptToken_,
+    uint256 assetAmount_
   );
 
   /// @notice Emitted when a user unstakes.
   /// @param caller_ The address that called the unstake function.
   /// @param receiver_ The address that received the unstaked assets.
   /// @param owner_ The owner of the stkReceiptTokens being unstaked.
+  /// @param stakePoolId_ The stake pool ID that the user unstaked from.
   /// @param stkReceiptToken_ The stkReceiptToken that was burned.
   /// @param stkReceiptTokenAmount_ The amount of stkReceiptTokens burned.
   event Unstaked(
     address caller_,
     address indexed receiver_,
     address indexed owner_,
-    IReceiptToken indexed stkReceiptToken_,
+    uint16 indexed stakePoolId_,
+    IReceiptToken stkReceiptToken_,
     uint256 stkReceiptTokenAmount_
   );
 
@@ -106,7 +113,7 @@ abstract contract Staker is RewardsManagerCommon {
 
     asset_.safeTransfer(receiver_, stkReceiptTokenAmount_);
 
-    emit Unstaked(msg.sender, receiver_, owner_, stkReceiptToken_, stkReceiptTokenAmount_);
+    emit Unstaked(msg.sender, receiver_, owner_, stakePoolId_, stkReceiptToken_, stkReceiptTokenAmount_);
   }
 
   function _executeStake(
@@ -130,6 +137,6 @@ abstract contract Staker is RewardsManagerCommon {
     _updateUserRewards(stkReceiptToken_.balanceOf(receiver_), claimableRewards_, userRewards[stakePoolId_][receiver_]);
 
     stkReceiptToken_.mint(receiver_, assetAmount_);
-    emit Staked(msg.sender, receiver_, stkReceiptToken_, assetAmount_);
+    emit Staked(msg.sender, receiver_, stakePoolId_, stkReceiptToken_, assetAmount_);
   }
 }
