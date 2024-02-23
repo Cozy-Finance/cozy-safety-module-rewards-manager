@@ -26,7 +26,8 @@ contract DepositorUnitTest is TestBase {
   event Deposited(
     address indexed caller_,
     address indexed receiver_,
-    IReceiptToken indexed depositReceiptToken_,
+    uint16 indexed rewardPoolId_,
+    IReceiptToken depositReceiptToken_,
     uint256 assetAmount_,
     uint256 depositReceiptTokenAmount_
   );
@@ -36,7 +37,8 @@ contract DepositorUnitTest is TestBase {
     address caller_,
     address indexed receiver_,
     address indexed owner_,
-    IReceiptToken indexed depositReceiptToken_,
+    uint16 indexed rewardPoolId_,
+    IReceiptToken depositReceiptToken_,
     uint256 depositReceiptTokenAmount_,
     uint256 rewardAssetAmount_
   );
@@ -92,6 +94,7 @@ contract DepositorUnitTest is TestBase {
     emit Deposited(
       depositor_,
       receiver_,
+      0,
       IReceiptToken(address(mockRewardPoolDepositReceiptToken)),
       amountToDeposit_,
       expectedDepositReceiptTokenAmount_
@@ -134,6 +137,7 @@ contract DepositorUnitTest is TestBase {
     emit Deposited(
       depositor_,
       receiver_,
+      0,
       IReceiptToken(address(mockRewardPoolDepositReceiptToken)),
       amountToDeposit_,
       expectedDepositReceiptTokenAmount_
@@ -217,6 +221,7 @@ contract DepositorUnitTest is TestBase {
     emit Deposited(
       depositor_,
       receiver_,
+      0,
       IReceiptToken(address(mockRewardPoolDepositReceiptToken)),
       amountToDeposit_,
       expectedDepositReceiptTokenAmount_
@@ -259,6 +264,7 @@ contract DepositorUnitTest is TestBase {
     emit Deposited(
       depositor_,
       receiver_,
+      0,
       IReceiptToken(address(mockRewardPoolDepositReceiptToken)),
       amountToDeposit_,
       expectedDepositReceiptTokenAmount_
@@ -376,6 +382,7 @@ contract DepositorUnitTest is TestBase {
       receiver_,
       receiver_,
       receiver_,
+      0,
       IReceiptToken(address(mockRewardPoolDepositReceiptToken)),
       depositReceiptTokenAmount_,
       expectedRewardAssetAmount_
@@ -426,6 +433,7 @@ contract DepositorUnitTest is TestBase {
       receiver_,
       receiver_,
       receiver_,
+      0,
       IReceiptToken(address(mockRewardPoolDepositReceiptToken)),
       depositReceiptTokenAmountToRedeem_,
       expectedRewardAssetAmount_
@@ -479,6 +487,7 @@ contract DepositorUnitTest is TestBase {
       receiver_,
       receiver_,
       receiver_,
+      0,
       IReceiptToken(address(mockRewardPoolDepositReceiptToken)),
       depositReceiptTokenAmountToRedeem_,
       expectedRewardAssetAmount_
@@ -536,6 +545,7 @@ contract DepositorUnitTest is TestBase {
       receiver_,
       receiver_,
       receiver_,
+      0,
       IReceiptToken(address(mockRewardPoolDepositReceiptToken)),
       depositReceiptTokenAmountToRedeem_,
       expectedRewardAssetAmount_
@@ -729,6 +739,7 @@ contract DepositorUnitTest is TestBase {
       receiver_,
       receiver_,
       receiver_,
+      0,
       IReceiptToken(address(mockRewardPoolDepositReceiptToken)),
       depositReceiptTokenAmountToRedeem_,
       expectedRewardAssetAmount_
@@ -809,6 +820,7 @@ contract DepositorUnitTest is TestBase {
       receiver_,
       receiver_,
       receiver_,
+      0,
       IReceiptToken(address(mockRewardPoolDepositReceiptToken)),
       depositReceiptTokenAmountToRedeem_,
       expectedRewardAssetAmount_

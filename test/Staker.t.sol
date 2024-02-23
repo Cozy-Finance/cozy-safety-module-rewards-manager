@@ -39,14 +39,19 @@ contract StakerUnitTest is TestBase {
   uint256 initialIndexSnapshot_ = 11;
 
   event Staked(
-    address indexed caller_, address indexed receiver_, IReceiptToken indexed stkReceiptToken_, uint256 assetAmount_
+    address indexed caller_,
+    address indexed receiver_,
+    uint16 indexed stakePoolId_,
+    IReceiptToken stkReceiptToken_,
+    uint256 assetAmount_
   );
 
   event Unstaked(
     address caller_,
     address indexed receiver_,
     address indexed owner_,
-    IReceiptToken indexed stkReceiptToken_,
+    uint16 indexed stakePoolId_,
+    IReceiptToken stkReceiptToken_,
     uint256 stkReceiptTokenAmount_
   );
 
@@ -94,7 +99,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
     component.stake(0, amountToStake_, receiver_, staker_);
@@ -136,7 +141,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
     component.stake(0, amountToStake_, receiver_, staker_);
@@ -215,7 +220,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.transfer(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
     component.stakeWithoutTransfer(0, amountToStake_, receiver_);
@@ -245,7 +250,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.transfer(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
     component.stakeWithoutTransfer(0, amountToStake_, receiver_);
@@ -350,7 +355,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountStaked_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
+    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
 
     vm.prank(staker_);
     component.stake(0, amountStaked_, receiver_, staker_);
@@ -366,7 +371,7 @@ contract StakerUnitTest is TestBase {
     _expectEmit();
     emit Transfer(address(component), unstakeReceiver_, amountStaked_);
     _expectEmit();
-    emit Unstaked(receiver_, unstakeReceiver_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
+    emit Unstaked(receiver_, unstakeReceiver_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
 
     vm.prank(receiver_);
     component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
@@ -415,6 +420,7 @@ contract StakerUnitTest is TestBase {
       receiver_,
       unstakeReceiver_,
       receiver_,
+      0,
       IReceiptToken(address(mockStkReceiptToken)),
       stkReceiptTokenAmountToUnstake_
     );
@@ -485,7 +491,7 @@ contract StakerUnitTest is TestBase {
     _expectEmit();
     emit Transfer(address(component), unstakeReceiver_, amountStaked_);
     _expectEmit();
-    emit Unstaked(receiver_, unstakeReceiver_, receiver_, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
+    emit Unstaked(receiver_, unstakeReceiver_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
     vm.prank(receiver_);
     component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
 
