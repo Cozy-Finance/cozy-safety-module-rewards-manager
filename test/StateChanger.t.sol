@@ -8,7 +8,7 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IStateChangerEvents} from "../src/interfaces/IStateChangerEvents.sol";
 import {RewardPool, StakePool} from "../src/lib/structs/Pools.sol";
-import {ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
+import {ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
 import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {StateChanger} from "../src/lib/StateChanger.sol";
 import {MockManager} from "./utils/MockManager.sol";
@@ -217,7 +217,7 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
 
   // -------- Overridden abstract function placeholders --------
 
-  function _claimRewards(uint16, /* stakePoolId_ */ address, /* receiver_ */ address /* owner */ ) internal override {
+  function _claimRewards(ClaimRewardsArgs memory /* args_ */ ) internal override {
     __writeStub__();
   }
 

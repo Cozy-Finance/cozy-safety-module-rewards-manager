@@ -12,7 +12,7 @@ import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.
 import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../src/lib/structs/Configs.sol";
 import {StakePool, RewardPool, IdLookup} from "../src/lib/structs/Pools.sol";
-import {ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
+import {ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
@@ -732,7 +732,7 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
 
   // -------- Overridden abstract function placeholders --------
 
-  function _claimRewards(uint16, /* stakePoolId_ */ address, /* receiver_ */ address /* owner */ ) internal override {
+  function _claimRewards(ClaimRewardsArgs memory /* args_ */ ) internal override {
     __writeStub__();
   }
 
