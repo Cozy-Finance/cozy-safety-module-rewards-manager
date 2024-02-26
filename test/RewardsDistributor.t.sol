@@ -36,7 +36,12 @@ contract RewardsDistributorUnitTest is TestBase {
   uint256 internal constant ONE_YEAR = 365.25 days;
 
   event ClaimedRewards(
-    uint16 indexed stakePoolId_, IERC20 indexed rewardAsset_, uint256 amount_, address indexed owner_, address receiver_
+    uint16 indexed stakePoolId_,
+    uint16 indexed rewardPoolId_,
+    IERC20 rewardAsset_,
+    uint256 amount_,
+    address indexed owner_,
+    address receiver_
   );
 
   function _setUpRewardPools(uint256 numRewardAssets_) internal {
@@ -412,11 +417,11 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       uint256 rewardsReceivedPoolC_ = 494; // drippedRewardsC_ * 0.1 * 0.5
 
       _expectEmit();
-      emit ClaimedRewards(stakePoolId_, rewardAssetA_, rewardsReceivedPoolA_, userA_, rewardsReceiver_);
+      emit ClaimedRewards(stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, userA_, rewardsReceiver_);
       _expectEmit();
-      emit ClaimedRewards(stakePoolId_, rewardAssetB_, rewardsReceivedPoolB_, userA_, rewardsReceiver_);
+      emit ClaimedRewards(stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, userA_, rewardsReceiver_);
       _expectEmit();
-      emit ClaimedRewards(stakePoolId_, rewardAssetC_, rewardsReceivedPoolC_, userA_, rewardsReceiver_);
+      emit ClaimedRewards(stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, userA_, rewardsReceiver_);
 
       vm.prank(userA_);
       component.claimRewards(stakePoolId_, rewardsReceiver_);
@@ -470,11 +475,11 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       uint256 rewardsReceivedPoolC_ = 5; // drippedRewardsC_ * 0.1 * 0.5
 
       _expectEmit();
-      emit ClaimedRewards(stakePoolId_, rewardAssetA_, rewardsReceivedPoolA_, userA_, rewardsReceiver_);
+      emit ClaimedRewards(stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, userA_, rewardsReceiver_);
       _expectEmit();
-      emit ClaimedRewards(stakePoolId_, rewardAssetB_, rewardsReceivedPoolB_, userA_, rewardsReceiver_);
+      emit ClaimedRewards(stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, userA_, rewardsReceiver_);
       _expectEmit();
-      emit ClaimedRewards(stakePoolId_, rewardAssetC_, rewardsReceivedPoolC_, userA_, rewardsReceiver_);
+      emit ClaimedRewards(stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, userA_, rewardsReceiver_);
 
       vm.prank(userA_);
       component.claimRewards(stakePoolId_, rewardsReceiver_);
@@ -525,9 +530,9 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       uint256 rewardsReceivedPoolB_ = 7_031_250; // drippedRewardsB_ * 0.1 * 0.5
 
       _expectEmit();
-      emit ClaimedRewards(stakePoolId_, rewardAssetA_, rewardsReceivedPoolA_, userB_, rewardsReceiver_);
+      emit ClaimedRewards(stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, userB_, rewardsReceiver_);
       _expectEmit();
-      emit ClaimedRewards(stakePoolId_, rewardAssetB_, rewardsReceivedPoolB_, userB_, rewardsReceiver_);
+      emit ClaimedRewards(stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, userB_, rewardsReceiver_);
       // Event is not emitted from rewardPoolC because no rewards are transfered.
 
       vm.prank(userB_);
@@ -551,11 +556,11 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       uint256 rewardsReceivedPoolC_ = 7198; // drippedRewardsC_ * 0.9 * 0.8
 
       _expectEmit();
-      emit ClaimedRewards(stakePoolId_, rewardAssetA_, rewardsReceivedPoolA_, userB_, rewardsReceiver_);
+      emit ClaimedRewards(stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, userB_, rewardsReceiver_);
       _expectEmit();
-      emit ClaimedRewards(stakePoolId_, rewardAssetB_, rewardsReceivedPoolB_, userB_, rewardsReceiver_);
+      emit ClaimedRewards(stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, userB_, rewardsReceiver_);
       _expectEmit();
-      emit ClaimedRewards(stakePoolId_, rewardAssetC_, rewardsReceivedPoolC_, userB_, rewardsReceiver_);
+      emit ClaimedRewards(stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, userB_, rewardsReceiver_);
 
       vm.prank(userB_);
       component.claimRewards(stakePoolId_, rewardsReceiver_);
@@ -872,15 +877,15 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     uint256 rewardsReceivedPoolC_ = 7198;
 
     _expectEmit();
-    emit ClaimedRewards(0, rewardAssetA_, 49, user_, receiver_);
+    emit ClaimedRewards(0, 0, rewardAssetA_, 49, user_, receiver_);
     _expectEmit();
-    emit ClaimedRewards(0, rewardAssetB_, 7_031_250, user_, receiver_);
+    emit ClaimedRewards(0, 1, rewardAssetB_, 7_031_250, user_, receiver_);
     _expectEmit();
-    emit ClaimedRewards(1, rewardAssetA_, 2138, user_, receiver_);
+    emit ClaimedRewards(1, 0, rewardAssetA_, 2138, user_, receiver_);
     _expectEmit();
-    emit ClaimedRewards(1, rewardAssetB_, 416_250_000, user_, receiver_);
+    emit ClaimedRewards(1, 1, rewardAssetB_, 416_250_000, user_, receiver_);
     _expectEmit();
-    emit ClaimedRewards(1, rewardAssetC_, 7198, user_, receiver_);
+    emit ClaimedRewards(1, 2, rewardAssetC_, 7198, user_, receiver_);
 
     uint16[] memory stakePoolIds_ = new uint16[](2);
     stakePoolIds_[0] = 0;

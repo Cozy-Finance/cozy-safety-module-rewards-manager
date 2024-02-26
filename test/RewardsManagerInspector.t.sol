@@ -6,7 +6,7 @@ import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {RewardPool, StakePool} from "../src/lib/structs/Pools.sol";
-import {ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
+import {ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
@@ -151,7 +151,7 @@ contract TestableRewardsManagerInspector is RewardsManagerInspector {
     __readStub__();
   }
 
-  function _claimRewards(uint16, /* stakePoolId_ */ address, /* receiver_ */ address /* owner */ ) internal override {
+  function _claimRewards(ClaimRewardsArgs memory /* args_ */ ) internal override {
     __writeStub__();
   }
 

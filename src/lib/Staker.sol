@@ -6,7 +6,7 @@ import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.
 import {SafeERC20} from "cozy-safety-module-shared/lib/SafeERC20.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {AssetPool, StakePool} from "./structs/Pools.sol";
-import {ClaimableRewardsData} from "./structs/Rewards.sol";
+import {ClaimRewardsArgs, ClaimableRewardsData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
 
@@ -98,7 +98,7 @@ abstract contract Staker is RewardsManagerCommon {
   function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external {
     if (stkReceiptTokenAmount_ == 0) revert AmountIsZero();
 
-    _claimRewards(stakePoolId_, receiver_, owner_);
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, owner_));
 
     StakePool storage stakePool_ = stakePools[stakePoolId_];
     IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;

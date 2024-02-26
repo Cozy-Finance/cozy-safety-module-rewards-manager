@@ -5,12 +5,12 @@ import {ICommonErrors} from "cozy-safety-module-shared/interfaces/ICommonErrors.
 import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
 import {RewardsManagerBaseStorage} from "./RewardsManagerBaseStorage.sol";
-import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";
+import {ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData} from "./structs/Rewards.sol";
 import {StakePool, RewardPool} from "./structs/Pools.sol";
 
 abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErrors {
   /// @dev Defined in RewardsDistributor.
-  function _claimRewards(uint16 stakePoolId_, address receiver_, address owner_) internal virtual;
+  function _claimRewards(ClaimRewardsArgs memory args_) internal virtual;
 
   /// @dev Defined in RewardsDistributor.
   function dripRewards() public virtual;

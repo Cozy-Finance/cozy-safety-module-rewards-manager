@@ -12,6 +12,15 @@ struct UserRewardsData {
   uint256 indexSnapshot;
 }
 
+struct ClaimRewardsArgs {
+  // The ID of the stake pool.
+  uint16 stakePoolId;
+  // The address that will receive the rewards.
+  address receiver;
+  // The address that owns the stkReceiptTokens.
+  address owner;
+}
+
 // Used to track the total rewards all users are entitled to for a given (stake pool, reward pool) pair.
 struct ClaimableRewardsData {
   // The cumulative amount of rewards that are claimable. This value is reset to 0 on each config update.

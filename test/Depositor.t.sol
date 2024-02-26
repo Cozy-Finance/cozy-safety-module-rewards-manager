@@ -12,7 +12,7 @@ import {Depositor} from "../src/lib/Depositor.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
-import {UserRewardsData, ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
+import {UserRewardsData, ClaimRewardsArgs, ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
@@ -916,7 +916,7 @@ contract TestableDepositor is Depositor, RewardsManagerInspector {
 
   // -------- Overridden abstract function placeholders --------
 
-  function _claimRewards(uint16, /* stakePoolId_ */ address, /* receiver_ */ address /* owner */ ) internal override {
+  function _claimRewards(ClaimRewardsArgs memory /* args_ */ ) internal override {
     __writeStub__();
   }
 
