@@ -52,8 +52,8 @@ contract RewardsManagerFactory is IRewardsManagerFactory {
     if (msg.sender != address(cozyManager)) revert Unauthorized();
 
     rewardsManager_ = IRewardsManager(address(rewardsManagerLogic).cloneDeterministic(salt(baseSalt_)));
-    rewardsManager_.initialize(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_);
     emit RewardsManagerDeployed(rewardsManager_);
+    rewardsManager_.initialize(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_);
   }
 
   /// @notice Given the `baseSalt_` compute and return the address that Rewards Manager will be deployed to.
