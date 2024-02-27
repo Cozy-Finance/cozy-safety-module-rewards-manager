@@ -30,8 +30,8 @@ import "./utils/Stub.sol";
 contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErrors {
   TestableConfigurator component;
 
-  uint8 ALLOWED_STAKE_POOLS = 5;
-  uint8 ALLOWED_REWARD_POOLS = 10;
+  uint16 ALLOWED_STAKE_POOLS = 5;
+  uint16 ALLOWED_REWARD_POOLS = 10;
 
   function setUp() public {
     ReceiptToken receiptTokenLogic_ = new ReceiptToken();
@@ -132,15 +132,15 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     assertEq(stakePool_.rewardsWeight, stakePoolConfig_.rewardsWeight);
   }
 
-  function _convertToAllowedNumConfigs(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_)
+  function _convertToAllowedNumConfigs(uint16 numStakePoolConfigs_, uint16 numRewardPoolConfigs_)
     private
     view
-    returns (uint8, uint8)
+    returns (uint16, uint16)
   {
     return (numStakePoolConfigs_ % (ALLOWED_STAKE_POOLS + 1), numRewardPoolConfigs_ % (ALLOWED_REWARD_POOLS + 1));
   }
 
-  function testFuzz_updateConfigs_OnInitialization(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_) external {
+  function testFuzz_updateConfigs_OnInitialization(uint16 numStakePoolConfigs_, uint16 numRewardPoolConfigs_) external {
     (numStakePoolConfigs_, numRewardPoolConfigs_) =
       _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
     (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
@@ -153,15 +153,15 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
 
     component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
 
-    for (uint8 i = 0; i < numStakePoolConfigs_; i++) {
+    for (uint16 i = 0; i < numStakePoolConfigs_; i++) {
       _assertStakePoolUpdatesApplied(component.getStakePool(i), stakePoolConfigs_[i]);
     }
-    for (uint8 i = 0; i < numRewardPoolConfigs_; i++) {
+    for (uint16 i = 0; i < numRewardPoolConfigs_; i++) {
       _assertRewardPoolUpdatesApplied(component.getRewardPool(i), rewardPoolConfigs_[i]);
     }
   }
 
-  function testFuzz_updateConfigs_OnInitialization_WhenPaused(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_)
+  function testFuzz_updateConfigs_OnInitialization_WhenPaused(uint16 numStakePoolConfigs_, uint16 numRewardPoolConfigs_)
     external
   {
     component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
@@ -178,10 +178,10 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
 
     component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
 
-    for (uint8 i = 0; i < numStakePoolConfigs_; i++) {
+    for (uint16 i = 0; i < numStakePoolConfigs_; i++) {
       _assertStakePoolUpdatesApplied(component.getStakePool(i), stakePoolConfigs_[i]);
     }
-    for (uint8 i = 0; i < numRewardPoolConfigs_; i++) {
+    for (uint16 i = 0; i < numRewardPoolConfigs_; i++) {
       _assertRewardPoolUpdatesApplied(component.getRewardPool(i), rewardPoolConfigs_[i]);
     }
   }
@@ -196,8 +196,8 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
   }
 
   function testFuzz_updateConfigs_OnInitialization_RevertsUnsortedStakePoolAssets(
-    uint8 numStakePoolConfigs_,
-    uint8 numRewardPoolConfigs_
+    uint16 numStakePoolConfigs_,
+    uint16 numRewardPoolConfigs_
   ) external {
     (numStakePoolConfigs_, numRewardPoolConfigs_) =
       _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
@@ -213,8 +213,8 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
   }
 
   function testFuzz_updateConfigs_OnInitialization_RevertsNonUniqueStakePoolAssets(
-    uint8 numStakePoolConfigs_,
-    uint8 numRewardPoolConfigs_
+    uint16 numStakePoolConfigs_,
+    uint16 numRewardPoolConfigs_
   ) external {
     (numStakePoolConfigs_, numRewardPoolConfigs_) =
       _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
@@ -229,7 +229,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     component.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
   }
 
-  function testFuzz_isValidConfiguration_TrueValidConfig(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_)
+  function testFuzz_isValidConfiguration_TrueValidConfig(uint16 numStakePoolConfigs_, uint16 numRewardPoolConfigs_)
     external
   {
     (numStakePoolConfigs_, numRewardPoolConfigs_) =
@@ -240,7 +240,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     assertTrue(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function testFuzz_isValidConfiguration_FalseTooManyStakePools(uint8 numRewardPoolConfigs_) external {
+  function testFuzz_isValidConfiguration_FalseTooManyStakePools(uint16 numRewardPoolConfigs_) external {
     (, numRewardPoolConfigs_) = _convertToAllowedNumConfigs(0, numRewardPoolConfigs_);
     (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
       _generateValidConfigs(ALLOWED_STAKE_POOLS + 1, numRewardPoolConfigs_);
@@ -254,7 +254,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     assertTrue(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function testFuzz_isValidConfiguration_FalseTooManyRewardPools(uint8 numStakePoolConfigs_) external {
+  function testFuzz_isValidConfiguration_FalseTooManyRewardPools(uint16 numStakePoolConfigs_) external {
     (numStakePoolConfigs_,) = _convertToAllowedNumConfigs(numStakePoolConfigs_, 0);
     (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
       _generateValidConfigs(numStakePoolConfigs_, ALLOWED_REWARD_POOLS + 1);
@@ -269,8 +269,8 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
   }
 
   function testFuzz_isValidConfiguration_FalseUnsortedStakePoolAssets(
-    uint8 numStakePoolConfigs_,
-    uint8 numRewardPoolConfigs_
+    uint16 numStakePoolConfigs_,
+    uint16 numRewardPoolConfigs_
   ) external {
     (numStakePoolConfigs_, numRewardPoolConfigs_) =
       _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
@@ -285,8 +285,8 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
   }
 
   function testFuzz_isValidConfiguration_FalseNonUniqueStakePoolAssets(
-    uint8 numStakePoolConfigs_,
-    uint8 numRewardPoolConfigs_
+    uint16 numStakePoolConfigs_,
+    uint16 numRewardPoolConfigs_
   ) external {
     (numStakePoolConfigs_, numRewardPoolConfigs_) =
       _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
@@ -300,7 +300,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function testFuzz_isValidConfiguration_FalseInvalidWeightSum(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_)
+  function testFuzz_isValidConfiguration_FalseInvalidWeightSum(uint16 numStakePoolConfigs_, uint16 numRewardPoolConfigs_)
     external
   {
     (numStakePoolConfigs_, numRewardPoolConfigs_) =
@@ -314,7 +314,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function testFuzz_isValidUpdate_TrueValidConfiguration(uint8 numStakePoolConfigs_, uint8 numRewardPoolConfigs_)
+  function testFuzz_isValidUpdate_TrueValidConfiguration(uint16 numStakePoolConfigs_, uint16 numRewardPoolConfigs_)
     external
   {
     (numStakePoolConfigs_, numRewardPoolConfigs_) =
@@ -359,7 +359,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     StakePool[] memory stakePools_ = _generateStakePools(2);
     RewardPool[] memory rewardPools_ = _generateRewardPools(2);
 
-    for (uint8 i = 0; i < 2; i++) {
+    for (uint16 i = 0; i < 2; i++) {
       component.mockAddStakePool(stakePools_[i]);
       component.mockAddRewardPool(rewardPools_[i]);
     }
@@ -436,14 +436,14 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     // Stake pool config updates applied.
     StakePool[] memory updatedStakePools_ = component.getStakePools();
     assertEq(updatedStakePools_.length, 5);
-    for (uint8 i = 0; i < updatedStakePools_.length; i++) {
+    for (uint16 i = 0; i < updatedStakePools_.length; i++) {
       _assertStakePoolUpdatesApplied(updatedStakePools_[i], stakePoolConfigs_[i]);
     }
 
     // Reward pool config updates applied.
     RewardPool[] memory updatedRewardPools_ = component.getRewardPools();
     assertEq(updatedRewardPools_.length, 5);
-    for (uint8 i = 0; i < updatedRewardPools_.length; i++) {
+    for (uint16 i = 0; i < updatedRewardPools_.length; i++) {
       _assertRewardPoolUpdatesApplied(updatedRewardPools_[i], rewardPoolConfigs_[i]);
     }
   }
@@ -483,13 +483,13 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     (StakePool[] memory stakePools_, RewardPool[] memory rewardPools_) = _initializeExistingRewardsManagerSetup();
 
     RewardPoolConfig[] memory baseRewardPoolConfigs_ = new RewardPoolConfig[](2);
-    for (uint8 i = 0; i < rewardPools_.length; i++) {
+    for (uint16 i = 0; i < rewardPools_.length; i++) {
       baseRewardPoolConfigs_[i] =
         RewardPoolConfig({asset: rewardPools_[i].asset, dripModel: IDripModel(_randomAddress())});
     }
 
     StakePoolConfig[] memory baseStakePoolConfigs_ = new StakePoolConfig[](2);
-    for (uint8 i = 0; i < stakePools_.length; i++) {
+    for (uint16 i = 0; i < stakePools_.length; i++) {
       baseStakePoolConfigs_[i] =
         StakePoolConfig({asset: stakePools_[i].asset, rewardsWeight: stakePools_[i].rewardsWeight});
     }
@@ -633,8 +633,8 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
   constructor(
     address owner_,
     IReceiptTokenFactory receiptTokenFactory_,
-    uint8 allowedStakePools_,
-    uint8 allowedRewardPools_
+    uint16 allowedStakePools_,
+    uint16 allowedRewardPools_
   ) {
     __initOwnable(owner_);
     receiptTokenFactory = receiptTokenFactory_;

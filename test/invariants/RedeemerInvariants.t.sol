@@ -29,7 +29,7 @@ abstract contract RedeemerInvariantsWithStateTransitions is InvariantTestBaseWit
 
   function invariant_redeemUndrippedRewards() public syncCurrentTimestamp(rewardsManagerHandler) {
     RedeemRewardPoolData[] memory redeemRewardPoolData_ = new RedeemRewardPoolData[](numRewardPools);
-    for (uint8 rewardPoolId_; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
+    for (uint16 rewardPoolId_; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       RewardPool memory rewardPool_ = rewardsManager.rewardPools(rewardPoolId_);
       redeemRewardPoolData_[rewardPoolId_] = RedeemRewardPoolData({
         undrippedRewards: rewardPool_.undrippedRewards,
@@ -66,7 +66,7 @@ abstract contract RedeemerInvariantsWithStateTransitions is InvariantTestBaseWit
       vm.prank(actor_);
       rewardsManager.redeemUndrippedRewards(redeemedRewardPoolId_, depositReceiptTokenRedeemAmount_, receiver_, actor_);
 
-      for (uint8 rewardPoolId_; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
+      for (uint16 rewardPoolId_; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
         RewardPool memory currentRewardPool_ = rewardsManager.rewardPools(rewardPoolId_);
         AssetPool memory currentAssetPool_ = rewardsManager.assetPools(currentRewardPool_.asset);
 

@@ -61,8 +61,8 @@ contract DeployProtocol is ScriptUtils {
   address pauser;
 
   // Global restrictions on the number of reserve and reward pools.
-  uint8 allowedStakePools;
-  uint8 allowedRewardPools;
+  uint16 allowedStakePools;
+  uint16 allowedRewardPools;
 
   // Core contracts to deploy.
   CozyManager manager;
@@ -85,8 +85,8 @@ contract DeployProtocol is ScriptUtils {
     pauser = json_.readAddress(".pauser");
 
     // -------- Pool Limits --------
-    allowedStakePools = uint8(json_.readUint(".allowedStakePools"));
-    allowedRewardPools = uint8(json_.readUint(".allowedRewardPools"));
+    allowedStakePools = uint16(json_.readUint(".allowedStakePools"));
+    allowedRewardPools = uint16(json_.readUint(".allowedRewardPools"));
 
     // -------------------------------------
     // -------- Address Computation --------

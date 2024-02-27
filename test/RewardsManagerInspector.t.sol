@@ -133,11 +133,11 @@ contract TestableRewardsManagerInspector is RewardsManagerInspector {
     stakePools.push(stakePool_);
   }
 
-  function setRewardPoolUndrippedRewards(uint256 rewardPoolId_, uint256 undrippedRewards_) external {
+  function setRewardPoolUndrippedRewards(uint16 rewardPoolId_, uint256 undrippedRewards_) external {
     rewardPools[rewardPoolId_].undrippedRewards = undrippedRewards_;
   }
 
-  function setStakePoolAmount(uint256 stakePoolId_, uint256 amount_) external {
+  function setStakePoolAmount(uint16 stakePoolId_, uint256 amount_) external {
     stakePools[stakePoolId_].amount = amount_;
   }
 

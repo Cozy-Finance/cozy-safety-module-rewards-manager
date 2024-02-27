@@ -460,7 +460,7 @@ contract RewardsManagerHandler is TestBase {
     return actor_;
   }
 
-  function depositRewardAssetsWithExistingActorWithoutCountingCall(uint8 rewardPoolId_, uint256 assets_, address actor_)
+  function depositRewardAssetsWithExistingActorWithoutCountingCall(uint16 rewardPoolId_, uint256 assets_, address actor_)
     external
     returns (address)
   {
@@ -483,12 +483,12 @@ contract RewardsManagerHandler is TestBase {
     return bound(assetAmount_, 0.0001e6, type(uint72).max);
   }
 
-  function pickValidRewardPoolId(uint256 seed_) public view returns (uint8) {
-    return uint8(seed_ % numRewardPools);
+  function pickValidRewardPoolId(uint256 seed_) public view returns (uint16) {
+    return uint16(seed_ % numRewardPools);
   }
 
-  function pickValidStakePoolId(uint256 seed_) public view returns (uint8) {
-    return uint8(seed_ % numStakePools);
+  function pickValidStakePoolId(uint256 seed_) public view returns (uint16) {
+    return uint16(seed_ % numStakePools);
   }
 
   function pickActor(uint256 seed_) public view returns (address) {

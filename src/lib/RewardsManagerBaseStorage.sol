@@ -49,8 +49,8 @@ abstract contract RewardsManagerBaseStorage {
   RewardsManagerState public rewardsManagerState;
 
   /// @notice The max number of stake pools allowed per rewards manager.
-  uint8 public immutable allowedStakePools;
+  uint16 public immutable allowedStakePools;
 
   /// @notice The max number of reward pools allowed per rewards manager.
-  uint8 public immutable allowedRewardPools;
+  uint16 public immutable allowedRewardPools;
 }

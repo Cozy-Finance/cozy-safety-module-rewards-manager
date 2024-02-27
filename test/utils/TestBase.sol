@@ -96,11 +96,11 @@ contract TestBase is Test, TestAssertions {
     vm.expectRevert(abi.encodeWithSelector(PANIC_SELECTOR, code_));
   }
 
-  function getStakePool(IRewardsManager rewardsManager_, uint256 stakePoolId_) internal view returns (StakePool memory) {
+  function getStakePool(IRewardsManager rewardsManager_, uint16 stakePoolId_) internal view returns (StakePool memory) {
     return rewardsManager_.stakePools(stakePoolId_);
   }
 
-  function getRewardPool(IRewardsManager rewardsManager_, uint256 rewardPoolid_)
+  function getRewardPool(IRewardsManager rewardsManager_, uint16 rewardPoolid_)
     internal
     view
     returns (RewardPool memory)

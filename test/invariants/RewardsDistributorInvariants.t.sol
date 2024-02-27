@@ -132,7 +132,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     vm.prank(actor_);
     rewardsManager.claimRewards(stakePoolId_, receiver_);
 
-    for (uint8 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       require(
         rewardPoolId_ == actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].rewardPoolId,
         string.concat(
