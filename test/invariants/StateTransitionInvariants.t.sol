@@ -86,7 +86,7 @@ abstract contract StateTransitionInvariantsWithStateTransitions is InvariantTest
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
-    uint8 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
+    uint16 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
 
     if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) {
       vm.expectRevert(ICommonErrors.InvalidState.selector);
@@ -97,7 +97,7 @@ abstract contract StateTransitionInvariantsWithStateTransitions is InvariantTest
 
   function invariant_depositRewardAssetsRevertsWhenPaused() public syncCurrentTimestamp(rewardsManagerHandler) {
     address actor_ = _randomAddress();
-    uint8 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
+    uint16 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
     IERC20 asset_ = rewardsManager.rewardPools(rewardPoolId_).asset;
 
     uint256 depositAmount_ = bound(_randomUint64(), 1, type(uint64).max);
@@ -115,7 +115,7 @@ abstract contract StateTransitionInvariantsWithStateTransitions is InvariantTest
 
   function invariant_stakeWithoutTransferRevertsWhenPaused() public syncCurrentTimestamp(rewardsManagerHandler) {
     address actor_ = _randomAddress();
-    uint8 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
+    uint16 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
     IERC20 asset_ = rewardsManager.stakePools(stakePoolId_).asset;
 
     uint256 stakeAmount_ = bound(_randomUint64(), 1, type(uint64).max);
@@ -133,7 +133,7 @@ abstract contract StateTransitionInvariantsWithStateTransitions is InvariantTest
 
   function invariant_stakeRevertsWhenPaused() public syncCurrentTimestamp(rewardsManagerHandler) {
     address actor_ = _randomAddress();
-    uint8 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
+    uint16 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
     IERC20 asset_ = rewardsManager.stakePools(stakePoolId_).asset;
 
     uint256 stakeAmount_ = bound(_randomUint64(), 1, type(uint64).max);

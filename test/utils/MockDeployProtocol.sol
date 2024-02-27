@@ -26,8 +26,8 @@ contract MockDeployer is TestBase {
   address owner = address(this);
   address pauser = address(0xBEEF);
 
-  uint8 constant ALLOWED_STAKE_POOLS = 100;
-  uint8 constant ALLOWED_REWARD_POOLS = 100;
+  uint16 constant ALLOWED_STAKE_POOLS = 100;
+  uint16 constant ALLOWED_REWARD_POOLS = 100;
 
   function deployMockProtocol() public virtual {
     uint256 nonce_ = vm.getNonce(address(this));

@@ -30,7 +30,7 @@ abstract contract StakerInvariants is InvariantTestBase {
     syncCurrentTimestamp(rewardsManagerHandler)
   {
     InternalBalances[] memory internalBalancesBeforeStake_ = new InternalBalances[](numStakePools);
-    for (uint8 stakePoolId_; stakePoolId_ < numStakePools; stakePoolId_++) {
+    for (uint16 stakePoolId_; stakePoolId_ < numStakePools; stakePoolId_++) {
       StakePool memory stakePool_ = rewardsManager.stakePools(stakePoolId_);
 
       internalBalancesBeforeStake_[stakePoolId_] = InternalBalances({
@@ -159,7 +159,7 @@ abstract contract StakerInvariants is InvariantTestBase {
   }
 
   function invariant_cannotStakeZeroAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
-    uint8 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
+    uint16 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
     address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
 
     vm.prank(actor_);
@@ -168,7 +168,7 @@ abstract contract StakerInvariants is InvariantTestBase {
   }
 
   function invariant_cannotStakeWithInsufficientAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
-    uint8 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
+    uint16 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
     address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
     uint256 assetAmount_ = rewardsManagerHandler.boundDepositAssetAmount(_randomUint256());
 

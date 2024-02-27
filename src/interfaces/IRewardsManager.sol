@@ -13,9 +13,9 @@ import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 import {ICozyManager} from "./ICozyManager.sol";
 
 interface IRewardsManager {
-  function allowedRewardPools() external view returns (uint8);
+  function allowedRewardPools() external view returns (uint16);
 
-  function allowedStakePools() external view returns (uint8);
+  function allowedStakePools() external view returns (uint16);
 
   function assetPools(IERC20 asset_) external view returns (AssetPool memory);
 
@@ -26,7 +26,7 @@ interface IRewardsManager {
 
   function claimRewards(uint16 stakePoolId_, address receiver_) external;
 
-  function convertRewardAssetToReceiptTokenAmount(uint256 rewardPoolId_, uint256 rewardAssetAmount_)
+  function convertRewardAssetToReceiptTokenAmount(uint16 rewardPoolId_, uint256 rewardAssetAmount_)
     external
     view
     returns (uint256 depositReceiptTokenAmount_);

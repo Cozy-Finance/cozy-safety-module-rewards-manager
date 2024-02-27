@@ -28,7 +28,7 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
 
   function invariant_unstake() public syncCurrentTimestamp(rewardsManagerHandler) {
     UnstakeStakePoolData[] memory unstakeStakePoolData_ = new UnstakeStakePoolData[](numStakePools);
-    for (uint8 stakePoolId_; stakePoolId_ < numStakePools; stakePoolId_++) {
+    for (uint16 stakePoolId_; stakePoolId_ < numStakePools; stakePoolId_++) {
       StakePool memory stakePool_ = rewardsManager.stakePools(stakePoolId_);
       unstakeStakePoolData_[stakePoolId_] = UnstakeStakePoolData({
         stakePoolAmount: stakePool_.amount,
@@ -63,7 +63,7 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
     vm.prank(actor_);
     rewardsManager.unstake(unstakedStakePoolId_, stkReceiptTokenUnstakeAmount_, receiver_, actor_);
 
-    for (uint8 stakePoolId_; stakePoolId_ < numStakePools; stakePoolId_++) {
+    for (uint16 stakePoolId_; stakePoolId_ < numStakePools; stakePoolId_++) {
       StakePool memory currentStakePool_ = rewardsManager.stakePools(stakePoolId_);
       AssetPool memory currentAssetPool_ = rewardsManager.assetPools(currentStakePool_.asset);
 

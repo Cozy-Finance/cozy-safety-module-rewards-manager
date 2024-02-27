@@ -33,8 +33,8 @@ contract RewardsManager is
   constructor(
     ICozyManager cozyManager_,
     IReceiptTokenFactory receiptTokenFactory_,
-    uint8 allowedStakePools_,
-    uint8 allowedRewardPools_
+    uint16 allowedStakePools_,
+    uint16 allowedRewardPools_
   ) {
     _assertAddressNotZero(address(cozyManager_));
     _assertAddressNotZero(address(receiptTokenFactory_));

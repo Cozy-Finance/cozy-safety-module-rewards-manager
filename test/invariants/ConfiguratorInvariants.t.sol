@@ -29,11 +29,11 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     vm.prank(rewardsManager.owner());
     rewardsManager.updateConfigs(updatedStakePoolConfigs_, updatedRewardPoolConfigs_);
 
-    for (uint8 i = 0; i < updatedStakePoolConfigs_.length; i++) {
+    for (uint16 i = 0; i < updatedStakePoolConfigs_.length; i++) {
       _assertStakePoolUpdatesApplied(rewardsManager.stakePools(i), updatedStakePoolConfigs_[i]);
     }
 
-    for (uint8 i = 0; i < updatedRewardPoolConfigs_.length; i++) {
+    for (uint16 i = 0; i < updatedRewardPoolConfigs_.length; i++) {
       _assertRewardPoolUpdatesApplied(rewardsManager.rewardPools(i), updatedRewardPoolConfigs_[i]);
     }
 
@@ -56,7 +56,7 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     (StakePoolConfig[] memory currentStakePoolConfigs_, RewardPoolConfig[] memory currentRewardPoolConfigs_) =
       _createValidConfigUpdate();
 
-    uint8 allowedStakePools_ = rewardsManager.allowedStakePools();
+    uint16 allowedStakePools_ = rewardsManager.allowedStakePools();
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](allowedStakePools_ + 1);
     for (uint256 i = 0; i < numStakePools; i++) {
       stakePoolConfigs_[i] = currentStakePoolConfigs_[i];
@@ -74,7 +74,7 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     (StakePoolConfig[] memory currentStakePoolConfigs_, RewardPoolConfig[] memory currentRewardPoolConfigs_) =
       _createValidConfigUpdate();
 
-    uint8 allowedRewardPools_ = rewardsManager.allowedRewardPools();
+    uint16 allowedRewardPools_ = rewardsManager.allowedRewardPools();
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](allowedRewardPools_ + 1);
     for (uint256 i = 0; i < numRewardPools; i++) {
       rewardPoolConfigs_[i] = currentRewardPoolConfigs_[i];
@@ -229,7 +229,7 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     // in unit tests.
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](currentStakePoolConfigs_.length);
     uint256 rewardsWeightSum_ = 0;
-    for (uint8 i = 0; i < currentStakePoolConfigs_.length; i++) {
+    for (uint16 i = 0; i < currentStakePoolConfigs_.length; i++) {
       uint256 rewardsWeight_ = i < currentStakePoolConfigs_.length - 1
         ? _randomUint256InRange(0, MathConstants.ZOC - rewardsWeightSum_)
         : MathConstants.ZOC - rewardsWeightSum_;
@@ -240,7 +240,7 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     }
 
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](currentRewardPoolConfigs_.length);
-    for (uint8 i = 0; i < currentRewardPoolConfigs_.length; i++) {
+    for (uint16 i = 0; i < currentRewardPoolConfigs_.length; i++) {
       // We cannot update the asset of the copied current config, since it will cause a revert.
       rewardPoolConfigs_[i] =
         RewardPoolConfig({asset: currentRewardPoolConfigs_[i].asset, dripModel: IDripModel(_randomAddress())});
@@ -251,13 +251,13 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
 
   function _copyCurrentConfig() internal view returns (StakePoolConfig[] memory, RewardPoolConfig[] memory) {
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](numStakePools);
-    for (uint8 i = 0; i < numStakePools; i++) {
+    for (uint16 i = 0; i < numStakePools; i++) {
       StakePool memory stakePool_ = rewardsManager.stakePools(i);
       stakePoolConfigs_[i] = StakePoolConfig({asset: stakePool_.asset, rewardsWeight: stakePool_.rewardsWeight});
     }
 
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](numRewardPools);
-    for (uint8 i = 0; i < numRewardPools; i++) {
+    for (uint16 i = 0; i < numRewardPools; i++) {
       RewardPool memory rewardPool_ = rewardsManager.rewardPools(i);
       rewardPoolConfigs_[i] = RewardPoolConfig({asset: rewardPool_.asset, dripModel: rewardPool_.dripModel});
     }
@@ -281,7 +281,7 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     RewardPool[] memory preRewardPools_,
     ClaimableRewardsData[][] memory preClaimableRewards_
   ) private view {
-    for (uint8 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       RewardPool memory rewardPool_ = rewardsManager.rewardPools(rewardPoolId_);
       require(
         rewardPool_.undrippedRewards <= preRewardPools_[rewardPoolId_].undrippedRewards,
@@ -291,7 +291,7 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
         rewardPool_.cumulativeDrippedRewards == 0,
         "Reward pool cumulative dripped rewards must be reset to 0 before a config update."
       );
-      for (uint8 stakePoolId_ = 0; stakePoolId_ < numStakePools; stakePoolId_++) {
+      for (uint16 stakePoolId_ = 0; stakePoolId_ < numStakePools; stakePoolId_++) {
         ClaimableRewardsData memory claimableRewards_ = rewardsManager.claimableRewards(stakePoolId_, rewardPoolId_);
         require(
           claimableRewards_.cumulativeClaimableRewards == 0,

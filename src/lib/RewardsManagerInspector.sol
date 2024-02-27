@@ -13,7 +13,7 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
   /// @param rewardPoolId_ The ID of the reward pool.
   /// @param rewardAssetAmount_ The amount of the reward pool's asset to convert.
   /// @return depositReceiptTokenAmount_ The corresponding amount of deposit receipt tokens.
-  function convertRewardAssetToReceiptTokenAmount(uint256 rewardPoolId_, uint256 rewardAssetAmount_)
+  function convertRewardAssetToReceiptTokenAmount(uint16 rewardPoolId_, uint256 rewardAssetAmount_)
     external
     view
     returns (uint256 depositReceiptTokenAmount_)
@@ -32,7 +32,7 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
   /// @param rewardPoolId_ The ID of the reward pool.
   /// @param depositReceiptTokenAmount_ The amount of deposit receipt tokens to convert.
   /// @return rewardAssetAmount_ The corresponding amount of the reward pool's asset.
-  function convertRewardReceiptTokenToAssetAmount(uint256 rewardPoolId_, uint256 depositReceiptTokenAmount_)
+  function convertRewardReceiptTokenToAssetAmount(uint16 rewardPoolId_, uint256 depositReceiptTokenAmount_)
     external
     view
     returns (uint256 rewardAssetAmount_)
