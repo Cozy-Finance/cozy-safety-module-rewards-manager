@@ -136,7 +136,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](numRewardAssets + 1);
 
     uint16 weightSum_ = 0;
-    for (uint256 i = 0; i < numStakePools + 1; i++) {
+    for (uint16 i = 0; i < numStakePools + 1; i++) {
       IERC20 asset_ = i < numStakePools
         ? getStakePool(IRewardsManager(address(rewardsManager)), i).asset
         : IERC20(address(new MockERC20("Mock Stake Asset", "cozyStk", 18)));
@@ -149,7 +149,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
       weightSum_ += stakePoolConfigs_[i].rewardsWeight;
     }
 
-    for (uint256 i = 0; i < numRewardAssets + 1; i++) {
+    for (uint16 i = 0; i < numRewardAssets + 1; i++) {
       if (i < numRewardAssets) {
         RewardPool memory rewardPool_ = getRewardPool(IRewardsManager(address(rewardsManager)), i);
         rewardPoolConfigs_[i] = RewardPoolConfig({asset: rewardPool_.asset, dripModel: rewardPool_.dripModel});
