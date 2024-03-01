@@ -460,10 +460,11 @@ contract RewardsManagerHandler is TestBase {
     return actor_;
   }
 
-  function depositRewardAssetsWithExistingActorWithoutCountingCall(uint16 rewardPoolId_, uint256 assets_, address actor_)
-    external
-    returns (address)
-  {
+  function depositRewardAssetsWithExistingActorWithoutCountingCall(
+    uint16 rewardPoolId_,
+    uint256 assets_,
+    address actor_
+  ) external returns (address) {
     uint256 invalidCallsBefore_ = invalidCalls["depositRewardAssetsWithExistingActor"];
 
     currentRewardPoolId = rewardPoolId_;
@@ -565,8 +566,8 @@ contract RewardsManagerHandler is TestBase {
 
   function _createValidRandomAddress(address addr_) internal view returns (address) {
     if (addr_ == address(rewardsManager)) return _randomAddress();
-    for (uint256 i = 0; i < numStakePools; i++) {
-      for (uint256 j = 0; j < numRewardPools; j++) {
+    for (uint16 i = 0; i < numStakePools; i++) {
+      for (uint16 j = 0; j < numRewardPools; j++) {
         if (addr_ == address(getStakePool(IRewardsManager(address(rewardsManager)), i).stkReceiptToken)) {
           return _randomAddress();
         }

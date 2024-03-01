@@ -176,14 +176,14 @@ abstract contract InvariantTestWithMultipleStakePoolsAndMultipleRewardPools is I
     rewardsManager =
       cozyManager.createRewardsManager(owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32());
 
-    for (uint256 i_; i_ < numStakePools_; i_++) {
+    for (uint16 i_; i_ < numStakePools_; i_++) {
       vm.label(
         address(getStakePool(rewardsManager, i_).stkReceiptToken),
         string.concat("stakePool", Strings.toString(i_), "StkReceiptToken")
       );
     }
 
-    for (uint256 i_; i_ < numRewardPools_; i_++) {
+    for (uint16 i_; i_ < numRewardPools_; i_++) {
       vm.label(
         address(getRewardPool(rewardsManager, i_).depositReceiptToken),
         string.concat("rewardPool", Strings.toString(i_), "DepositReceiptToken")

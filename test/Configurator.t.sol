@@ -300,9 +300,10 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     assertFalse(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
-  function testFuzz_isValidConfiguration_FalseInvalidWeightSum(uint16 numStakePoolConfigs_, uint16 numRewardPoolConfigs_)
-    external
-  {
+  function testFuzz_isValidConfiguration_FalseInvalidWeightSum(
+    uint16 numStakePoolConfigs_,
+    uint16 numRewardPoolConfigs_
+  ) external {
     (numStakePoolConfigs_, numRewardPoolConfigs_) =
       _convertToAllowedNumConfigs(numStakePoolConfigs_, numRewardPoolConfigs_);
     numStakePoolConfigs_ = numStakePoolConfigs_ > 0 ? numStakePoolConfigs_ : 1;
