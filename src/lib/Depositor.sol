@@ -17,14 +17,13 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
 
   /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool on behalf of `from_` and mint
   /// `depositReceiptTokenAmount_` tokens to `receiver_`.
-  /// @dev Assumes that `from_` has approved the rewards manager to spend `rewardAssetAmount_` of the reward pool's
+  /// @dev Assumes that `msg.sender` has approved the rewards manager to spend `rewardAssetAmount_` of the reward pool's
   /// asset.
   /// @param rewardPoolId_ The ID of the reward pool.
   /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
   /// @param receiver_ The address to mint the deposit receipt tokens to.
-  /// @param from_ The address to pull the reward pool's asset from.
   /// @return depositReceiptTokenAmount_ The amount of deposit receipt tokens minted.
-  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_, address from_)
+  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_)
     external
     returns (uint256 depositReceiptTokenAmount_)
   {
@@ -34,7 +33,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     // Pull in deposited assets. After the transfer we ensure we no longer need any assets. This check is
     // required to support fee on transfer tokens, for example if USDT enables a fee.
     // Also, we need to transfer before minting or ERC777s could reenter.
-    asset_.safeTransferFrom(from_, address(this), rewardAssetAmount_);
+    asset_.safeTransferFrom(msg.sender, address(this), rewardAssetAmount_);
 
     depositReceiptTokenAmount_ =
       _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, receiver_, rewardPool_);

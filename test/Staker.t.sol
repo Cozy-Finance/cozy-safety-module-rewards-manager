@@ -102,7 +102,7 @@ contract StakerUnitTest is TestBase {
     emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
-    component.stake(0, amountToStake_, receiver_, staker_);
+    component.stake(0, amountToStake_, receiver_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockStakeAsset)));
@@ -144,7 +144,7 @@ contract StakerUnitTest is TestBase {
     emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
-    component.stake(0, amountToStake_, receiver_, staker_);
+    component.stake(0, amountToStake_, receiver_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockStakeAsset)));
@@ -179,7 +179,7 @@ contract StakerUnitTest is TestBase {
 
     vm.expectRevert(ICommonErrors.InvalidState.selector);
     vm.prank(staker_);
-    component.stake(0, amountToStake_, receiver_, staker_);
+    component.stake(0, amountToStake_, receiver_);
   }
 
   function test_stake_RevertOutOfBoundsStakePoolId() external {
@@ -188,7 +188,7 @@ contract StakerUnitTest is TestBase {
 
     _expectPanic(INDEX_OUT_OF_BOUNDS);
     vm.prank(staker_);
-    component.stake(1, 10e18, receiver_, staker_);
+    component.stake(1, 10e18, receiver_);
   }
 
   function testFuzz_stake_RevertInsufficientAssetsAvailable(uint256 amountToStake_) external {
@@ -205,7 +205,7 @@ contract StakerUnitTest is TestBase {
 
     _expectPanic(PANIC_MATH_UNDEROVERFLOW);
     vm.prank(staker_);
-    component.stake(0, amountToStake_, receiver_, staker_);
+    component.stake(0, amountToStake_, receiver_);
   }
 
   function test_stakeWithoutTransfer_StkReceiptTokensAndStorageUpdates_NonZeroSupply() external {
@@ -326,7 +326,7 @@ contract StakerUnitTest is TestBase {
     // 0 assets should give 0 shares.
     vm.expectRevert(ICommonErrors.AmountIsZero.selector);
     vm.prank(staker_);
-    component.stake(0, amountToStake_, receiver_, staker_);
+    component.stake(0, amountToStake_, receiver_);
   }
 
   function test_stakeWithoutTransfer_RevertZeroShares() external {
@@ -358,7 +358,7 @@ contract StakerUnitTest is TestBase {
     emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
 
     vm.prank(staker_);
-    component.stake(0, amountStaked_, receiver_, staker_);
+    component.stake(0, amountStaked_, receiver_);
   }
 
   function test_unstake_unstakeAll() public {

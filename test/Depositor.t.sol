@@ -63,17 +63,14 @@ contract DepositorUnitTest is TestBase {
     deal(address(mockAsset), address(component), initialUndrippedRewards);
   }
 
-  function _deposit(
-    bool withoutTransfer_,
-    uint16 poolId_,
-    uint256 amountToDeposit_,
-    address receiver_,
-    address depositor_
-  ) internal returns (uint256 depositReceiptTokenAmount_) {
+  function _deposit(bool withoutTransfer_, uint16 poolId_, uint256 amountToDeposit_, address receiver_)
+    internal
+    returns (uint256 depositReceiptTokenAmount_)
+  {
     if (withoutTransfer_) {
       depositReceiptTokenAmount_ = component.depositRewardAssetsWithoutTransfer(poolId_, amountToDeposit_, receiver_);
     } else {
-      depositReceiptTokenAmount_ = component.depositRewardAssets(poolId_, amountToDeposit_, receiver_, depositor_);
+      depositReceiptTokenAmount_ = component.depositRewardAssets(poolId_, amountToDeposit_, receiver_);
     }
   }
 
@@ -101,7 +98,7 @@ contract DepositorUnitTest is TestBase {
     );
 
     vm.prank(depositor_);
-    uint256 depositReciptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+    uint256 depositReciptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_);
 
     assertEq(depositReciptTokenAmount_, expectedDepositReceiptTokenAmount_);
 
@@ -144,7 +141,7 @@ contract DepositorUnitTest is TestBase {
     );
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_);
 
     assertEq(depositReceiptTokenAmount_, expectedDepositReceiptTokenAmount_);
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
@@ -175,7 +172,7 @@ contract DepositorUnitTest is TestBase {
 
     vm.expectRevert(ICommonErrors.InvalidState.selector);
     vm.prank(depositor_);
-    _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+    _deposit(false, 0, amountToDeposit_, receiver_);
   }
 
   function test_depositReserve_RevertOutOfBoundsRewardPoolId() external {
@@ -184,7 +181,7 @@ contract DepositorUnitTest is TestBase {
 
     _expectPanic(INDEX_OUT_OF_BOUNDS);
     vm.prank(depositor_);
-    _deposit(false, 1, 10e18, receiver_, depositor_);
+    _deposit(false, 1, 10e18, receiver_);
   }
 
   function testFuzz_depositReserve_RevertInsufficientAssetsAvailable(uint256 amountToDeposit_) external {
@@ -201,7 +198,7 @@ contract DepositorUnitTest is TestBase {
 
     _expectPanic(PANIC_MATH_UNDEROVERFLOW);
     vm.prank(depositor_);
-    _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+    _deposit(false, 0, amountToDeposit_, receiver_);
   }
 
   function test_depositReserveAssetsWithoutTransfer_DepositReceiptTokensAndStorageUpdates() external {
@@ -228,7 +225,7 @@ contract DepositorUnitTest is TestBase {
     );
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(true, 0, amountToDeposit_, receiver_, receiver_);
+    uint256 depositReceiptTokenAmount_ = _deposit(true, 0, amountToDeposit_, receiver_);
 
     assertEq(depositReceiptTokenAmount_, expectedDepositReceiptTokenAmount_);
 
@@ -271,7 +268,7 @@ contract DepositorUnitTest is TestBase {
     );
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(true, 0, amountToDeposit_, receiver_, receiver_);
+    uint256 depositReceiptTokenAmount_ = _deposit(true, 0, amountToDeposit_, receiver_);
 
     assertEq(depositReceiptTokenAmount_, expectedDepositReceiptTokenAmount_);
 
@@ -302,14 +299,14 @@ contract DepositorUnitTest is TestBase {
 
     vm.expectRevert(ICommonErrors.InvalidState.selector);
     vm.prank(depositor_);
-    _deposit(true, 0, amountToDeposit_, receiver_, receiver_);
+    _deposit(true, 0, amountToDeposit_, receiver_);
   }
 
   function test_depositReserveAssetsWithoutTransfer_RevertOutOfBoundsRewardPoolId() external {
     address receiver_ = _randomAddress();
 
     _expectPanic(INDEX_OUT_OF_BOUNDS);
-    _deposit(true, 1, 10e18, receiver_, receiver_);
+    _deposit(true, 1, 10e18, receiver_);
   }
 
   function testFuzz_depositReserveAssetsWithoutTransfer_RevertInsufficientAssetsAvailable(uint256 amountToDeposit_)
@@ -327,7 +324,7 @@ contract DepositorUnitTest is TestBase {
 
     vm.expectRevert(IDepositorErrors.InvalidDeposit.selector);
     vm.prank(depositor_);
-    _deposit(true, 0, amountToDeposit_, receiver_, address(0));
+    _deposit(true, 0, amountToDeposit_, receiver_);
   }
 
   function test_deposit_RevertZeroShares() external {
@@ -338,7 +335,7 @@ contract DepositorUnitTest is TestBase {
     // 0 assets should give 0 shares.
     vm.expectRevert(ICommonErrors.RoundsToZero.selector);
     vm.prank(depositor_);
-    _deposit(true, 0, amountToDeposit_, receiver_, address(0));
+    _deposit(true, 0, amountToDeposit_, receiver_);
   }
 
   function test_depositWithoutTransfer_RevertZeroShares() external {
@@ -349,7 +346,7 @@ contract DepositorUnitTest is TestBase {
     // 0 assets should give 0 shares.
     vm.expectRevert(ICommonErrors.RoundsToZero.selector);
     vm.prank(depositor_);
-    _deposit(false, 0, amountToDeposit_, receiver_, address(0));
+    _deposit(false, 0, amountToDeposit_, receiver_);
   }
 
   function test_redeemUndrippedRewards_redeemAll() external {
@@ -366,7 +363,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_);
 
     // Total supply of deposit receipt token is redeemed.
     assertEq(depositReceiptTokenAmount_, mockRewardPoolDepositReceiptToken.totalSupply());
@@ -416,7 +413,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_);
 
     // Half of total supply of deposit receipt token is redeemed.
     assertEq(depositReceiptTokenAmount_, mockRewardPoolDepositReceiptToken.totalSupply());
@@ -466,7 +463,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_);
 
     // Drip half of the assets in the reward pool.
     vm.warp(100);
@@ -522,7 +519,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_);
 
     // Mock the next drip to half of the assets in the reward pool.
     vm.warp(100);
@@ -585,7 +582,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), rewardAssetAmount_);
     // Deposit 1 asset.
     vm.prank(owner_);
-    _deposit(false, 0, rewardAssetAmount_, owner_, owner_);
+    _deposit(false, 0, rewardAssetAmount_, owner_);
 
     // Mint an additional 2 receipt tokens to the owner, so now totalSupply == 3 and undrippedRewards == 1.
     mockRewardPoolDepositReceiptToken.mint(owner_, 2);
@@ -621,7 +618,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, depositor_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, depositor_);
 
     // Depositor approves spender to spend all of their deposit receipt tokens, + 1.
     vm.prank(depositor_);
@@ -653,7 +650,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, depositor_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, depositor_);
 
     // Depositor approves spender to spend all of their deposit receipt tokens, - 1.
     vm.prank(depositor_);
@@ -676,7 +673,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, depositor_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, depositor_);
 
     _expectPanic(PANIC_MATH_UNDEROVERFLOW);
     vm.prank(depositor_);
@@ -696,7 +693,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, depositor_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, depositor_);
 
     _expectPanic(PANIC_ARRAY_OUT_OF_BOUNDS);
     vm.prank(depositor_);
@@ -715,7 +712,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_);
 
     // Next drip (which occurs on redeem), drip half of the assets in the reward pool.
     vm.warp(100);
@@ -766,7 +763,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_);
 
     // Next drip (which occurs on redeem), drip half of the assets in the reward pool.
     vm.warp(100);
@@ -794,7 +791,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     vm.prank(depositor_);
-    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_, depositor_);
+    uint256 depositReceiptTokenAmount_ = _deposit(false, 0, amountToDeposit_, receiver_);
 
     // Mock next drip (which occurs on redeem), drip half of the assets in the reward pool.
     vm.warp(100);
@@ -852,7 +849,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), rewardAssetAmount_);
     // Deposit 1 asset.
     vm.prank(owner_);
-    _deposit(false, 0, rewardAssetAmount_, owner_, owner_);
+    _deposit(false, 0, rewardAssetAmount_, owner_);
 
     // Mint an additional 2 receipt tokens to the owner, so now totalSupply == 3 and undrippedRewards == 1.
     mockRewardPoolDepositReceiptToken.mint(owner_, 2);
