@@ -60,9 +60,18 @@ contract CozyManagerTestCreateRewardsManager is MockDeployProtocol, CozyManagerT
   function test_createRewardsManager() public {
     (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _defaultSetUp();
 
-    IRewardsManager rewardsManager_ = cozyManager.createRewardsManager(
-      _randomAddress(), _randomAddress(), stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32()
-    );
+    address owner_ = _randomAddress();
+    address pauser_ = _randomAddress();
+    bytes32 salt_ = _randomBytes32();
+    address caller_ = _randomAddress();
+
+    address expectedDeployAddress_ = cozyManager.computeRewardsManagerAddress(caller_, salt_);
+
+    vm.prank(caller_);
+    IRewardsManager rewardsManager_ =
+      cozyManager.createRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, salt_);
+
+    assertEq(address(rewardsManager_), expectedDeployAddress_);
 
     // Loosely validate the rewards manager.
     assertEq(address(rewardsManagerLogic.cozyManager()), address(cozyManager));
@@ -86,6 +95,35 @@ contract CozyManagerTestCreateRewardsManager is MockDeployProtocol, CozyManagerT
     cozyManager.createRewardsManager(
       _randomAddress(), address(0), stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32()
     );
+  }
+
+  function test_createRewardsManager_cannotFrontRun() public {
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _defaultSetUp();
+    address owner_ = _randomAddress();
+    address pauser_ = _randomAddress();
+    bytes32 salt_ = _randomBytes32();
+    address caller_ = _randomAddress();
+    address frontRunCaller_ = _randomAddress();
+
+    // To avoid front-running of RewardsManager deploys, msg.sender is used for the deploy salt in
+    // CozyManagercreateRewardsManager.
+    bytes32 deploySalt_ = keccak256(abi.encodePacked(salt_, caller_));
+
+    address expectedDeployAddress_ = rewardsManagerFactory.computeAddress(deploySalt_);
+    address managerExpectedDeployAddress_ = cozyManager.computeRewardsManagerAddress(caller_, salt_);
+    assertEq(expectedDeployAddress_, managerExpectedDeployAddress_);
+
+    vm.prank(frontRunCaller_);
+    IRewardsManager rewardsManager_ =
+      cozyManager.createRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, salt_);
+    // The deployed rewrads manager has a different than expected address - cannot front-run even if using the same
+    // configs and salt.
+    assertFalse(address(rewardsManager_) == expectedDeployAddress_);
+
+    vm.prank(caller_);
+    rewardsManager_ = cozyManager.createRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, salt_);
+    // The deployed rewards manager has the expected address when deployed by the correct caller.
+    assertTrue(address(rewardsManager_) == expectedDeployAddress_);
   }
 }
 

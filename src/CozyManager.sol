@@ -54,7 +54,7 @@ contract CozyManager is Governable, ICozyManager {
   /// `Configurator.updateConfigs`.
   /// @param rewardPoolConfigs_  The array of reward pool configs. These configs must obey requirements described in
   /// `Configurator.updateConfigs`.
-  /// @param salt_ Used to compute the resulting address of the rewards manager.
+  /// @param salt_ Used to compute the resulting address of the rewards manager along with `msg.sender`.
   /// @return rewardsManager_ The newly created rewards manager.
   function createRewardsManager(
     address owner_,
@@ -66,7 +66,27 @@ contract CozyManager is Governable, ICozyManager {
     _assertAddressNotZero(owner_);
     _assertAddressNotZero(pauser_);
 
+    bytes32 deploySalt_ = _computeDeploySalt(msg.sender, salt_);
+
     rewardsManager_ =
-      rewardsManagerFactory.deployRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, salt_);
+      rewardsManagerFactory.deployRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, deploySalt_);
+  }
+
+  /// @notice Given a `caller_` and `salt_`, compute and return the address of the RewardsManager deployed with
+  /// `createRewardsManager`.
+  /// @param caller_ The caller of the `createRewardsManager` function.
+  /// @param salt_ Used to compute the resulting address of the rewards manager along with `caller_`.
+  function computeRewardsManagerAddress(address caller_, bytes32 salt_) external view returns (address) {
+    bytes32 deploySalt_ = _computeDeploySalt(caller_, salt_);
+    return rewardsManagerFactory.computeAddress(deploySalt_);
+  }
+
+  /// @notice Given a `caller_` and `salt_`, return the salt used to compute the RewardsManager address deployed from
+  /// the `rewardsManagerFactory`.
+  /// @param caller_ The caller of the `createRewardsManager` function.
+  /// @param salt_ Used to compute the resulting address of the rewards manager along with `caller_`.
+  function _computeDeploySalt(address caller_, bytes32 salt_) internal pure returns (bytes32) {
+    // To avoid front-running of RewardsManager deploys, msg.sender is used for the deploy salt.
+    return keccak256(abi.encodePacked(salt_, caller_));
   }
 }
