@@ -4,6 +4,7 @@ pragma solidity 0.8.22;
 import {Governable} from "cozy-safety-module-shared/lib/Governable.sol";
 import {ConfiguratorLib} from "./ConfiguratorLib.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {IConfiguratorErrors} from "../interfaces/IConfiguratorErrors.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./structs/Configs.sol";
 import {StakePool, RewardPool} from "./structs/Pools.sol";
 
@@ -42,5 +43,12 @@ abstract contract Configurator is RewardsManagerCommon, Governable {
       allowedStakePools,
       allowedRewardPools
     );
+  }
+
+  /// @notice Update pauser to `newPauser_`.
+  /// @param newPauser_ The new pauser.
+  function updatePauser(address newPauser_) external {
+    if (newPauser_ == address(cozyManager)) revert IConfiguratorErrors.InvalidConfiguration();
+    _updatePauser(newPauser_);
   }
 }
