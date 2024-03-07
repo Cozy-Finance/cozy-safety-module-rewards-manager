@@ -204,14 +204,14 @@ contract RewardsDistributorUnitTest is TestBase {
     }
   }
 
-  function _stake(uint16 stakePoolId_, uint256 amount_, address user_, address receiver_) internal {
+  function _stake(uint16 stakePoolId_, uint256 amount_, address user_) internal {
     StakePool memory stakePool_ = component.getStakePool(stakePoolId_);
     MockERC20 mockStakeAsset_ = MockERC20(address(stakePool_.asset));
     mockStakeAsset_.mint(user_, amount_);
 
-    vm.prank(user_);
+    vm.startPrank(user_);
     mockStakeAsset_.approve(address(component), amount_);
-    component.stake(stakePoolId_, amount_, user_, receiver_);
+    component.stake(stakePoolId_, amount_, user_);
     vm.stopPrank();
   }
 
@@ -226,9 +226,9 @@ contract RewardsDistributorUnitTest is TestBase {
     MockERC20 mockStakeAsset_ = MockERC20(address(stakePool_.asset));
     mockStakeAsset_.mint(user_, stakeAmount_);
 
-    vm.prank(user_);
+    vm.startPrank(user_);
     mockStakeAsset_.approve(address(component), type(uint256).max);
-    component.stake(stakePoolId_, stakeAmount_, user_, user_);
+    component.stake(stakePoolId_, stakeAmount_, user_);
     vm.stopPrank();
   }
 
@@ -392,12 +392,12 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     // UserA stakes 100e6 in stakePoolA, increasing stkReceiptTokenSupply to 200e6.
     // UserA owns 50% of total stake, 200e6.
     address userA_ = _randomAddress();
-    _stake(0, 100e6, userA_, userA_);
+    _stake(0, 100e6, userA_);
 
     // UserB stakes 800e6 in stakePoolB, increasing stkReceiptTokenSupply to 1000e6.
     // UserB owns 80% of total stake, 1000e6.
     address userB_ = _randomAddress();
-    _stake(1, 800e6, userB_, userB_);
+    _stake(1, 800e6, userB_);
 
     skip(ONE_YEAR);
 
@@ -456,7 +456,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
     // UserB stakes 200e6 in stakePoolA, increasing stkReceiptTokenSupply to 0.4e18.
     // UserB owns 50% of total stake, 400e6.
-    _stake(0, 200e6, userB_, userB_);
+    _stake(0, 200e6, userB_);
 
     // UserA claims rewards again from stakePoolA and sends to a receiver.
     {
@@ -652,9 +652,9 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     StakePool memory stakePool_ = component.getStakePool(stakePoolId_);
     MockERC20 mockStakeAsset_ = MockERC20(address(stakePool_.asset));
     mockStakeAsset_.mint(user_, stakeAmount_);
-    vm.prank(user_);
+    vm.startPrank(user_);
     mockStakeAsset_.approve(address(component), type(uint256).max);
-    component.stake(stakePoolId_, stakeAmount_, user_, user_);
+    component.stake(stakePoolId_, stakeAmount_, user_);
     vm.stopPrank();
 
     skip(timeElapsed_);
@@ -824,7 +824,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     address receiver_ = _randomAddress();
 
     // User stakes 100e6, increasing stkReceiptTokenSupply to 0.2e18. User owns 50% of total stake, 200e6.
-    _stake(0, 100e6, user_, user_);
+    _stake(0, 100e6, user_);
 
     // User transfers all stkReceiptTokens to receiver.
     IERC20 stkReceiptToken = component.getStakePool(0).stkReceiptToken;
@@ -832,7 +832,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     stkReceiptToken.transfer(receiver_, 100e6);
 
     // User stakes again. Again, user owns 50% of the new total stake, 400e6.
-    _stake(0, 200e6, user_, user_);
+    _stake(0, 200e6, user_);
 
     skip(ONE_YEAR);
     // Both user and receiver claim rewards.
@@ -861,10 +861,10 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     address receiver_ = _randomAddress();
 
     // User stakes 800e6, increasing stkReceiptTokenSupply to 1e18. User owns 80% of total stake, 1000e6.
-    _stake(1, 800e6, user_, user_);
+    _stake(1, 800e6, user_);
     skip(2 * ONE_YEAR);
     // User stakes 100e6, increasing stkReceiptTokenSupply to 0.2e18. User owns 50% of total stake, 200e6.
-    _stake(0, 100e6, user_, user_);
+    _stake(0, 100e6, user_);
     skip(ONE_YEAR);
 
     IERC20 rewardAssetA_ = component.getRewardPool(0).asset;
@@ -916,7 +916,7 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
     address receiver_ = _randomAddress();
 
     // User stakes 100e6, increasing stkReceiptTokenSupply to 0.2e18. User owns 50% of total stake, 200e6.
-    _stake(0, 100e6, user_, user_);
+    _stake(0, 100e6, user_);
     StakePool memory stakePool_ = component.getStakePool(0);
 
     // User transfers 25% the stkReceiptTokens.
@@ -991,7 +991,7 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
     address receiver_ = _randomAddress();
 
     // User stakes 100e6, increasing stkReceiptTokenSupply to 0.2e18. User owns 50% of total stake, 200e6.
-    _stake(0, 100e6, user_, user_);
+    _stake(0, 100e6, user_);
     StakePool memory stakePool_ = component.getStakePool(0);
 
     // User transfers the stkReceiptTokens to receiver.

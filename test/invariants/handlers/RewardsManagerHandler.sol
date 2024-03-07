@@ -504,7 +504,7 @@ contract RewardsManagerHandler is TestBase {
 
     vm.startPrank(currentActor);
     asset_.approve(address(rewardsManager), assetAmount_);
-    uint256 shares_ = rewardsManager.depositRewardAssets(currentRewardPoolId, assetAmount_, currentActor, currentActor);
+    uint256 shares_ = rewardsManager.depositRewardAssets(currentRewardPoolId, assetAmount_, currentActor);
     vm.stopPrank();
 
     ghost_rewardPoolCumulative[currentRewardPoolId].totalAssetAmount += assetAmount_;
@@ -535,7 +535,7 @@ contract RewardsManagerHandler is TestBase {
 
     vm.startPrank(currentActor);
     asset_.approve(address(rewardsManager), assetAmount_);
-    rewardsManager.stake(currentStakePoolId, assetAmount_, currentActor, currentActor);
+    rewardsManager.stake(currentStakePoolId, assetAmount_, currentActor);
     vm.stopPrank();
 
     ghost_stakePoolCumulative[currentStakePoolId].stakeAssetAmount += assetAmount_;

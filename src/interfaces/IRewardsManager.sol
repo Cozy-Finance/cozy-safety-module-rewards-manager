@@ -33,7 +33,7 @@ interface IRewardsManager {
 
   function cozyManager() external returns (ICozyManager);
 
-  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_, address from_)
+  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_)
     external
     returns (uint256 depositReceiptTokenAmount_);
 
@@ -91,7 +91,7 @@ interface IRewardsManager {
 
   function rewardsManagerState() external view returns (RewardsManagerState);
 
-  function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_, address from_) external;
+  function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external;
 
   function stakePools(uint256 id_) external view returns (StakePool memory);
 
