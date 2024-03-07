@@ -106,7 +106,7 @@ contract CozyManagerTestCreateRewardsManager is MockDeployProtocol, CozyManagerT
     address frontRunCaller_ = _randomAddress();
 
     // To avoid front-running of RewardsManager deploys, msg.sender is used for the deploy salt in
-    // CozyManagercreateRewardsManager.
+    // CozyManager.createRewardsManager.
     bytes32 deploySalt_ = keccak256(abi.encodePacked(salt_, caller_));
 
     address expectedDeployAddress_ = rewardsManagerFactory.computeAddress(deploySalt_);
@@ -116,7 +116,7 @@ contract CozyManagerTestCreateRewardsManager is MockDeployProtocol, CozyManagerT
     vm.prank(frontRunCaller_);
     IRewardsManager rewardsManager_ =
       cozyManager.createRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, salt_);
-    // The deployed rewrads manager has a different than expected address - cannot front-run even if using the same
+    // The deployed rewards manager has a different than expected address - cannot front-run even if using the same
     // configs and salt.
     assertFalse(address(rewardsManager_) == expectedDeployAddress_);
 
