@@ -624,6 +624,18 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     RewardPool memory newRewardPool_ = component.getRewardPool(1);
     _assertRewardPoolUpdatesApplied(newRewardPool_, newRewardPoolConfig_);
   }
+
+  function testFuzz_updatePauser(address newPauser_) external {
+    vm.assume(newPauser_ != address(component.cozyManager()));
+    component.updatePauser(newPauser_);
+    assertEq(component.pauser(), newPauser_);
+  }
+
+  function test_updatePauser_revertNewPauserCozyManager() external {
+    address manager_ = address(component.cozyManager());
+    vm.expectRevert(IConfiguratorErrors.InvalidConfiguration.selector);
+    component.updatePauser(manager_);
+  }
 }
 
 interface TestableConfiguratorEvents {

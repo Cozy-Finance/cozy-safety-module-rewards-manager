@@ -66,6 +66,7 @@ contract RewardsManager is
 
     // Rewards managers are minimal proxies, so the owner and pauser is set to address(0) in the constructor for the
     // logic contract. When the rewards manager is initialized for the minimal proxy, we update the owner and pauser.
+    if (pauser_ == address(cozyManager)) revert IConfiguratorErrors.InvalidConfiguration();
     __initGovernable(owner_, pauser_);
 
     initialized = true;

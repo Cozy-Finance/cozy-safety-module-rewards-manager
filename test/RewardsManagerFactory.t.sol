@@ -117,4 +117,22 @@ contract RewardsManagerFactoryTest is TestBase {
     vm.prank(address(cozyManager));
     rewardsManagerFactory.deployRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, baseSalt_);
   }
+
+  function test_deployRewardsManager_RevertPauserSetToCozyManager() public {
+    address owner_ = _randomAddress();
+    address pauser_ = address(cozyManager);
+    IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "cozyMock", 6)));
+
+    // Invalid configuration, rewards weight must sum to zoc.
+    StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
+    stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: 1});
+    RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
+    rewardPoolConfigs_[0] = RewardPoolConfig({asset: asset_, dripModel: IDripModel(address(_randomAddress()))});
+
+    bytes32 baseSalt_ = _randomBytes32();
+
+    vm.expectRevert(IConfiguratorErrors.InvalidConfiguration.selector);
+    vm.prank(address(cozyManager));
+    rewardsManagerFactory.deployRewardsManager(owner_, pauser_, stakePoolConfigs_, rewardPoolConfigs_, baseSalt_);
+  }
 }
