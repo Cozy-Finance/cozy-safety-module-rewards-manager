@@ -34,4 +34,10 @@ interface ICozyManager is IGovernable {
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     bytes32 salt_
   ) external returns (IRewardsManager rewardsManager_);
+
+  /// @notice Given a `caller_` and `salt_`, compute and return the address of the RewardsManager deployed with
+  /// `createRewardsManager`.
+  /// @param caller_ The caller of the `createRewardsManager` function.
+  /// @param salt_ Used to compute the resulting address of the rewards manager along with `caller_`.
+  function computeRewardsManagerAddress(address caller_, bytes32 salt_) external view returns (address);
 }
