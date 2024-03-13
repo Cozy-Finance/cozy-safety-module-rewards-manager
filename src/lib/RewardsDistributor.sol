@@ -228,7 +228,8 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
       nextClaimableRewardsData_.cumulativeClaimableRewards += unclaimedDrippedRewards_;
       // Round down, in favor of leaving assets in the claimable reward pool.
-      nextClaimableRewardsData_.indexSnapshot += unclaimedDrippedRewards_.divWadDown(stkReceiptTokenSupply_);
+      nextClaimableRewardsData_.indexSnapshot +=
+        unclaimedDrippedRewards_.mulDivDown(MathConstants.WAD ** 2, stkReceiptTokenSupply_);
     }
   }
 
@@ -403,6 +404,6 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint256 oldRewardPoolIndex
   ) internal pure returns (uint256) {
     // Round down, in favor of leaving assets in the rewards pool.
-    return stkReceiptTokenAmount_.mulWadDown(newRewardPoolIndex - oldRewardPoolIndex);
+    return stkReceiptTokenAmount_.mulDivDown(newRewardPoolIndex - oldRewardPoolIndex, MathConstants.WAD ** 2);
   }
 }

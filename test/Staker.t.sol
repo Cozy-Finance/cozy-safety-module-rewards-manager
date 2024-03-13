@@ -119,7 +119,9 @@ contract StakerUnitTest is TestBase {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).divWadDown(initialStakeAmount)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).mulDivDown(
+          MathConstants.WAD ** 2, initialStakeAmount
+        )
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
 
@@ -393,7 +395,9 @@ contract StakerUnitTest is TestBase {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).divWadDown(initialStakeAmount)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).mulDivDown(
+          MathConstants.WAD ** 2, initialStakeAmount
+        )
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
   }
@@ -443,7 +447,9 @@ contract StakerUnitTest is TestBase {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).divWadDown(initialStakeAmount)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).mulDivDown(
+          MathConstants.WAD ** 2, initialStakeAmount
+        )
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
   }
@@ -512,7 +518,9 @@ contract StakerUnitTest is TestBase {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).divWadDown(initialStakeAmount)
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).mulDivDown(
+          MathConstants.WAD ** 2, initialStakeAmount
+        )
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
   }
