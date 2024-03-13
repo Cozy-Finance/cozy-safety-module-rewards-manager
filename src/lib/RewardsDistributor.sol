@@ -226,9 +226,14 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
       uint256 unclaimedDrippedRewards_ = cumulativeDrippedRewards_.mulDivDown(rewardsWeight_, MathConstants.ZOC)
         - claimableRewardsData_.cumulativeClaimableRewards;
 
-      nextClaimableRewardsData_.cumulativeClaimableRewards += unclaimedDrippedRewards_;
       // Round down, in favor of leaving assets in the claimable reward pool.
-      nextClaimableRewardsData_.indexSnapshot += unclaimedDrippedRewards_.divWadDown(stkReceiptTokenSupply_);
+      uint256 indexSnapshotIncrement_ = unclaimedDrippedRewards_.divWadDown(stkReceiptTokenSupply_);
+      // Only update the claimable rewards data if there are enough unclaimed dripped rewards so that the index snapshot
+      // also increases.
+      if (indexSnapshotIncrement_ > 0) {
+        nextClaimableRewardsData_.cumulativeClaimableRewards += unclaimedDrippedRewards_;
+        nextClaimableRewardsData_.indexSnapshot += indexSnapshotIncrement_;
+      }
     }
   }
 

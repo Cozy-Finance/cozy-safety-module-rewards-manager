@@ -208,10 +208,15 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
 
       uint256 scaledCumulativeDrippedRewards_ =
         postRewardPools_[rewardPoolId_].cumulativeDrippedRewards.mulDivDown(stakePool_.rewardsWeight, MathConstants.ZOC);
+      uint256 indexSnapshotIncrement_ = (scaledCumulativeDrippedRewards_ - preCumulativeClaimableRewards_).divWadDown(
+        stakePool_.stkReceiptToken.totalSupply()
+      );
       require(
-        postCumulativeClaimableRewards_ == scaledCumulativeDrippedRewards_,
+        indexSnapshotIncrement_ > 0
+          ? postCumulativeClaimableRewards_ == scaledCumulativeDrippedRewards_
+          : postCumulativeClaimableRewards_ <= scaledCumulativeDrippedRewards_,
         string.concat(
-          "Invariant Violated: The post-cumulative claimed rewards must be equal to the scaled cumulative dripped rewards after claimRewards.",
+          "Invariant Violated: The post-cumulative claimed rewards must be less than or equal to the scaled cumulative dripped rewards after claimRewards.",
           " scaledCumulativeDrippedRewards: ",
           Strings.toString(scaledCumulativeDrippedRewards_),
           ", postCumulativeClaimedRewards: ",
