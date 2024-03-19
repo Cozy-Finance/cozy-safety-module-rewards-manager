@@ -297,7 +297,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     returns (uint256)
   {
     if (rewardsManagerState == RewardsManagerState.PAUSED) return 0;
-    uint256 dripFactor_ = dripModel_.dripFactor(lastDripTime_);
+    uint256 dripFactor_ = dripModel_.dripFactor(lastDripTime_, totalBaseAmount_);
     if (dripFactor_ > MathConstants.WAD) revert InvalidDripFactor();
 
     return _computeNextDripAmount(totalBaseAmount_, dripFactor_);
