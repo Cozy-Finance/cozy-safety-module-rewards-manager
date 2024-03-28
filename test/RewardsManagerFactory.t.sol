@@ -17,6 +17,7 @@ import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
+import {MockDripModel} from "./utils/MockDripModel.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {TestBase} from "./utils/TestBase.sol";
 
@@ -67,7 +68,8 @@ contract RewardsManagerFactoryTest is TestBase {
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
     stakePoolConfigs_[0] = StakePoolConfig({asset: asset_, rewardsWeight: uint16(MathConstants.ZOC)});
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
-    rewardPoolConfigs_[0] = RewardPoolConfig({asset: asset_, dripModel: IDripModel(address(_randomAddress()))});
+    rewardPoolConfigs_[0] =
+      RewardPoolConfig({asset: asset_, dripModel: IDripModel(new MockDripModel(_randomUint256()))});
 
     uint16[] memory rewardsWeights_ = new uint16[](1);
     rewardsWeights_[0] = uint16(MathConstants.ZOC);

@@ -72,7 +72,8 @@ library ConfiguratorLib {
   /// @param numExistingRewardPools_ The number of existing reward pools.
   /// @param allowedStakePools_ The maximum number of allowed stake pools.
   /// @param allowedRewardPools_ The maximum number of allowed reward pools.
-  /// @return True if the provided configs are generically valid for a rewards manager, false otherwise.
+  /// @return True if the provided configs are generically valid for a rewards manager, false otherwise. If this
+  /// reverts, it means that a reward pool drip model does not conform to the required interface.
   function isValidConfiguration(
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_,
@@ -80,7 +81,7 @@ library ConfiguratorLib {
     uint256 numExistingRewardPools_,
     uint16 allowedStakePools_,
     uint16 allowedRewardPools_
-  ) internal pure returns (bool) {
+  ) internal view returns (bool) {
     // Validate number of stake pools. The number of stake pools configs must be greater than or equal to the number of
     // existing stake pools, and less than or equal to the maximum allowed stake pools.
     if (stakePoolConfigs_.length > allowedStakePools_ || stakePoolConfigs_.length < numExistingStakePools_) {
@@ -107,6 +108,11 @@ library ConfiguratorLib {
 
       // The sum of all stake pool rewards weights must be equivalent to a ZOC.
       if (rewardsWeightSum_ != MathConstants.ZOC) return false;
+    }
+
+    // Loosely validate drip models.
+    for (uint256 i = 0; i < rewardPoolConfigs_.length; i++) {
+      rewardPoolConfigs_[i].dripModel.dripFactor(block.timestamp, 0);
     }
 
     return true;

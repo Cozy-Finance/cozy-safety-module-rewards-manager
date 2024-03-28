@@ -219,7 +219,19 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     rewardsManager.updateConfigs(currentStakePoolConfigs_, rewardPoolConfigs_);
   }
 
-  function _createValidConfigUpdate() internal view returns (StakePoolConfig[] memory, RewardPoolConfig[] memory) {
+  function invariant_updateConfigsInvalidDripModel() public syncCurrentTimestamp(rewardsManagerHandler) {
+    (StakePoolConfig[] memory currentStakePoolConfigs_, RewardPoolConfig[] memory currentRewardPoolConfigs_) =
+      _createValidConfigUpdate();
+
+    RewardPoolConfig[] memory rewardPoolConfigs_ = currentRewardPoolConfigs_;
+    rewardPoolConfigs_[_randomUint256() % rewardPoolConfigs_.length].dripModel = IDripModel(_randomAddress());
+
+    vm.prank(rewardsManager.owner());
+    vm.expectRevert();
+    rewardsManager.updateConfigs(currentStakePoolConfigs_, rewardPoolConfigs_);
+  }
+
+  function _createValidConfigUpdate() internal returns (StakePoolConfig[] memory, RewardPoolConfig[] memory) {
     (StakePoolConfig[] memory currentStakePoolConfigs_, RewardPoolConfig[] memory currentRewardPoolConfigs_) =
       _copyCurrentConfig();
 
@@ -242,8 +254,10 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](currentRewardPoolConfigs_.length);
     for (uint16 i = 0; i < currentRewardPoolConfigs_.length; i++) {
       // We cannot update the asset of the copied current config, since it will cause a revert.
-      rewardPoolConfigs_[i] =
-        RewardPoolConfig({asset: currentRewardPoolConfigs_[i].asset, dripModel: IDripModel(_randomAddress())});
+      rewardPoolConfigs_[i] = RewardPoolConfig({
+        asset: currentRewardPoolConfigs_[i].asset,
+        dripModel: IDripModel(new MockDripModel(_randomUint256()))
+      });
     }
 
     return (stakePoolConfigs_, rewardPoolConfigs_);
