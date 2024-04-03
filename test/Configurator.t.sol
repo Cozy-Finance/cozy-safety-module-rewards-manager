@@ -22,6 +22,7 @@ import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {IConfiguratorEvents} from "../src/interfaces/IConfiguratorEvents.sol";
 import {IConfiguratorErrors} from "../src/interfaces/IConfiguratorErrors.sol";
+import {MockDripModel} from "./utils/MockDripModel.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
@@ -74,7 +75,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
   function _generateValidRewardPoolConfig() private returns (RewardPoolConfig memory) {
     return RewardPoolConfig({
       asset: IERC20(address(new MockERC20("Mock Reward Asset", "cozyMock", 6))),
-      dripModel: IDripModel(_randomAddress())
+      dripModel: IDripModel(new MockDripModel(_randomUint256()))
     });
   }
 
@@ -254,6 +255,14 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     assertTrue(component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_));
   }
 
+  function test_isValidConfiguration_revertInvalidDripModel() external {
+    (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
+      _generateValidConfigs(0, ALLOWED_REWARD_POOLS);
+    rewardPoolConfigs_[1].dripModel = IDripModel(_randomAddress());
+    vm.expectRevert();
+    component.isValidConfiguration(stakePoolConfigs_, rewardPoolConfigs_);
+  }
+
   function testFuzz_isValidConfiguration_FalseTooManyRewardPools(uint16 numStakePoolConfigs_) external {
     (numStakePoolConfigs_,) = _convertToAllowedNumConfigs(numStakePoolConfigs_, 0);
     (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) =
@@ -373,11 +382,15 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
 
     // Create valid config update. Adds a new reward pools and chnages the drip model of the existing reward pools.
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](5);
-    rewardPoolConfigs_[0] = RewardPoolConfig({asset: rewardPools_[0].asset, dripModel: IDripModel(_randomAddress())});
-    rewardPoolConfigs_[1] = RewardPoolConfig({asset: rewardPools_[1].asset, dripModel: IDripModel(_randomAddress())});
+    rewardPoolConfigs_[0] =
+      RewardPoolConfig({asset: rewardPools_[0].asset, dripModel: IDripModel(new MockDripModel(_randomUint256()))});
+    rewardPoolConfigs_[1] =
+      RewardPoolConfig({asset: rewardPools_[1].asset, dripModel: IDripModel(new MockDripModel(_randomUint256()))});
     rewardPoolConfigs_[2] = _generateValidRewardPoolConfig();
-    rewardPoolConfigs_[3] = RewardPoolConfig({asset: rewardPools_[0].asset, dripModel: IDripModel(_randomAddress())});
-    rewardPoolConfigs_[4] = RewardPoolConfig({asset: rewardPools_[0].asset, dripModel: IDripModel(_randomAddress())});
+    rewardPoolConfigs_[3] =
+      RewardPoolConfig({asset: rewardPools_[0].asset, dripModel: IDripModel(new MockDripModel(_randomUint256()))});
+    rewardPoolConfigs_[4] =
+      RewardPoolConfig({asset: rewardPools_[0].asset, dripModel: IDripModel(new MockDripModel(_randomUint256()))});
 
     // Adds new stake pools and changes the rewards weights of the existing stake pools from 50%-50% to 0%-100%.
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](5);
@@ -486,7 +499,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     RewardPoolConfig[] memory baseRewardPoolConfigs_ = new RewardPoolConfig[](2);
     for (uint16 i = 0; i < rewardPools_.length; i++) {
       baseRewardPoolConfigs_[i] =
-        RewardPoolConfig({asset: rewardPools_[i].asset, dripModel: IDripModel(_randomAddress())});
+        RewardPoolConfig({asset: rewardPools_[i].asset, dripModel: IDripModel(new MockDripModel(_randomUint256()))});
     }
 
     StakePoolConfig[] memory baseStakePoolConfigs_ = new StakePoolConfig[](2);
