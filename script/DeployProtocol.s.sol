@@ -112,7 +112,7 @@ contract DeployProtocol is ScriptUtils {
     // -------- Deploy: CozyManager --------
     vm.broadcast();
     manager = new CozyManager(owner, pauser, computedAddrRewardsManagerFactory_);
-    console2.log("CozyManager deployed:", address(manager));
+    console2.log("CozyRewardsManager deployed:", address(manager));
     require(address(manager) == address(computedAddrManager_), "CozyManager address mismatch");
 
     // -------- Deploy: RewardsManager Logic --------
