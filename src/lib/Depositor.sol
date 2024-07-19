@@ -3,7 +3,6 @@ pragma solidity 0.8.22;
 
 import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
 import {SafeERC20} from "cozy-safety-module-shared/lib/SafeERC20.sol";
 import {IDepositorErrors} from "../interfaces/IDepositorErrors.sol";
 import {IDepositorEvents} from "../interfaces/IDepositorEvents.sol";
@@ -20,8 +19,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
   /// asset.
   /// @param rewardPoolId_ The ID of the reward pool.
   /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
-  /// @param receiver_ The address to mint the deposit receipt tokens to.
-  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) external {
+  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
     IERC20 asset_ = rewardPool_.asset;
 
@@ -29,7 +27,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     // required to support fee on transfer tokens, for example if USDT enables a fee.
     // Also, we need to transfer before minting or ERC777s could reenter.
     asset_.safeTransferFrom(msg.sender, address(this), rewardAssetAmount_);
-    _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, receiver_, rewardPool_);
+    _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, rewardPool_);
   }
 
   /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool.
@@ -37,19 +35,15 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
   /// manager.
   /// @param rewardPoolId_ The ID of the reward pool.
   /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
-  /// @param receiver_ The address to mint the deposit receipt tokens to.
-  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_)
-    external
-  {
+  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    _executeRewardDeposit(rewardPoolId_, rewardPool_.asset, rewardAssetAmount_, receiver_, rewardPool_);
+    _executeRewardDeposit(rewardPoolId_, rewardPool_.asset, rewardAssetAmount_, rewardPool_);
   }
 
   function _executeRewardDeposit(
     uint16 rewardPoolId_,
     IERC20 token_,
     uint256 rewardAssetAmount_,
-    address receiver_,
     RewardPool storage rewardPool_
   ) internal {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
@@ -61,7 +55,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     rewardPool_.undrippedRewards += rewardAssetAmount_;
     assetPools[token_].amount += rewardAssetAmount_;
 
-    emit Deposited(msg.sender, receiver_, rewardPoolId_, rewardAssetAmount_);
+    emit Deposited(msg.sender, rewardPoolId_, rewardAssetAmount_);
   }
 
   function _assertValidDepositBalance(IERC20 token_, uint256 assetPoolBalance_, uint256 depositAmount_)

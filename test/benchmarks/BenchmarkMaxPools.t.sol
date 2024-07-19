@@ -69,8 +69,8 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
 
   function _initializeRewardPools() internal {
     for (uint16 i = 0; i < numRewardAssets; i++) {
-      (, uint256 rewardAssetAmount_, address receiver_) = _randomSingleActionFixture(false);
-      _depositRewardAssets(i, rewardAssetAmount_, receiver_);
+      (, uint256 rewardAssetAmount_,) = _randomSingleActionFixture(false);
+      _depositRewardAssets(i, rewardAssetAmount_);
     }
   }
 
@@ -94,9 +94,9 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     deal(address(rewardPool_.asset), address(rewardsManager), type(uint256).max);
   }
 
-  function _depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) internal {
+  function _depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) internal {
     _setUpDepositRewardAssets(rewardPoolId_);
-    rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, rewardAssetAmount_, receiver_);
+    rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, rewardAssetAmount_);
   }
 
   function _setUpStake(uint16 stakePoolId_) internal {
@@ -161,11 +161,11 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
   }
 
   function test_depositRewardAssets() public {
-    (uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) = _randomSingleActionFixture(false);
+    (uint16 rewardPoolId_, uint256 rewardAssetAmount_,) = _randomSingleActionFixture(false);
     _setUpDepositRewardAssets(rewardPoolId_);
 
     uint256 gasInitial_ = gasleft();
-    rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, rewardAssetAmount_, receiver_);
+    rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, rewardAssetAmount_);
     console2.log("Gas used for depositRewardAssetsWithoutTransfer: %s", gasInitial_ - gasleft());
   }
 
