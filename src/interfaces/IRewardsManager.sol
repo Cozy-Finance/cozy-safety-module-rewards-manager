@@ -59,6 +59,8 @@ interface IRewardsManager {
 
   function pauser() external view returns (address);
 
+  function previewCurrentUndrippedRewards(uint16 rewardPoolId_) external view returns (uint256 nextTotalPoolAmount_);
+
   function previewClaimableRewards(uint16[] calldata stakePoolIds_, address owner_)
     external
     view

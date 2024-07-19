@@ -48,7 +48,7 @@ contract DepositorUnitTest is TestBase {
     else component.depositRewardAssets(poolId_, amountToDeposit_);
   }
 
-  function test_depositReserve_DepositAndStorageUpdates() external {
+  function test_depositReward_DepositAndStorageUpdates() external {
     address depositor_ = _randomAddress();
     uint128 amountToDeposit_ = 10e18;
 
@@ -236,6 +236,85 @@ contract DepositorUnitTest is TestBase {
     vm.expectRevert(IDepositorErrors.InvalidDeposit.selector);
     vm.prank(depositor_);
     _deposit(true, 0, amountToDeposit_);
+  }
+
+  function test_depositReward_MultipleLargeDeposits() external {
+    MockERC20 mockAsset_ = new MockERC20("Mock Asset", "MOCK", 30);
+    uint256 initialUndrippedRewards_ = 100e30;
+    RewardPool memory initialRewardPool_ = RewardPool({
+      asset: IERC20(address(mockAsset_)),
+      dripModel: IDripModel(address(0)),
+      undrippedRewards: initialUndrippedRewards_,
+      cumulativeDrippedRewards: 0,
+      lastDripTime: uint128(block.timestamp)
+    });
+    AssetPool memory initialAssetPool_ = AssetPool({amount: initialUndrippedRewards_});
+    component.mockAddRewardPool(initialRewardPool_);
+    component.mockAddAssetPool(IERC20(address(mockAsset_)), initialAssetPool_);
+    deal(address(mockAsset_), address(component), initialUndrippedRewards_);
+
+    address depositor_ = _randomAddress();
+    uint128 amountToDeposit_ = 1_000_000e30;
+
+    // Mint initial balance for depositor.
+    mockAsset_.mint(depositor_, amountToDeposit_);
+    // Approve rewards manager to spend asset.
+    vm.prank(depositor_);
+    mockAsset_.approve(address(component), amountToDeposit_);
+
+    _expectEmit();
+    emit Deposited(depositor_, 1, amountToDeposit_);
+
+    vm.prank(depositor_);
+    _deposit(false, 1, amountToDeposit_);
+
+    RewardPool memory finalRewardPool_ = component.getRewardPool(1);
+    AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset_)));
+    // 100e30 + 1_000_000e30
+    assertEq(finalRewardPool_.undrippedRewards, 100e30 + 1_000_000e30);
+    // 100e30 + 1_000_000e30
+    assertEq(finalAssetPool_.amount, 100e30 + 1_000_000e30);
+    assertEq(mockAsset_.balanceOf(address(component)), 100e30 + 1_000_000e30);
+
+    // Mint some more balance for depositor.
+    amountToDeposit_ = 100_000e30;
+    mockAsset_.mint(depositor_, amountToDeposit_);
+    // Approve rewards manager to spend asset.
+    vm.prank(depositor_);
+    mockAsset_.approve(address(component), amountToDeposit_);
+
+    _expectEmit();
+    emit Deposited(depositor_, 1, amountToDeposit_);
+
+    vm.prank(depositor_);
+    _deposit(false, 1, amountToDeposit_);
+
+    finalRewardPool_ = component.getRewardPool(1);
+    finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset_)));
+    // 100e30 + 1_000_000e30 + 100_000e30
+    assertEq(finalRewardPool_.undrippedRewards, 100e30 + 1_000_000e30 + 100_000e30);
+    // 100e30 + 1_000_000e30 + 100_000e30
+    assertEq(finalAssetPool_.amount, 100e30 + 1_000_000e30 + 100_000e30);
+    assertEq(mockAsset_.balanceOf(address(component)), 100e30 + 1_000_000e30 + 100_000e30);
+
+    component.mockSetNextRewardsDripAmount(1_000_000e30);
+    vm.warp(_randomUint64());
+    uint256 nextTotalPoolAmount_ = component.previewCurrentUndrippedRewards(1);
+    assertEq(nextTotalPoolAmount_, 100e30 + 100_000e30);
+  }
+
+  function test_previewCurrentUndrippedRewardsWithDrip() external {
+    component.mockSetNextRewardsDripAmount(40e18);
+    vm.warp(_randomUint64());
+    uint256 nextTotalPoolAmount_ = component.previewCurrentUndrippedRewards(0);
+    assertEq(nextTotalPoolAmount_, 10e18);
+  }
+
+  function test_previewCurrentUndrippedRewardsWithFullDrip() external {
+    component.mockSetNextRewardsDripAmount(50e18);
+    vm.warp(_randomUint64());
+    uint256 nextTotalPoolAmount_ = component.previewCurrentUndrippedRewards(0);
+    assertEq(nextTotalPoolAmount_, 0);
   }
 }
 

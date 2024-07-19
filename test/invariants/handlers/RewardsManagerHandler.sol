@@ -446,7 +446,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   function boundDepositAssetAmount(uint256 assetAmount_) public pure returns (uint256) {
-    return bound(assetAmount_, 0.0001e6, type(uint72).max);
+    return bound(assetAmount_, 1, type(uint128).max);
   }
 
   function pickValidRewardPoolId(uint256 seed_) public view returns (uint16) {

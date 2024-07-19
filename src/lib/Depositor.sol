@@ -40,6 +40,20 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     _executeRewardDeposit(rewardPoolId_, rewardPool_.asset, rewardAssetAmount_, rewardPool_);
   }
 
+  /// @notice Preview the current amount of undripped rewards in the `rewardPoolId_` reward pool with unrealized drip
+  /// applied.
+  /// @param rewardPoolId_ The ID of the reward pool.
+  /// @return nextTotalPoolAmount_ The amount of undripped rewards in the reward pool with unrealized drip applied.
+  function previewCurrentUndrippedRewards(uint16 rewardPoolId_) external view returns (uint256 nextTotalPoolAmount_) {
+    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
+    uint256 totalPoolAmount_ = rewardPool_.undrippedRewards;
+    uint128 lastDripTime_ = rewardPool_.lastDripTime;
+    uint256 nextDripAmount_ = (lastDripTime_ != block.timestamp)
+      ? _getNextDripAmount(totalPoolAmount_, rewardPool_.dripModel, lastDripTime_)
+      : 0;
+    nextTotalPoolAmount_ = totalPoolAmount_ - nextDripAmount_;
+  }
+
   function _executeRewardDeposit(
     uint16 rewardPoolId_,
     IERC20 token_,
