@@ -55,6 +55,9 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
 
+    // To ensure reward drip times are in sync with reward deposit times we drip rewards before depositing.
+    _dripRewardPool(rewardPool_);
+
     rewardPool_.undrippedRewards += rewardAssetAmount_;
     assetPools[token_].amount += rewardAssetAmount_;
 

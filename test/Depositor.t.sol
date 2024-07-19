@@ -78,7 +78,7 @@ contract DepositorUnitTest is TestBase {
     assertEq(mockAsset.balanceOf(depositor_), 0);
   }
 
-  function test_depositReward_DepositAndStorageUpdatesNonZeroSupply() external {
+  function test_depositReward_DepositAndStorageUpdatesWithDrip() external {
     address depositor_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToDeposit_ = 20e18;
@@ -89,16 +89,17 @@ contract DepositorUnitTest is TestBase {
     vm.prank(depositor_);
     mockAsset.approve(address(component), amountToDeposit_);
 
-    _expectEmit();
-    emit Deposited(depositor_, receiver_, 0, amountToDeposit_);
+    component.mockSetNextRewardsDripAmount(45e18);
 
     vm.prank(depositor_);
+    _expectEmit();
+    emit Deposited(depositor_, receiver_, 0, amountToDeposit_);
     _deposit(false, 0, amountToDeposit_, receiver_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
-    // 50e18 + 20e18
-    assertEq(finalRewardPool_.undrippedRewards, 70e18);
+    // 45e18 of the assets are dripped: 50e18 - 45e18 + 20e18
+    assertEq(finalRewardPool_.undrippedRewards, 25e18);
 
     // 50e18 + 20e18
     assertEq(finalAssetPool_.amount, 70e18);

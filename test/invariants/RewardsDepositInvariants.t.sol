@@ -29,6 +29,7 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
     syncCurrentTimestamp(rewardsManagerHandler)
   {
     InternalBalances[] memory internalBalancesBeforeDepositRewards_ = new InternalBalances[](numRewardPools);
+    uint128[] memory lastDripTimesBeforeDepositRewards_ = new uint128[](numRewardPools);
     for (uint16 rewardPoolId_; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       RewardPool memory rewardPool_ = rewardsManager.rewardPools(rewardPoolId_);
 
@@ -37,6 +38,8 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
         rewardPoolAmount: rewardPool_.undrippedRewards,
         assetAmount: rewardPool_.asset.balanceOf(address(rewardsManager))
       });
+
+      lastDripTimesBeforeDepositRewards_[rewardPoolId_] = rewardPool_.lastDripTime;
     }
 
     rewardsManagerHandler.depositRewardAssetsWithExistingActorWithoutCountingCall(_randomUint256());
@@ -64,15 +67,15 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
           )
         );
         require(
-          currentRewardPool_.undrippedRewards > internalBalancesBeforeDepositRewards_[rewardPoolId_].rewardPoolAmount,
+          currentRewardPool_.lastDripTime >= lastDripTimesBeforeDepositRewards_[rewardPoolId_],
           string.concat(
-            "Invariant Violated: A reward pool's undripped rewards amount must increase when a deposit occurs.",
+            "Invariant Violated: A reward pool's last drip time must increase or remain the same when a deposit occurs.",
             " rewardPoolId_: ",
             Strings.toString(rewardPoolId_),
-            ", currentRewardPool_.undrippedRewards: ",
-            Strings.toString(currentRewardPool_.undrippedRewards),
-            ", internalBalancesBeforeDepositRewards_[rewardPoolId_].rewardPoolAmount: ",
-            Strings.toString(internalBalancesBeforeDepositRewards_[rewardPoolId_].rewardPoolAmount)
+            ", currentRewardPool_.lastDripTime: ",
+            Strings.toString(currentRewardPool_.lastDripTime),
+            ", lastDripTimes_[rewardPoolId_]: ",
+            Strings.toString(lastDripTimesBeforeDepositRewards_[rewardPoolId_])
           )
         );
         require(
