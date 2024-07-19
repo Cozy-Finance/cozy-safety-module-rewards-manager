@@ -32,7 +32,6 @@ contract StakerUnitTest is TestBase {
   MockERC20 mockAsset = new MockERC20("Mock Asset", "MOCK", 6);
   MockERC20 mockStakeAsset = new MockERC20("Mock Stake Asset", "MOCK Stake", 6);
   MockERC20 mockStkReceiptToken = new MockERC20("Mock Cozy Stake Receipt Token", "cozyStk", 6);
-  MockERC20 mockDepositReceiptToken = new MockERC20("Mock Cozy Deposit Receipt Token", "cozyDep", 6);
   TestableStaker component = new TestableStaker();
   uint256 cumulativeDrippedRewards_ = 290e18;
   uint256 cumulativeClaimableRewards_ = 90e18;
@@ -545,7 +544,7 @@ contract StakerUnitTest is TestBase {
     vm.prank(spender_);
     component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
 
-    assertEq(mockStkReceiptToken.allowance(receiver_, spender_), 1, "depositReceiptToken allowance"); // Only 1
+    assertEq(mockStkReceiptToken.allowance(receiver_, spender_), 1, "stakeReceiptToken allowance"); // Only 1
       // allowance left
       // because
       // of subtraction.
@@ -607,7 +606,6 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManager
         asset: rewardAsset_,
         dripModel: IDripModel(address(new MockDripModel(1e18))),
         undrippedRewards: 0,
-        depositReceiptToken: IReceiptToken(address(new MockERC20("Mock Cozy Deposit Receipt Token", "cozyDep", 6))),
         cumulativeDrippedRewards: cumulativeDrippedRewards_,
         lastDripTime: uint128(block.timestamp)
       })

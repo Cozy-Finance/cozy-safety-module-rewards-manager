@@ -49,7 +49,6 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
       rewardPools_[i] = RewardPool({
         asset: IERC20(address(new MockERC20("Mock Reward Asset", "cozyMock", 6))),
         dripModel: IDripModel(_randomAddress()),
-        depositReceiptToken: IReceiptToken(address(new ReceiptToken())),
         undrippedRewards: _randomUint256(),
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp)
@@ -425,23 +424,11 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
       stakePoolConfigs_[4].asset
     );
     _expectEmit();
-    emit RewardPoolCreated(
-      2,
-      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 2, IReceiptTokenFactory.PoolType.REWARD)),
-      rewardPoolConfigs_[2].asset
-    );
+    emit RewardPoolCreated(2, rewardPoolConfigs_[2].asset);
     _expectEmit();
-    emit RewardPoolCreated(
-      3,
-      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 3, IReceiptTokenFactory.PoolType.REWARD)),
-      rewardPools_[0].asset
-    );
+    emit RewardPoolCreated(3, rewardPools_[0].asset);
     _expectEmit();
-    emit RewardPoolCreated(
-      4,
-      IReceiptToken(receiptTokenFactory_.computeAddress(address(component), 4, IReceiptTokenFactory.PoolType.REWARD)),
-      rewardPools_[0].asset
-    );
+    emit RewardPoolCreated(4, rewardPools_[0].asset);
     _expectEmit();
     emit ConfigUpdatesApplied(stakePoolConfigs_, rewardPoolConfigs_);
 
@@ -623,12 +610,8 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     // New reward pool config.
     RewardPoolConfig memory newRewardPoolConfig_ = _generateValidRewardPoolConfig();
 
-    IReceiptTokenFactory receiptTokenFactory_ = component.getReceiptTokenFactory();
-    address depositReceiptTokenAddress_ =
-      receiptTokenFactory_.computeAddress(address(component), 1, IReceiptTokenFactory.PoolType.REWARD);
-
     _expectEmit();
-    emit RewardPoolCreated(1, IReceiptToken(depositReceiptTokenAddress_), newRewardPoolConfig_.asset);
+    emit RewardPoolCreated(1, newRewardPoolConfig_.asset);
     component.initializeRewardPool(newRewardPoolConfig_, 1);
 
     // One reward pool was added, so two total reward pools.
@@ -746,7 +729,7 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
   }
 
   function initializeRewardPool(RewardPoolConfig calldata rewardPoolConfig_, uint16 rewardPoolId_) external {
-    ConfiguratorLib.initializeRewardPool(rewardPools, receiptTokenFactory, rewardPoolConfig_, rewardPoolId_);
+    ConfiguratorLib.initializeRewardPool(rewardPools, rewardPoolConfig_, rewardPoolId_);
   }
 
   function _dripAndResetCumulativeRewardsValues(

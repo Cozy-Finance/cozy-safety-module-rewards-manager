@@ -24,16 +24,14 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
     uint256 assetAmount;
   }
 
-  function invariant_rewardsDepositReceiptTokenTotalSupplyAndInternalBalancesIncreaseOnRewardsDeposit()
+  function invariant_rewardsDepositInternalBalancesIncreaseOnRewardsDeposit()
     public
     syncCurrentTimestamp(rewardsManagerHandler)
   {
-    uint256[] memory totalSupplyBeforeDepositRewards_ = new uint256[](numRewardPools);
     InternalBalances[] memory internalBalancesBeforeDepositRewards_ = new InternalBalances[](numRewardPools);
     for (uint16 rewardPoolId_; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       RewardPool memory rewardPool_ = rewardsManager.rewardPools(rewardPoolId_);
 
-      totalSupplyBeforeDepositRewards_[rewardPoolId_] = rewardPool_.depositReceiptToken.totalSupply();
       internalBalancesBeforeDepositRewards_[rewardPoolId_] = InternalBalances({
         assetPoolAmount: rewardsManager.assetPools(rewardPool_.asset).amount,
         rewardPoolAmount: rewardPool_.undrippedRewards,
@@ -53,18 +51,6 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
       AssetPool memory currentAssetPool_ = rewardsManager.assetPools(currentRewardPool_.asset);
 
       if (rewardPoolId_ == depositedRewardPoolId_) {
-        require(
-          currentRewardPool_.depositReceiptToken.totalSupply() > totalSupplyBeforeDepositRewards_[rewardPoolId_],
-          string.concat(
-            "Invariant Violated: A reward pool's deposit receipt token total supply must increase when a deposit occurs.",
-            " rewardPoolId_: ",
-            Strings.toString(rewardPoolId_),
-            ", currentRewardPool_.depositReceiptToken.totalSupply(): ",
-            Strings.toString(currentRewardPool_.depositReceiptToken.totalSupply()),
-            ", totalSupplyBeforeDepositRewards_[rewardPoolId_]: ",
-            Strings.toString(totalSupplyBeforeDepositRewards_[rewardPoolId_])
-          )
-        );
         require(
           currentAssetPool_.amount > internalBalancesBeforeDepositRewards_[rewardPoolId_].assetPoolAmount,
           string.concat(
@@ -103,18 +89,6 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
           )
         );
       } else {
-        require(
-          currentRewardPool_.depositReceiptToken.totalSupply() == totalSupplyBeforeDepositRewards_[rewardPoolId_],
-          string.concat(
-            "Invariant Violated: A reward pool's receipt token total supply must not change when a deposit occurs in another reward pool.",
-            " rewardPoolId_: ",
-            Strings.toString(rewardPoolId_),
-            ", currentRewardPool_.depositReceiptToken.totalSupply(): ",
-            Strings.toString(currentRewardPool_.depositReceiptToken.totalSupply()),
-            ", totalSupplyBeforeDepositRewards_[rewardPoolId_]: ",
-            Strings.toString(totalSupplyBeforeDepositRewards_[rewardPoolId_])
-          )
-        );
         require(
           currentRewardPool_.undrippedRewards == internalBalancesBeforeDepositRewards_[rewardPoolId_].rewardPoolAmount,
           string.concat(
@@ -156,48 +130,6 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
         }
       }
     }
-  }
-
-  function invariant_rewardsDepositMintsReceiptTokensMatchesPreview()
-    public
-    syncCurrentTimestamp(rewardsManagerHandler)
-  {
-    uint256 assetAmount_ = rewardsManagerHandler.boundDepositAssetAmount(_randomUint256());
-    uint16 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
-    address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
-    uint256 expectedReceiptTokenAmount_ =
-      rewardsManager.convertRewardAssetToReceiptTokenAmount(rewardPoolId_, assetAmount_);
-
-    IReceiptToken depositReceiptToken_ = rewardsManager.rewardPools(rewardPoolId_).depositReceiptToken;
-    uint256 actorReceiptTokenBalBeforeDeposit_ = depositReceiptToken_.balanceOf(actor_);
-    rewardsManagerHandler.depositRewardAssetsWithExistingActorWithoutCountingCall(rewardPoolId_, assetAmount_, actor_);
-    uint256 receivedReceiptTokenAmount_ = depositReceiptToken_.balanceOf(actor_) - actorReceiptTokenBalBeforeDeposit_;
-
-    require(
-      receivedReceiptTokenAmount_ == expectedReceiptTokenAmount_,
-      string.concat(
-        "Invariant Violated: The amount of receipt tokens received from a rewards deposit must match the previewed amount.",
-        " assetAmount_: ",
-        Strings.toString(assetAmount_),
-        ", expectedReceiptTokenAmount_: ",
-        Strings.toString(expectedReceiptTokenAmount_),
-        ", receivedReceiptTokenAmount_: ",
-        Strings.toString(receivedReceiptTokenAmount_),
-        ", actorReceiptTokenBalBeforeDeposit_",
-        Strings.toString(actorReceiptTokenBalBeforeDeposit_),
-        ", depositReceiptToken_.balanceOf(actor_)",
-        Strings.toString(depositReceiptToken_.balanceOf(actor_))
-      )
-    );
-  }
-
-  function invariant_cannotRewardsDepositZeroAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
-    uint16 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
-    address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
-
-    vm.prank(actor_);
-    vm.expectRevert(ICommonErrors.RoundsToZero.selector);
-    rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, 0, actor_);
   }
 
   function invariant_cannotRewardsDepositWithInsufficientAssets() public syncCurrentTimestamp(rewardsManagerHandler) {

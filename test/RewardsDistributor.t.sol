@@ -54,8 +54,7 @@ contract RewardsDistributorUnitTest is TestBase {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAsset_)),
-        dripModel: IDripModel(address(new MockDripModel(0.1e18))), // Constant 10% drip rate
-        depositReceiptToken: IReceiptToken(_randomAddress())
+        dripModel: IDripModel(address(new MockDripModel(0.1e18))) // Constant 10% drip rate
       });
       component.mockAddRewardPool(rewardPool_);
 
@@ -158,7 +157,6 @@ contract RewardsDistributorUnitTest is TestBase {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAssetA_)),
-        depositReceiptToken: IReceiptToken(_randomAddress()),
         dripModel: IDripModel(address(new DripModelExponential(318_475_925))) // 1% drip rate
       });
       component.mockAddRewardPool(rewardPoolA_);
@@ -176,7 +174,6 @@ contract RewardsDistributorUnitTest is TestBase {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAssetB_)),
-        depositReceiptToken: IReceiptToken(_randomAddress()),
         dripModel: IDripModel(address(new DripModelExponential(9_116_094_774))) // 25% annual drip rate
       });
       component.mockAddRewardPool(rewardPoolB_);
@@ -194,7 +191,6 @@ contract RewardsDistributorUnitTest is TestBase {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAssetC_)),
-        depositReceiptToken: IReceiptToken(_randomAddress()),
         dripModel: IDripModel(address(new DripModelExponential(145_929_026_605))) // 99% annual drip rate
       });
       component.mockAddRewardPool(rewardPoolC_);
@@ -598,7 +594,6 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAsset_)),
-        depositReceiptToken: IReceiptToken(_randomAddress()),
         dripModel: IDripModel(address(new DripModelExponential(318_475_925))) // 1% drip rate
       });
       component.mockAddRewardPool(rewardPool_);
@@ -754,7 +749,6 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAsset_)),
-        depositReceiptToken: IReceiptToken(_randomAddress()),
         dripModel: IDripModel(address(new MockDripModel(0.01e18))) // 1% drip rate
       });
       component.mockAddRewardPool(rewardPool_);

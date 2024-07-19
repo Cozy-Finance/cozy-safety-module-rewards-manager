@@ -204,7 +204,7 @@ library ConfiguratorLib {
 
     // Initialize new reward pools.
     for (uint16 i = numExistingRewardPools_; i < rewardPoolConfigs_.length; i++) {
-      initializeRewardPool(rewardPools_, receiptTokenFactory_, rewardPoolConfigs_[i], i);
+      initializeRewardPool(rewardPools_, rewardPoolConfigs_[i], i);
     }
 
     emit IConfiguratorEvents.ConfigUpdatesApplied(stakePoolConfigs_, rewardPoolConfigs_);
@@ -244,30 +244,23 @@ library ConfiguratorLib {
 
   /// @notice Initializes a new reward pool when it is added to the rewards manager.
   /// @param rewardPools_ The array of existing reward pools.
-  /// @param receiptTokenFactory_ The receipt token factory.
   /// @param rewardPoolConfig_ The reward pool config.
   /// @param rewardPoolId_ The ID of the reward pool.
   function initializeRewardPool(
     RewardPool[] storage rewardPools_,
-    IReceiptTokenFactory receiptTokenFactory_,
     RewardPoolConfig calldata rewardPoolConfig_,
     uint16 rewardPoolId_
   ) internal {
-    IReceiptToken rewardDepositReceiptToken_ = receiptTokenFactory_.deployReceiptToken(
-      rewardPoolId_, IReceiptTokenFactory.PoolType.REWARD, rewardPoolConfig_.asset.decimals()
-    );
-
     rewardPools_.push(
       RewardPool({
         asset: rewardPoolConfig_.asset,
         undrippedRewards: 0,
         cumulativeDrippedRewards: 0,
         dripModel: rewardPoolConfig_.dripModel,
-        depositReceiptToken: rewardDepositReceiptToken_,
         lastDripTime: uint128(block.timestamp)
       })
     );
 
-    emit IConfiguratorEvents.RewardPoolCreated(rewardPoolId_, rewardDepositReceiptToken_, rewardPoolConfig_.asset);
+    emit IConfiguratorEvents.RewardPoolCreated(rewardPoolId_, rewardPoolConfig_.asset);
   }
 }

@@ -118,19 +118,6 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     );
   }
 
-  function _setUpRedeemRewards(uint16 rewardPoolId_, address receiver_)
-    internal
-    returns (uint256 depositReceiptTokenAmount_)
-  {
-    RewardPool memory rewardPool_ = getRewardPool(IRewardsManager(address(rewardsManager)), rewardPoolId_);
-    _depositRewardAssets(rewardPoolId_, rewardPool_.undrippedRewards, receiver_);
-
-    depositReceiptTokenAmount_ = rewardPool_.depositReceiptToken.balanceOf(receiver_);
-    vm.startPrank(receiver_);
-    rewardPool_.depositReceiptToken.approve(address(rewardsManager), depositReceiptTokenAmount_);
-    vm.stopPrank();
-  }
-
   function _setUpConfigUpdate() internal returns (StakePoolConfig[] memory, RewardPoolConfig[] memory) {
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](numStakePools + 1);
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](numRewardAssets + 1);
@@ -189,17 +176,6 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     uint256 gasInitial_ = gasleft();
     rewardsManager.stakeWithoutTransfer(stakePoolId_, stakeAssetAmount_, receiver_);
     console2.log("Gas used for stakeWithoutTransfer: %s", gasInitial_ - gasleft());
-  }
-
-  function test_redeemRewards() public {
-    (uint16 rewardPoolId_,, address receiver_) = _randomSingleActionFixture(false);
-    uint256 depositReceiptTokenAmount_ = _setUpRedeemRewards(rewardPoolId_, receiver_);
-
-    vm.startPrank(receiver_);
-    uint256 gasInitial_ = gasleft();
-    rewardsManager.redeemUndrippedRewards(rewardPoolId_, depositReceiptTokenAmount_, receiver_, receiver_);
-    console2.log("Gas used for redeemRewards: %s", gasInitial_ - gasleft());
-    vm.stopPrank();
   }
 
   function test_unstake() public {

@@ -14,9 +14,8 @@ interface IConfiguratorEvents {
 
   /// @notice Emitted when an reward pool is created.
   /// @param rewardPoolId The ID of the reward pool.
-  /// @param depositReceiptToken The receipt token for the reward pool.
   /// @param asset The underlying asset of the reward pool.
-  event RewardPoolCreated(uint16 indexed rewardPoolId, IReceiptToken depositReceiptToken, IERC20 asset);
+  event RewardPoolCreated(uint16 indexed rewardPoolId, IERC20 asset);
 
   /// @notice Emitted when a rewards manager's config updates are applied.
   /// @param stakePoolConfigs The updated stake pool configs.
