@@ -86,9 +86,9 @@ abstract contract Staker is RewardsManagerCommon {
 
   /// @notice Unstakes by burning `stkReceiptTokenAmount_` of `stakePoolId_` stake pool stake receipt tokens and
   /// sending `stkReceiptTokenAmount_` of `stakePoolId_` stake pool asset to `receiver_`. Also, claims ALL outstanding
-  /// user rewards and sends them to `receiver_`.
+  /// user rewards and sends them to `owner_`.
   /// @dev Assumes that user has approved this rewards manager to spend its stkReceiptTokens.
-  /// @dev The `receiver_` is transferred ALL claimable rewards of the `owner_`, not just those associated with the
+  /// @dev The `owner_` is transferred ALL claimable rewards of the `owner_`, not just those associated with the
   /// input amount, `stkReceiptTokenAmount_`.
   /// @param stakePoolId_ The ID of the stake pool to unstake from.
   /// @param stkReceiptTokenAmount_ The amount of stkReceiptTokens to unstake.
@@ -97,7 +97,7 @@ abstract contract Staker is RewardsManagerCommon {
   function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external {
     if (stkReceiptTokenAmount_ == 0) revert AmountIsZero();
 
-    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, owner_));
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, owner_, owner_));
 
     StakePool storage stakePool_ = stakePools[stakePoolId_];
     IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;

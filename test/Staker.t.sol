@@ -585,6 +585,36 @@ contract StakerUnitTest is TestBase {
     vm.prank(staker_);
     component.unstake(1, _randomUint128(), staker_, staker_);
   }
+
+  function test_unstake_ownerReceivesClaimableRewards() external {
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
+    address unstakeReceiver_ = _randomAddress();
+
+    vm.prank(receiver_);
+    mockStkReceiptToken.approve(address(component), amountStaked_);
+
+    // Add some rewards and skip time so they're claimable (100% drip rate)
+    uint256 addtionalRewards_ = 100e6;
+    mockAsset.mint(address(component), addtionalRewards_);
+    component.mockSetRewardPoolUndrippedRewards(0, addtionalRewards_);
+    skip(1);
+
+    _expectEmit();
+    emit Transfer(address(component), unstakeReceiver_, amountStaked_);
+    _expectEmit();
+    emit Unstaked(receiver_, unstakeReceiver_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
+
+    vm.prank(receiver_);
+    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
+
+    assertEq(mockStakeAsset.balanceOf(unstakeReceiver_), amountStaked_);
+    // The owner of the stake receipt tokens should receive the claimable rewards, not the receiver_ of the unstake call
+    // tx
+    assertEq(
+      mockAsset.balanceOf(receiver_), addtionalRewards_.mulDivDown(amountStaked_, initialStakeAmount + amountStaked_)
+    );
+    assertEq(mockAsset.balanceOf(unstakeReceiver_), 0);
+  }
 }
 
 contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManagerInspector {
