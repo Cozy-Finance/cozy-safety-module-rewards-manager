@@ -23,13 +23,13 @@ abstract contract DripModelIntegrationTestSetup is MockDeployProtocol {
   address self = address(this);
   address alice = _randomAddress();
 
-  function depositRewards(RewardsManager rewardsManager_, uint256 rewardAssetAmount_, address receiver_) internal {
+  function depositRewards(RewardsManager rewardsManager_, uint256 rewardAssetAmount_) internal {
     deal(
       address(rewardAsset),
       address(rewardsManager_),
       rewardAsset.balanceOf(address(rewardsManager_)) + rewardAssetAmount_
     );
-    rewardsManager_.depositRewardAssetsWithoutTransfer(0, rewardAssetAmount_, receiver_);
+    rewardsManager_.depositRewardAssetsWithoutTransfer(0, rewardAssetAmount_);
   }
 
   function stake(RewardsManager rewardsManager_, uint256 stakeAssetAmount_, address receiver_) internal {
@@ -49,10 +49,8 @@ abstract contract DripModelIntegrationTestSetup is MockDeployProtocol {
     assertEq(rewardAsset.balanceOf(receiver_), expectedClaimedRewards_);
 
     // Reset reward pool.
-    (uint256 currentAmount_,,,,,) = rewardsManager.rewardPools(0);
-    if (REWARD_POOL_AMOUNT - currentAmount_ > 0) {
-      depositRewards(rewardsManager, REWARD_POOL_AMOUNT - currentAmount_, _randomAddress());
-    }
+    (uint256 currentAmount_,,,,) = rewardsManager.rewardPools(0);
+    if (REWARD_POOL_AMOUNT - currentAmount_ > 0) depositRewards(rewardsManager, REWARD_POOL_AMOUNT - currentAmount_);
   }
 }
 
@@ -76,13 +74,13 @@ contract RewardsDripModelExponentialIntegrationTest is DripModelIntegrationTestS
       address(cozyManager.createRewardsManager(owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32()))
     );
 
-    depositRewards(rewardsManager, REWARD_POOL_AMOUNT, _randomAddress());
+    depositRewards(rewardsManager, REWARD_POOL_AMOUNT);
     stake(rewardsManager, 99, alice);
   }
 
   function _setRewardsDripModel(uint256 rate_) internal {
     DripModelExponential rewardsDripModel_ = new DripModelExponential(rate_);
-    (,,,, IDripModel currentRewardsDripModel_,) = rewardsManager.rewardPools(0);
+    (,,,, IDripModel currentRewardsDripModel_) = rewardsManager.rewardPools(0);
     vm.etch(address(currentRewardsDripModel_), address(rewardsDripModel_).code);
   }
 
@@ -154,12 +152,12 @@ contract RewardsDripModelConstantIntegrationTest is DripModelIntegrationTestSetu
       address(cozyManager.createRewardsManager(owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32()))
     );
 
-    depositRewards(rewardsManager, REWARD_POOL_AMOUNT, _randomAddress());
+    depositRewards(rewardsManager, REWARD_POOL_AMOUNT);
     stake(rewardsManager, 99, alice);
   }
 
   function _setRewardsDripModel(uint256 rate_) internal {
-    (,,,, IDripModel currentRewardsDripModel_,) = rewardsManager.rewardPools(0);
+    (,,,, IDripModel currentRewardsDripModel_) = rewardsManager.rewardPools(0);
     vm.prank(dripModelOwner);
     DripModelConstant(address(currentRewardsDripModel_)).updateAmountPerSecond(rate_);
   }

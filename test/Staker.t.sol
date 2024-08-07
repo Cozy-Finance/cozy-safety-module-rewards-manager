@@ -32,7 +32,6 @@ contract StakerUnitTest is TestBase {
   MockERC20 mockAsset = new MockERC20("Mock Asset", "MOCK", 6);
   MockERC20 mockStakeAsset = new MockERC20("Mock Stake Asset", "MOCK Stake", 6);
   MockERC20 mockStkReceiptToken = new MockERC20("Mock Cozy Stake Receipt Token", "cozyStk", 6);
-  MockERC20 mockDepositReceiptToken = new MockERC20("Mock Cozy Deposit Receipt Token", "cozyDep", 6);
   TestableStaker component = new TestableStaker();
   uint256 cumulativeDrippedRewards_ = 290e18;
   uint256 cumulativeClaimableRewards_ = 90e18;
@@ -545,7 +544,7 @@ contract StakerUnitTest is TestBase {
     vm.prank(spender_);
     component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
 
-    assertEq(mockStkReceiptToken.allowance(receiver_, spender_), 1, "depositReceiptToken allowance"); // Only 1
+    assertEq(mockStkReceiptToken.allowance(receiver_, spender_), 1, "stakeReceiptToken allowance"); // Only 1
       // allowance left
       // because
       // of subtraction.
@@ -586,6 +585,36 @@ contract StakerUnitTest is TestBase {
     vm.prank(staker_);
     component.unstake(1, _randomUint128(), staker_, staker_);
   }
+
+  function test_unstake_ownerReceivesClaimableRewards() external {
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
+    address unstakeReceiver_ = _randomAddress();
+
+    vm.prank(receiver_);
+    mockStkReceiptToken.approve(address(component), amountStaked_);
+
+    // Add some rewards and skip time so they're claimable (100% drip rate)
+    uint256 addtionalRewards_ = 100e6;
+    mockAsset.mint(address(component), addtionalRewards_);
+    component.mockSetRewardPoolUndrippedRewards(0, addtionalRewards_);
+    skip(1);
+
+    _expectEmit();
+    emit Transfer(address(component), unstakeReceiver_, amountStaked_);
+    _expectEmit();
+    emit Unstaked(receiver_, unstakeReceiver_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
+
+    vm.prank(receiver_);
+    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
+
+    assertEq(mockStakeAsset.balanceOf(unstakeReceiver_), amountStaked_);
+    // The owner of the stake receipt tokens should receive the claimable rewards, not the receiver_ of the unstake call
+    // tx
+    assertEq(
+      mockAsset.balanceOf(receiver_), addtionalRewards_.mulDivDown(amountStaked_, initialStakeAmount + amountStaked_)
+    );
+    assertEq(mockAsset.balanceOf(unstakeReceiver_), 0);
+  }
 }
 
 contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManagerInspector {
@@ -607,7 +636,6 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManager
         asset: rewardAsset_,
         dripModel: IDripModel(address(new MockDripModel(1e18))),
         undrippedRewards: 0,
-        depositReceiptToken: IReceiptToken(address(new MockERC20("Mock Cozy Deposit Receipt Token", "cozyDep", 6))),
         cumulativeDrippedRewards: cumulativeDrippedRewards_,
         lastDripTime: uint128(block.timestamp)
       })

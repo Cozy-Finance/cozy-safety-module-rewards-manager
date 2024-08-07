@@ -36,8 +36,6 @@ struct RewardPool {
   IERC20 asset;
   // The drip model for the reward pool.
   IDripModel dripModel;
-  // The receipt token for the reward pool.
-  IReceiptToken depositReceiptToken;
 }
 
 struct IdLookup {

@@ -91,7 +91,7 @@ abstract contract StateTransitionInvariantsWithStateTransitions is InvariantTest
     if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) {
       vm.expectRevert(ICommonErrors.InvalidState.selector);
       vm.prank(_randomAddress());
-      rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, _randomUint256(), _randomAddress());
+      rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, _randomUint256());
     }
   }
 
@@ -109,7 +109,7 @@ abstract contract StateTransitionInvariantsWithStateTransitions is InvariantTest
     if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) {
       vm.expectRevert(ICommonErrors.InvalidState.selector);
       vm.prank(actor_);
-      rewardsManager.depositRewardAssets(rewardPoolId_, depositAmount_, _randomAddress());
+      rewardsManager.depositRewardAssets(rewardPoolId_, depositAmount_);
     }
   }
 

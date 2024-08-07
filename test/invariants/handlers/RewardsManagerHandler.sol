@@ -69,9 +69,6 @@ contract RewardsManagerHandler is TestBase {
 
   struct GhostRewardPool {
     uint256 totalAssetAmount;
-    uint256 depositSharesAmount;
-    uint256 redeemSharesAmount;
-    uint256 redeemAssetAmount;
   }
 
   // -------- Constructor --------
@@ -209,36 +206,6 @@ contract RewardsManagerHandler is TestBase {
     _stakeWithoutTransfer(assetAmount_);
 
     return currentActor;
-  }
-
-  function redeemUndrippedRewards(uint256 depositReceiptTokenRedeemAmount_, address receiver_, uint256 seed_)
-    public
-    virtual
-    useActorWithRewardDeposits(seed_)
-    countCall("redeemUndrippedRewards")
-    advanceTime(seed_)
-  {
-    IERC20 depositReceiptToken_ = getRewardPool(rewardsManager, currentRewardPoolId).depositReceiptToken;
-    uint256 actorDepositReceiptTokenBalance_ = depositReceiptToken_.balanceOf(currentActor);
-    if (actorDepositReceiptTokenBalance_ == 0) {
-      invalidCalls["redeemUndrippedRewards"] += 1;
-      return;
-    }
-
-    depositReceiptTokenRedeemAmount_ = bound(depositReceiptTokenRedeemAmount_, 1, actorDepositReceiptTokenBalance_);
-    vm.startPrank(currentActor);
-    depositReceiptToken_.approve(address(rewardsManager), depositReceiptTokenRedeemAmount_);
-    uint256 assetAmount_ = rewardsManager.redeemUndrippedRewards(
-      currentRewardPoolId, depositReceiptTokenRedeemAmount_, receiver_, currentActor
-    );
-    vm.stopPrank();
-
-    ghost_rewardPoolCumulative[currentRewardPoolId].redeemAssetAmount += assetAmount_;
-    ghost_rewardPoolCumulative[currentRewardPoolId].redeemSharesAmount += depositReceiptTokenRedeemAmount_;
-
-    if (depositReceiptTokenRedeemAmount_ == actorDepositReceiptTokenBalance_) {
-      actorsWithRewardDeposits.remove(currentActor);
-    }
   }
 
   function unstake(address receiver_, uint256 seed_)
@@ -406,7 +373,6 @@ contract RewardsManagerHandler is TestBase {
     console2.log("claimRewards", calls["claimRewards"]);
     console2.log("stkReceiptTokenTransfer", calls["stkReceiptTokenTransfer"]);
     console2.log("updateUserRewardsForStkReceiptTokenTransfer", calls["updateUserRewardsForStkReceiptTokenTransfer"]);
-    console2.log("redeemUndrippedRewards", calls["redeemUndrippedRewards"]);
     console2.log("pause", calls["pause"]);
     console2.log("unpause", calls["unpause"]);
     console2.log("----------------------------------------------------------------------------");
@@ -431,7 +397,6 @@ contract RewardsManagerHandler is TestBase {
     console2.log(
       "updateUserRewardsForStkReceiptTokenTransfer", invalidCalls["updateUserRewardsForStkReceiptTokenTransfer"]
     );
-    console2.log("redeemUndrippedRewards", invalidCalls["redeemUndrippedRewards"]);
     console2.log("pause", invalidCalls["pause"]);
     console2.log("unpause", invalidCalls["unpause"]);
   }
@@ -481,7 +446,7 @@ contract RewardsManagerHandler is TestBase {
   }
 
   function boundDepositAssetAmount(uint256 assetAmount_) public pure returns (uint256) {
-    return bound(assetAmount_, 0.0001e6, type(uint72).max);
+    return bound(assetAmount_, 1, type(uint128).max);
   }
 
   function pickValidRewardPoolId(uint256 seed_) public view returns (uint16) {
@@ -504,11 +469,10 @@ contract RewardsManagerHandler is TestBase {
 
     vm.startPrank(currentActor);
     asset_.approve(address(rewardsManager), assetAmount_);
-    uint256 shares_ = rewardsManager.depositRewardAssets(currentRewardPoolId, assetAmount_, currentActor);
+    rewardsManager.depositRewardAssets(currentRewardPoolId, assetAmount_);
     vm.stopPrank();
 
     ghost_rewardPoolCumulative[currentRewardPoolId].totalAssetAmount += assetAmount_;
-    ghost_rewardPoolCumulative[currentRewardPoolId].depositSharesAmount += shares_;
 
     ghost_actorRewardDepositCount[currentActor][currentRewardPoolId] += 1;
   }
@@ -519,11 +483,10 @@ contract RewardsManagerHandler is TestBase {
     _simulateTransferToRewardsManager(asset_, assetAmount_);
 
     vm.startPrank(currentActor);
-    uint256 shares_ = rewardsManager.depositRewardAssetsWithoutTransfer(currentRewardPoolId, assetAmount_, currentActor);
+    rewardsManager.depositRewardAssetsWithoutTransfer(currentRewardPoolId, assetAmount_);
     vm.stopPrank();
 
     ghost_rewardPoolCumulative[currentRewardPoolId].totalAssetAmount += assetAmount_;
-    ghost_rewardPoolCumulative[currentRewardPoolId].depositSharesAmount += shares_;
 
     ghost_actorRewardDepositCount[currentActor][currentRewardPoolId] += 1;
   }
@@ -569,9 +532,6 @@ contract RewardsManagerHandler is TestBase {
     for (uint16 i = 0; i < numStakePools; i++) {
       for (uint16 j = 0; j < numRewardPools; j++) {
         if (addr_ == address(getStakePool(IRewardsManager(address(rewardsManager)), i).stkReceiptToken)) {
-          return _randomAddress();
-        }
-        if (addr_ == address(getRewardPool(IRewardsManager(address(rewardsManager)), j).depositReceiptToken)) {
           return _randomAddress();
         }
       }

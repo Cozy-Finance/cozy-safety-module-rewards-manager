@@ -120,7 +120,6 @@ contract TestBase is Test, TestAssertions {
     copied_.undrippedRewards = original_.undrippedRewards;
     copied_.cumulativeDrippedRewards = original_.cumulativeDrippedRewards;
     copied_.dripModel = original_.dripModel;
-    copied_.depositReceiptToken = original_.depositReceiptToken;
     copied_.lastDripTime = original_.lastDripTime;
   }
 

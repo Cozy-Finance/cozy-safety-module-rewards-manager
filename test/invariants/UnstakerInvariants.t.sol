@@ -45,6 +45,11 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
     }
 
     address actor_ = rewardsManagerHandler.getActorWithStake(_randomUint256());
+    uint256[] memory actorPreBalances_ = new uint256[](numRewardPools);
+    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
+      actorPreBalances_[rewardPoolId_] = rewardsManager.rewardPools(rewardPoolId_).asset.balanceOf(actor_);
+    }
+
     // The default address is used when there are no actors with stakes, in which case we just skip this invariant.
     if (actor_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
     uint16 unstakedStakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), actor_);
@@ -242,18 +247,34 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
       RewardPool memory rewardPool_ = rewardsManager.rewardPools(rewardPoolId_);
       require(
         rewardPool_.asset.balanceOf(receiver_)
-          == receiverPreBalances_[rewardPoolId_] + actorRewardsToBeClaimed[rewardPool_.asset]
+          == receiverPreBalances_[rewardPoolId_]
             + (rewardPool_.asset == unstakedStakePool_.asset ? stkReceiptTokenUnstakeAmount_ : 0),
         string.concat(
-          "Invariant Violated: The receiver balance must be the pre-balance plus claimable rewards of that asset plus the unstaked assets if it matches the reward asset.",
+          "Invariant Violated: The receiver balance must be the pre-balance plus the unstaked assets if it matches the reward asset.",
           " receiverPostBalance: ",
           Strings.toString(IERC20(rewardsManager.rewardPools(rewardPoolId_).asset).balanceOf(receiver_)),
           ", receiverPreBalance: ",
           Strings.toString(receiverPreBalances_[rewardPoolId_]),
-          ", claimableRewards: ",
-          Strings.toString(actorRewardsToBeClaimed[rewardPool_.asset]),
           ", receiver: ",
           Strings.toHexString(uint160(receiver_)),
+          ", stakePoolId: ",
+          Strings.toString(unstakedStakePoolId_),
+          ", rewardPoolId: ",
+          Strings.toString(rewardPoolId_)
+        )
+      );
+
+      require(
+        rewardPool_.asset.balanceOf(actor_)
+          == actorPreBalances_[rewardPoolId_] + actorRewardsToBeClaimed[rewardPool_.asset],
+        string.concat(
+          "Invariant Violated: The actor balance must be the pre-balance plus the rewards to be claimed.",
+          " actorPostBalance: ",
+          Strings.toString(IERC20(rewardsManager.rewardPools(rewardPoolId_).asset).balanceOf(actor_)),
+          ", actorPreBalance: ",
+          Strings.toString(actorPreBalances_[rewardPoolId_]),
+          ", actor: ",
+          Strings.toHexString(uint160(actor_)),
           ", stakePoolId: ",
           Strings.toString(unstakedStakePoolId_),
           ", rewardPoolId: ",

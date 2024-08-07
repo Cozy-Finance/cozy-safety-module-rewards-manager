@@ -45,7 +45,7 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
   }
 
   function _fuzzedSelectors() internal pure virtual returns (bytes4[] memory) {
-    bytes4[] memory selectors = new bytes4[](15);
+    bytes4[] memory selectors = new bytes4[](14);
     selectors[0] = RewardsManagerHandler.depositRewardAssets.selector;
     selectors[1] = RewardsManagerHandler.depositRewardAssetsWithExistingActor.selector;
     selectors[2] = RewardsManagerHandler.depositRewardAssetsWithoutTransfer.selector;
@@ -61,7 +61,6 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
     selectors[11] = RewardsManagerHandler.claimRewards.selector;
     selectors[12] = RewardsManagerHandler.stkReceiptTokenTransfer.selector;
     selectors[13] = RewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer.selector;
-    selectors[14] = RewardsManagerHandler.redeemUndrippedRewards.selector;
     return selectors;
   }
 
@@ -90,7 +89,7 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
 
 abstract contract InvariantTestBaseWithStateTransitions is InvariantTestBase {
   function _fuzzedSelectors() internal pure override returns (bytes4[] memory) {
-    bytes4[] memory selectors = new bytes4[](17);
+    bytes4[] memory selectors = new bytes4[](16);
     selectors[0] = RewardsManagerHandler.depositRewardAssets.selector;
     selectors[1] = RewardsManagerHandler.depositRewardAssetsWithExistingActor.selector;
     selectors[2] = RewardsManagerHandler.depositRewardAssetsWithoutTransfer.selector;
@@ -106,17 +105,16 @@ abstract contract InvariantTestBaseWithStateTransitions is InvariantTestBase {
     selectors[11] = RewardsManagerHandler.claimRewards.selector;
     selectors[12] = RewardsManagerHandler.stkReceiptTokenTransfer.selector;
     selectors[13] = RewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer.selector;
-    selectors[14] = RewardsManagerHandler.redeemUndrippedRewards.selector;
     // State transition selectors
-    selectors[15] = RewardsManagerHandler.pause.selector;
-    selectors[16] = RewardsManagerHandler.unpause.selector;
+    selectors[14] = RewardsManagerHandler.pause.selector;
+    selectors[15] = RewardsManagerHandler.unpause.selector;
     return selectors;
   }
 }
 
 abstract contract InvariantTestWithSingleStakePoolAndSingleRewardPool is InvariantBaseDeploy {
   function _initRewardsManager() internal override {
-    IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "MOCK", 6)));
+    IERC20 asset_ = IERC20(address(new MockERC20("Mock Asset", "MOCK", 18)));
     assets.push(asset_);
 
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
@@ -131,7 +129,6 @@ abstract contract InvariantTestWithSingleStakePoolAndSingleRewardPool is Invaria
       cozyManager.createRewardsManager(owner, pauser, stakePoolConfigs_, rewardPoolConfigs_, _randomBytes32());
 
     vm.label(address(getStakePool(rewardsManager, 0).stkReceiptToken), "stakePool0StkReceiptToken");
-    vm.label(address(getRewardPool(rewardsManager, 0).depositReceiptToken), "rewardPool0DepositReceiptToken");
   }
 }
 
@@ -148,7 +145,7 @@ abstract contract InvariantTestWithMultipleStakePoolsAndMultipleRewardPools is I
     // stake pool assets must be unique.
     uint256 uniqueNumAssets_ = _randomUint256InRange(numStakePools_, numStakePools_ + numRewardPools_);
     for (uint256 i_; i_ < uniqueNumAssets_; i_++) {
-      assets.push(IERC20(address(new MockERC20("Mock Asset", "MOCK", 6))));
+      assets.push(IERC20(address(new MockERC20("Mock Asset", "MOCK", 18))));
     }
 
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](numStakePools_);
@@ -180,13 +177,6 @@ abstract contract InvariantTestWithMultipleStakePoolsAndMultipleRewardPools is I
       vm.label(
         address(getStakePool(rewardsManager, i_).stkReceiptToken),
         string.concat("stakePool", Strings.toString(i_), "StkReceiptToken")
-      );
-    }
-
-    for (uint16 i_; i_ < numRewardPools_; i_++) {
-      vm.label(
-        address(getRewardPool(rewardsManager, i_).depositReceiptToken),
-        string.concat("rewardPool", Strings.toString(i_), "DepositReceiptToken")
       );
     }
   }

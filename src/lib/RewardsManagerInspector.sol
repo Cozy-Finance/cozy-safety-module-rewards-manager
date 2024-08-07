@@ -9,44 +9,6 @@ import {ClaimableRewardsData, UserRewardsData} from "./structs/Rewards.sol";
 abstract contract RewardsManagerInspector is RewardsManagerCommon {
   uint256 internal constant POOL_AMOUNT_FLOOR = 1;
 
-  /// @notice Converts a reward pool's reward asset amount to the corresponding reward deposit receipt token amount.
-  /// @param rewardPoolId_ The ID of the reward pool.
-  /// @param rewardAssetAmount_ The amount of the reward pool's asset to convert.
-  /// @return depositReceiptTokenAmount_ The corresponding amount of deposit receipt tokens.
-  function convertRewardAssetToReceiptTokenAmount(uint16 rewardPoolId_, uint256 rewardAssetAmount_)
-    external
-    view
-    returns (uint256 depositReceiptTokenAmount_)
-  {
-    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    depositReceiptTokenAmount_ = RewardsManagerCalculationsLib.convertToReceiptTokenAmount(
-      rewardAssetAmount_,
-      rewardPool_.depositReceiptToken.totalSupply(),
-      /// We set a floor to avoid divide-by-zero errors that would occur when the supply of deposit receipt tokens >
-      /// 0, but the `poolAmount` == 0, which can occur due to drip.
-      _poolAmountWithFloor(rewardPool_.undrippedRewards)
-    );
-  }
-
-  /// @notice Converts a reward pool's reward deposit receipt token amount to the corresponding reward asset amount.
-  /// @param rewardPoolId_ The ID of the reward pool.
-  /// @param depositReceiptTokenAmount_ The amount of deposit receipt tokens to convert.
-  /// @return rewardAssetAmount_ The corresponding amount of the reward pool's asset.
-  function convertRewardReceiptTokenToAssetAmount(uint16 rewardPoolId_, uint256 depositReceiptTokenAmount_)
-    external
-    view
-    returns (uint256 rewardAssetAmount_)
-  {
-    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    rewardAssetAmount_ = RewardsManagerCalculationsLib.convertToAssetAmount(
-      depositReceiptTokenAmount_,
-      rewardPool_.depositReceiptToken.totalSupply(),
-      // We set a floor to avoid divide-by-zero errors that would occur when the supply of depositReceiptTokens >
-      // 0, but the `poolAmount` == 0, which can occur due to drip.
-      _poolAmountWithFloor(rewardPool_.undrippedRewards)
-    );
-  }
-
   /// @notice Returns the reward manager's stake pools.
   /// @return stakePools_ The stake pools.
   function getStakePools() external view returns (StakePool[] memory) {
