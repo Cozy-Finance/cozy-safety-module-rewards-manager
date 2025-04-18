@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.22;
 
-import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
-import {ICommonErrors} from "cozy-safety-module-shared/interfaces/ICommonErrors.sol";
-import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
-import {SafeCastLib} from "cozy-safety-module-shared/lib/SafeCastLib.sol";
-import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
-import {SafeCastLib} from "cozy-safety-module-shared/lib/SafeCastLib.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
+import {ICommonErrors} from "cozy-safety-module-libs/interfaces/ICommonErrors.sol";
+import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
+import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
+import {SafeCastLib} from "cozy-safety-module-libs/lib/SafeCastLib.sol";
+import {SafetyModuleState} from "cozy-safety-module-libs/lib/SafetyModuleStates.sol";
+import {SafeCastLib} from "cozy-safety-module-libs/lib/SafeCastLib.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IDepositorErrors} from "../src/interfaces/IDepositorErrors.sol";
 import {Depositor} from "../src/lib/Depositor.sol";

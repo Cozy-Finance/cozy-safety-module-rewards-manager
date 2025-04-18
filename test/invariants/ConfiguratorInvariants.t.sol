@@ -2,10 +2,10 @@
 pragma solidity 0.8.22;
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
-import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
-import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
+import {Ownable} from "cozy-safety-module-libs/lib/Ownable.sol";
+import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {StakePool, RewardPool} from "../../src/lib/structs/Pools.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../../src/lib/structs/Configs.sol";
 import {ClaimableRewardsData} from "../../src/lib/structs/Rewards.sol";

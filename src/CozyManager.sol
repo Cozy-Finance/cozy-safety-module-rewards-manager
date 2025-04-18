@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {Governable} from "cozy-safety-module-shared/lib/Governable.sol";
+import {Governable} from "cozy-safety-module-libs/lib/Governable.sol";
 import {ICozyManager} from "./interfaces/ICozyManager.sol";
 import {IRewardsManager} from "./interfaces/IRewardsManager.sol";
 import {IRewardsManagerFactory} from "./interfaces/IRewardsManagerFactory.sol";

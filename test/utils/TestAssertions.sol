@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.22;
 
-import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
+import {SafetyModuleState} from "cozy-safety-module-libs/lib/SafetyModuleStates.sol";
 import {RewardsManagerState} from "../../src/lib/RewardsManagerStates.sol";
 import {RewardPool, StakePool} from "../../src/lib/structs/Pools.sol";
 import {

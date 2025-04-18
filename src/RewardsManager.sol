@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
+import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptTokenFactory.sol";
 import {Configurator} from "./lib/Configurator.sol";
 import {ConfiguratorLib} from "./lib/ConfiguratorLib.sol";
 import {RewardsManagerCommon} from "./lib/RewardsManagerCommon.sol";

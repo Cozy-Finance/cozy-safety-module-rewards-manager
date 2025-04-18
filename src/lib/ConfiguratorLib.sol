@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
-import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
-import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
+import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
+import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptTokenFactory.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {IConfiguratorErrors} from "../interfaces/IConfiguratorErrors.sol";
 import {IConfiguratorEvents} from "../interfaces/IConfiguratorEvents.sol";
 import {StakePool, RewardPool, IdLookup} from "./structs/Pools.sol";

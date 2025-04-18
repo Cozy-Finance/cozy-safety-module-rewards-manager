@@ -4,7 +4,7 @@ pragma solidity 0.8.22;
 import {console2} from "forge-std/console2.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {RewardsManager} from "../../../src/RewardsManager.sol";
 import {StakePool, RewardPool} from "../../../src/lib/structs/Pools.sol";
 import {PreviewClaimableRewards, PreviewClaimableRewardsData} from "../../../src/lib/structs/Rewards.sol";

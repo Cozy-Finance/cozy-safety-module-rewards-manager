@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import {IGovernable} from "cozy-safety-module-shared/interfaces/IGovernable.sol";
+import {IGovernable} from "cozy-safety-module-libs/interfaces/IGovernable.sol";
 import {IRewardsManager} from "./IRewardsManager.sol";
 import {IRewardsManagerFactory} from "./IRewardsManagerFactory.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";

@@ -2,9 +2,9 @@
 pragma solidity 0.8.22;
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {ICommonErrors} from "cozy-safety-module-shared/interfaces/ICommonErrors.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
+import {ICommonErrors} from "cozy-safety-module-libs/interfaces/ICommonErrors.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
+import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {AssetPool, StakePool} from "../../src/lib/structs/Pools.sol";
 import {IDepositorErrors} from "../../src/interfaces/IDepositorErrors.sol";

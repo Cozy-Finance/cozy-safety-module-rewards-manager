@@ -3,12 +3,12 @@ pragma solidity 0.8.22;
 
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {DripModelExponential} from "cozy-safety-module-models/DripModelExponential.sol";
-import {ICommonErrors} from "cozy-safety-module-shared/interfaces/ICommonErrors.sol";
-import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
-import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
-import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
+import {ICommonErrors} from "cozy-safety-module-libs/interfaces/ICommonErrors.sol";
+import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
+import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
+import {Ownable} from "cozy-safety-module-libs/lib/Ownable.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
 import {RewardsDistributor} from "../src/lib/RewardsDistributor.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";

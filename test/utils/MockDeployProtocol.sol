@@ -3,11 +3,11 @@ pragma solidity 0.8.22;
 
 import {IRewardsManager} from "../../src/interfaces/IRewardsManager.sol";
 import {IRewardsManagerFactory} from "../../src/interfaces/IRewardsManagerFactory.sol";
-import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
-import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
+import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
+import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptTokenFactory.sol";
 import {CozyManager} from "../../src/CozyManager.sol";
-import {ReceiptToken} from "cozy-safety-module-shared/ReceiptToken.sol";
-import {ReceiptTokenFactory} from "cozy-safety-module-shared/ReceiptTokenFactory.sol";
+import {ReceiptToken} from "cozy-safety-module-libs/ReceiptToken.sol";
+import {ReceiptTokenFactory} from "cozy-safety-module-libs/ReceiptTokenFactory.sol";
 import {StkReceiptToken} from "../../src/StkReceiptToken.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../../src/lib/structs/Configs.sol";
 import {RewardsManager} from "../../src/RewardsManager.sol";

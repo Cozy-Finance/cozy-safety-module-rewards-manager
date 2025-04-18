@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.22;
 
-import {Governable} from "cozy-safety-module-shared/lib/Governable.sol";
+import {Governable} from "cozy-safety-module-libs/lib/Governable.sol";
 
 contract MockManager is Governable {
   uint256 public allowedReservePools;
