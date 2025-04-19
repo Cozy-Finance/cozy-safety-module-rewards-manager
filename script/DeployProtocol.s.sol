@@ -64,6 +64,9 @@ contract DeployProtocol is ScriptUtils {
   uint16 allowedStakePools;
   uint16 allowedRewardPools;
 
+  // The default claim fee.
+  uint16 claimFee;
+
   // Core contracts to deploy.
   CozyManager manager;
   RewardsManager rewardsManagerLogic;
@@ -87,6 +90,7 @@ contract DeployProtocol is ScriptUtils {
     // -------- Pool Limits --------
     allowedStakePools = uint16(json_.readUint(".allowedStakePools"));
     allowedRewardPools = uint16(json_.readUint(".allowedRewardPools"));
+    claimFee = uint16(json_.readUint(".claimFee"));
 
     // -------------------------------------
     // -------- Address Computation --------
@@ -111,7 +115,7 @@ contract DeployProtocol is ScriptUtils {
 
     // -------- Deploy: CozyManager --------
     vm.broadcast();
-    manager = new CozyManager(owner, pauser, computedAddrRewardsManagerFactory_);
+    manager = new CozyManager(owner, pauser, computedAddrRewardsManagerFactory_, claimFee);
     console2.log("CozyRewardsManager deployed:", address(manager));
     require(address(manager) == address(computedAddrManager_), "CozyManager address mismatch");
 

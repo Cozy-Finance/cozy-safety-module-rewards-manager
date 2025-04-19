@@ -24,7 +24,6 @@ import {IConfiguratorEvents} from "../src/interfaces/IConfiguratorEvents.sol";
 import {IConfiguratorErrors} from "../src/interfaces/IConfiguratorErrors.sol";
 import {MockDripModel} from "./utils/MockDripModel.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
-import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 

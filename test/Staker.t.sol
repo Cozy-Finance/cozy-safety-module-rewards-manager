@@ -19,8 +19,10 @@ import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {AssetPool, StakePool} from "../src/lib/structs/Pools.sol";
 import {RewardPool} from "../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
+import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockDripModel} from "./utils/MockDripModel.sol";
+import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 import "forge-std/console2.sol";
@@ -32,7 +34,8 @@ contract StakerUnitTest is TestBase {
   MockERC20 mockAsset = new MockERC20("Mock Asset", "MOCK", 6);
   MockERC20 mockStakeAsset = new MockERC20("Mock Stake Asset", "MOCK Stake", 6);
   MockERC20 mockStkReceiptToken = new MockERC20("Mock Cozy Stake Receipt Token", "cozyStk", 6);
-  TestableStaker component = new TestableStaker();
+  MockManager cozyManager = new MockManager();
+  TestableStaker component = new TestableStaker(cozyManager);
   uint256 cumulativeDrippedRewards_ = 290e18;
   uint256 cumulativeClaimableRewards_ = 90e18;
   uint256 initialIndexSnapshot_ = 11;
@@ -620,7 +623,14 @@ contract StakerUnitTest is TestBase {
 contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManagerInspector {
   using SafeCastLib for uint256;
 
+  constructor(MockManager manager_) {
+    cozyManager = ICozyManager(address(manager_));
+  }
+
   // -------- Mock setters --------
+  function setClaimFee(uint16 claimFee_) external {
+    MockManager(address(cozyManager)).setClaimFee(claimFee_);
+  }
 
   function mockAddStakePool(StakePool memory stakePool_) external {
     stakePools.push(stakePool_);

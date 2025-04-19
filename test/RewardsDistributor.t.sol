@@ -22,16 +22,19 @@ import {
   ClaimableRewardsData
 } from "../src/lib/structs/Rewards.sol";
 import {IdLookup} from "../src/lib/structs/Pools.sol";
+import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockDripModel} from "./utils/MockDripModel.sol";
 import {MockStkReceiptToken} from "./utils/MockStkReceiptToken.sol";
+import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 
 contract RewardsDistributorUnitTest is TestBase {
   using FixedPointMathLib for uint256;
 
-  TestableRewardsDistributor component = new TestableRewardsDistributor();
+  MockManager cozyManager = new MockManager();
+  TestableRewardsDistributor component = new TestableRewardsDistributor(cozyManager);
 
   uint256 internal constant ONE_YEAR = 365.25 days;
 
@@ -99,6 +102,8 @@ contract RewardsDistributorUnitTest is TestBase {
   }
 
   function _setUpDefault() internal {
+    cozyManager.setClaimFee(200); // 2% claim fee
+
     uint256 numStakePools_ = 2;
     uint256 numRewardAssets_ = 3;
 
@@ -108,6 +113,8 @@ contract RewardsDistributorUnitTest is TestBase {
   }
 
   function _setUpConcrete() internal {
+    cozyManager.setClaimFee(200); // 2% claim fee
+
     // Set-up two stake pools.
     MockERC20 mockStakeAssetA_ = new MockERC20("Mock Stake Asset A", "MockStakeAssetA", 6);
     IReceiptToken stkReceiptTokenA_ = IReceiptToken(
@@ -408,9 +415,9 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       // drippedRewardsA_ = 0.01 * 100_000
       // drippedRewardsB_ = 0.25 * 1_000_000_000
       // drippedRewardsC_ = 0.99 * 9999
-      uint256 rewardsReceivedPoolA_ = 50; // drippedRewardsA_ * 0.1 * 0.5
-      uint256 rewardsReceivedPoolB_ = 12_500_000; // drippedRewardsB_ * 0.1 * 0.5
-      uint256 rewardsReceivedPoolC_ = 494; // drippedRewardsC_ * 0.1 * 0.5
+      uint256 rewardsReceivedPoolA_ = 49; // drippedRewardsA_ * 0.1 * 0.5 * 0.98 (where 0.98 is from 2% claim fee)
+      uint256 rewardsReceivedPoolB_ = 12_250_000; // drippedRewardsB_ * 0.1 * 0.5 * 0.98
+      uint256 rewardsReceivedPoolC_ = 484; // drippedRewardsC_ * 0.1 * 0.5 * 0.98
 
       _expectEmit();
       emit ClaimedRewards(stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, userA_, rewardsReceiver_);
@@ -426,6 +433,11 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       assertEq(rewardAssetA_.balanceOf(rewardsReceiver_), rewardsReceivedPoolA_);
       assertEq(rewardAssetB_.balanceOf(rewardsReceiver_), rewardsReceivedPoolB_);
       assertEq(rewardAssetC_.balanceOf(rewardsReceiver_), rewardsReceivedPoolC_);
+
+      // Check that owner received the claim fees.
+      assertEq(rewardAssetA_.balanceOf(cozyManager.owner()), 1);
+      assertEq(rewardAssetB_.balanceOf(cozyManager.owner()), 250_000);
+      assertEq(rewardAssetC_.balanceOf(cozyManager.owner()), 10);
 
       // Since user claimed rewards, accrued rewards should be 0 and index snapshot should be updated.
       UserRewardsData[] memory userRewardsData_ = component.getUserRewards(stakePoolId_, userA_);
@@ -469,9 +481,9 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       // drippedRewardsA_ = 0.01 * 99_000
       // drippedRewardsB_ = 0.25 * 750_000_000
       // drippedRewardsC_ = 0.99 * 100
-      uint256 rewardsReceivedPoolA_ = 49; // drippedRewardsA_ * 0.1 * 0.5
-      uint256 rewardsReceivedPoolB_ = 9_375_000; // drippedRewardsB_ * 0.1 * 0.5
-      uint256 rewardsReceivedPoolC_ = 5; // drippedRewardsC_ * 0.1 * 0.5
+      uint256 rewardsReceivedPoolA_ = 48; // drippedRewardsA_ * 0.1 * 0.5 * 0.98 (where 0.98 is from 2% claim fee)
+      uint256 rewardsReceivedPoolB_ = 9_187_500; // drippedRewardsB_ * 0.1 * 0.5 * 0.98
+      uint256 rewardsReceivedPoolC_ = 4; // drippedRewardsC_ * 0.1 * 0.5 * 0.98
 
       _expectEmit();
       emit ClaimedRewards(stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, userA_, rewardsReceiver_);
@@ -524,8 +536,8 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       // drippedRewardsA_ = 0.01 * 98_010
       // drippedRewardsB_ = 0.25 * 562_500_000
       // drippedRewardsC_ = 0.99 * 0
-      uint256 rewardsReceivedPoolA_ = 49; // drippedRewardsA_ * 0.1 * 0.5
-      uint256 rewardsReceivedPoolB_ = 7_031_250; // drippedRewardsB_ * 0.1 * 0.5
+      uint256 rewardsReceivedPoolA_ = 48; // drippedRewardsA_ * 0.1 * 0.5 * 0.98 (where 0.98 is from 2% claim fee)
+      uint256 rewardsReceivedPoolB_ = 6_890_625; // drippedRewardsB_ * 0.1 * 0.5 * 0.98
 
       _expectEmit();
       emit ClaimedRewards(stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, userB_, rewardsReceiver_);
@@ -549,9 +561,9 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       // drippedRewardsA_ = 0.01 * (100_000 + (1-0.01)*100_000 + (1-0.01)^2*100_000) = 2970
       // drippedRewardsB_ = 0.25 * (1_000_000_000 + (1-0.25)*1_000_000_000 + (1-0.25)^2*1_000_000_000) = 578_125_000
       // drippedRewardsC_ = 0.99 * (9999 + (1-0.99)*9999 + (1-0.99)^2*9999) = 9999
-      rewardsReceivedPoolA_ = 2138; // drippedRewardsA_ * 0.9 * 0.8
-      rewardsReceivedPoolB_ = 416_250_000; // drippedRewardsB_ * 0.9 * 0.8
-      uint256 rewardsReceivedPoolC_ = 7198; // drippedRewardsC_ * 0.9 * 0.8
+      rewardsReceivedPoolA_ = 2095; // drippedRewardsA_ * 0.9 * 0.8 * 0.98 (where 0.98 is from 2% claim fee)
+      rewardsReceivedPoolB_ = 407_925_000; // drippedRewardsB_ * 0.9 * 0.8 * 0.98
+      uint256 rewardsReceivedPoolC_ = 7054; // drippedRewardsC_ * 0.9 * 0.8 * 0.98
 
       _expectEmit();
       emit ClaimedRewards(stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, userB_, rewardsReceiver_);
@@ -661,9 +673,10 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     previewStakePoolIds_[0] = stakePoolId_;
     PreviewClaimableRewards[] memory previewClaimableRewards_ =
       component.previewClaimableRewards(previewStakePoolIds_, user_);
-    assertEq(previewClaimableRewards_[0].claimableRewardsData[0].amount, 300);
-    assertEq(previewClaimableRewards_[0].claimableRewardsData[1].amount, 75_000_000);
-    assertEq(previewClaimableRewards_[0].claimableRewardsData[2].amount, 2969);
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[0].amount, 294); // 300 * 0.98 (where 0.98 is from 2%
+      // claim
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[1].amount, 73_500_000);
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[2].amount, 2909);
 
     // Rewards Manager becomes paused.
     component.mockRewardsManagerState(RewardsManagerState.PAUSED);
@@ -704,6 +717,8 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       uint256 accruedRewards_ = component.getUserAccruedRewards(
         userStkReceiptTokenBalance_, newClaimableRewards_[i].indexSnapshot, oldClaimableRewards_[i].indexSnapshot
       );
+      uint256 claimedRewardsAmount_ =
+        accruedRewards_ - accruedRewards_.mulDivUp(cozyManager.claimFee(), MathConstants.ZOC);
 
       // Check that the reward pools are updated. All reward pools should have been dripped per the constant 10% rate.
       uint256 drippedRewards_ = oldRewardPools_[i].undrippedRewards.mulWadDown(0.1e18);
@@ -718,7 +733,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       assertGt(newClaimableRewards_[i].cumulativeClaimableRewards, oldClaimableRewards_[i].cumulativeClaimableRewards);
 
       // Check that user rewards are updated and transferred to receiver.
-      assertEq(rewardAsset_.balanceOf(receiver_), accruedRewards_);
+      assertEq(rewardAsset_.balanceOf(receiver_), claimedRewardsAmount_);
       assertEq(newUserRewards_[i].indexSnapshot, newClaimableRewards_[i].indexSnapshot);
       assertEq(newUserRewards_[i].accruedRewards, 0);
     }
@@ -841,13 +856,18 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     IERC20 rewardAssetB_ = component.getRewardPool(1).asset;
     IERC20 rewardAssetC_ = component.getRewardPool(2).asset;
     // Rewards received are equal to the amount dripped from each reward pool * rewardsWeight *
-    // (userStkReceiptTokenBalance / totalStkReceiptTokenSupply).
-    assertApproxEqAbs(rewardAssetA_.balanceOf(user_), 50, 1); // ~= 1000 * 0.1 * 0.5
-    assertApproxEqAbs(rewardAssetB_.balanceOf(user_), 12_500_000, 1); // ~= 250000000 * 0.1 * 0.5
-    assertApproxEqAbs(rewardAssetC_.balanceOf(user_), 494, 1); // ~= 9899 * 0.1 * 0.5
-    assertApproxEqAbs(rewardAssetA_.balanceOf(receiver_), 25, 1); // ~= 1000 * 0.1 * 0.25
-    assertApproxEqAbs(rewardAssetB_.balanceOf(receiver_), 6_249_999, 1); // ~= 250000000 * 0.1 * 0.25
-    assertApproxEqAbs(rewardAssetC_.balanceOf(receiver_), 247, 1); // ~= 9899 * 0.1 * 0.25
+    // (userStkReceiptTokenBalance / totalStkReceiptTokenSupply) minus the 2% claim fee.
+    assertApproxEqAbs(rewardAssetA_.balanceOf(user_), 49, 1); // ~= (1000 * 0.1 * 0.5) * 0.98 = 49
+    assertApproxEqAbs(rewardAssetB_.balanceOf(user_), 12_250_000, 1); // ~= (250000000 * 0.1 * 0.5) * 0.98 = 12250000
+    assertApproxEqAbs(rewardAssetC_.balanceOf(user_), 484, 1); // ~= (9899 * 0.1 * 0.5) * 0.98 = 484
+    assertApproxEqAbs(rewardAssetA_.balanceOf(receiver_), 24, 1); // ~= (1000 * 0.1 * 0.25) * 0.98 = 24
+    assertApproxEqAbs(rewardAssetB_.balanceOf(receiver_), 6_124_999, 1); // ~= (250000000 * 0.1 * 0.25) * 0.98 = 6124999
+    assertApproxEqAbs(rewardAssetC_.balanceOf(receiver_), 242, 1); // ~= (9899 * 0.1 * 0.25) * 0.98 = 242
+
+    // The owner should receive the claim fees removed from the user and receiver rewards above
+    assertEq(rewardAssetA_.balanceOf(cozyManager.owner()), 2);
+    assertEq(rewardAssetB_.balanceOf(cozyManager.owner()), 375_000);
+    assertEq(rewardAssetC_.balanceOf(cozyManager.owner()), 15);
   }
 
   function test_claimRewardsConcreteBatch() public {
@@ -868,20 +888,20 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     IERC20 rewardAssetC_ = component.getRewardPool(2).asset;
 
     // These values should match exactly the accounting in `test_claimRewardsConcrete`.
-    uint256 rewardsReceivedPoolA_ = 49 + 2138;
-    uint256 rewardsReceivedPoolB_ = 7_031_250 + 416_250_000;
-    uint256 rewardsReceivedPoolC_ = 7198;
+    uint256 rewardsReceivedPoolA_ = 2143; // (49 + 2138) * 0.98
+    uint256 rewardsReceivedPoolB_ = 414_815_625; // (7_031_250 + 416_250_000) * 0.98
+    uint256 rewardsReceivedPoolC_ = 7054; // 7198 * 0.98
 
     _expectEmit();
-    emit ClaimedRewards(0, 0, rewardAssetA_, 49, user_, receiver_);
+    emit ClaimedRewards(0, 0, rewardAssetA_, 48, user_, receiver_);
     _expectEmit();
-    emit ClaimedRewards(0, 1, rewardAssetB_, 7_031_250, user_, receiver_);
+    emit ClaimedRewards(0, 1, rewardAssetB_, 6_890_625, user_, receiver_);
     _expectEmit();
-    emit ClaimedRewards(1, 0, rewardAssetA_, 2138, user_, receiver_);
+    emit ClaimedRewards(1, 0, rewardAssetA_, 2095, user_, receiver_);
     _expectEmit();
-    emit ClaimedRewards(1, 1, rewardAssetB_, 416_250_000, user_, receiver_);
+    emit ClaimedRewards(1, 1, rewardAssetB_, 407_925_000, user_, receiver_);
     _expectEmit();
-    emit ClaimedRewards(1, 2, rewardAssetC_, 7198, user_, receiver_);
+    emit ClaimedRewards(1, 2, rewardAssetC_, 7054, user_, receiver_);
 
     uint16[] memory stakePoolIds_ = new uint16[](2);
     stakePoolIds_[0] = 0;
@@ -894,6 +914,11 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     assertEq(rewardAssetA_.balanceOf(receiver_), rewardsReceivedPoolA_);
     assertEq(rewardAssetB_.balanceOf(receiver_), rewardsReceivedPoolB_);
     assertEq(rewardAssetC_.balanceOf(receiver_), rewardsReceivedPoolC_);
+
+    // Check that owner received the claim fees.
+    assertEq(rewardAssetA_.balanceOf(cozyManager.owner()), 44); // (49 + 2138) * 0.02
+    assertEq(rewardAssetB_.balanceOf(cozyManager.owner()), 8_465_625); // (7_031_250 + 416_250_000) * 0.02
+    assertEq(rewardAssetC_.balanceOf(cozyManager.owner()), 144); // 7198 * 0.02
   }
 }
 
@@ -948,10 +973,11 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
 
     // Reward amounts received by `user_` are calculated as: rewardPool.amount * dripRate *
     // rewardsPoolWeight * (userstkReceiptTokenBalance / totalstkReceiptTokenSupply).
-    assertApproxEqAbs(rewardAssetA_.balanceOf(user_), 37, 1); // 100_000 * 0.01 * 0.1 * (0.5 * 0.75)
-    assertApproxEqAbs(rewardAssetB_.balanceOf(user_), 9_375_000, 1); // 1_000_000_000 * 0.25 * 0.1 *
-      // (0.5 * 0.75)
-    assertApproxEqAbs(rewardAssetC_.balanceOf(user_), 370, 1); // 9_999 * 0.99 * 0.1 * (0.5 * 0.75)
+    assertApproxEqAbs(rewardAssetA_.balanceOf(user_), 36, 1); // 100_000 * 0.01 * 0.1 * (0.5 * 0.75) * 0.98 (where 0.98
+      // is from 2% claim fee)
+    assertApproxEqAbs(rewardAssetB_.balanceOf(user_), 9_187_500, 1); // 1_000_000_000 * 0.25 * 0.1 *
+      // (0.5 * 0.75) * 0.98
+    assertApproxEqAbs(rewardAssetC_.balanceOf(user_), 362, 1); // 9_999 * 0.99 * 0.1 * (0.5 * 0.75) * 0.98
 
     UserRewardsData[] memory userRewardsData_ = component.getUserRewards(0, user_);
     UserRewardsData[] memory expectedUserRewardsData_ = new UserRewardsData[](3);
@@ -967,10 +993,11 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
     component.claimRewards(0, receiver_);
     vm.stopPrank();
 
-    assertApproxEqAbs(rewardAssetA_.balanceOf(receiver_), 24, 1); // (100_000 + 99_000) * 0.01 * 0.1 * (0.5 * 0.25)
-    assertApproxEqAbs(rewardAssetB_.balanceOf(receiver_), 5_468_750, 1); // (1_000_000_000 + 750_000_000) * 0.25 * 0.1 *
+    assertApproxEqAbs(rewardAssetA_.balanceOf(receiver_), 23, 1); // (100_000 + 99_000) * 0.01 * 0.1 * (0.5 * 0.25) *
+      // 0.98 (where 0.98 is from 2% claim fee)
+    assertApproxEqAbs(rewardAssetB_.balanceOf(receiver_), 5_359_375, 1); // (1_000_000_000 + 750_000_000) * 0.25 * 0.1 *
       // (0.5 * 0.25)
-    assertApproxEqAbs(rewardAssetC_.balanceOf(receiver_), 124, 1); // (9_999 + 0) * 1.0 * 0.1 * (0.5 * 0.25)
+    assertApproxEqAbs(rewardAssetC_.balanceOf(receiver_), 121, 1); // (9_999 + 0) * 1.0 * 0.1 * (0.5 * 0.25)
 
     UserRewardsData[] memory receiverRewardsData_ = component.getUserRewards(0, receiver_);
     UserRewardsData[] memory expectedReceiverRewardsData_ = new UserRewardsData[](3);
@@ -1014,9 +1041,10 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
     IERC20 rewardAssetB_ = rewardPools_[1].asset;
     IERC20 rewardAssetC_ = rewardPools_[2].asset;
 
-    assertApproxEqAbs(rewardAssetA_.balanceOf(user_), 50, 1); // 100_000 * 0.01 * 0.1 * 0.5
-    assertApproxEqAbs(rewardAssetB_.balanceOf(user_), 12_500_000, 1); // 1_000_000_000 * 0.25 * 0.1 * 0.5
-    assertApproxEqAbs(rewardAssetC_.balanceOf(user_), 494, 1); // 9_999 * 0.99 * 0.1 * 0.5
+    assertApproxEqAbs(rewardAssetA_.balanceOf(user_), 49, 1); // 100_000 * 0.01 * 0.1 * 0.5 * 0.98 (where 0.98 is from
+      // 2% claim fee)
+    assertApproxEqAbs(rewardAssetB_.balanceOf(user_), 12_250_000, 1); // 1_000_000_000 * 0.25 * 0.1 * 0.5 * 0.98
+    assertApproxEqAbs(rewardAssetC_.balanceOf(user_), 484, 1); // 9_999 * 0.99 * 0.1 * 0.5 * 0.98
 
     // Receiver should receive no rewards.
     assertEq(rewardAssetA_.balanceOf(receiver_), 0);
@@ -1137,7 +1165,15 @@ contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistri
 }
 
 contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, RewardsManagerInspector {
+  constructor(MockManager manager_) {
+    cozyManager = ICozyManager(address(manager_));
+  }
+
   // -------- Mock setters --------
+  function setClaimFee(uint16 claimFee_) external {
+    MockManager(address(cozyManager)).setClaimFee(claimFee_);
+  }
+
   function mockAddStakePool(StakePool memory stakePool_) external {
     stakePools.push(stakePool_);
   }
