@@ -5,11 +5,13 @@ import {console2} from "forge-std/console2.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {RewardsManager} from "../../../src/RewardsManager.sol";
 import {StakePool, RewardPool} from "../../../src/lib/structs/Pools.sol";
 import {PreviewClaimableRewards, PreviewClaimableRewardsData} from "../../../src/lib/structs/Rewards.sol";
 import {RewardsManagerState} from "../../../src/lib/RewardsManagerStates.sol";
 import {IRewardsManager} from "../../../src/interfaces/IRewardsManager.sol";
+import {ICozyManager} from "../../../src/interfaces/ICozyManager.sol";
 import {TestBase} from "../../utils/TestBase.sol";
 
 contract RewardsManagerHandler is TestBase {
@@ -23,6 +25,7 @@ contract RewardsManagerHandler is TestBase {
   address owner;
 
   IRewardsManager public rewardsManager;
+  ICozyManager public cozyManager;
 
   uint256 numStakePools;
   uint256 numRewardPools;
@@ -58,6 +61,7 @@ contract RewardsManagerHandler is TestBase {
     ghost_actorRewardDepositCount;
 
   mapping(IERC20 asset_ => uint256 amount_) public ghost_rewardsClaimed;
+  mapping(IERC20 asset_ => uint256 amount_) public ghost_rewardsPaidAsFees;
 
   // -------- Structs --------
 
@@ -75,11 +79,13 @@ contract RewardsManagerHandler is TestBase {
 
   constructor(
     IRewardsManager rewardsManager_,
+    ICozyManager cozyManager_,
     uint256 numStakePools_,
     uint256 numRewardPools_,
     uint256 currentTimestamp_
   ) {
     rewardsManager = rewardsManager_;
+    cozyManager = cozyManager_;
     numStakePools = numStakePools_;
     numRewardPools = numRewardPools_;
     // TODO: pauser = rewardsManager_.pauser();
@@ -223,7 +229,7 @@ contract RewardsManagerHandler is TestBase {
       return 0;
     }
 
-    _incrementGhostRewardsToBeClaimed(currentStakePoolId, currentActor);
+    _incrementGhostRewardsToBeClaimedAndPaidAsFees(currentStakePoolId, currentActor);
 
     stkReceiptTokenUnstakeAmount_ = bound(_randomUint256(), 1, actorStkReceiptTokenBalance_);
     vm.startPrank(currentActor);
@@ -304,7 +310,7 @@ contract RewardsManagerHandler is TestBase {
       return currentActor;
     }
 
-    _incrementGhostRewardsToBeClaimed(currentStakePoolId, currentActor);
+    _incrementGhostRewardsToBeClaimedAndPaidAsFees(currentStakePoolId, currentActor);
 
     vm.startPrank(currentActor);
     rewardsManager.claimRewards(currentStakePoolId, receiver_);
@@ -313,7 +319,7 @@ contract RewardsManagerHandler is TestBase {
     return currentActor;
   }
 
-  function _incrementGhostRewardsToBeClaimed(uint16 currentStakePool_, address currentActor_) public {
+  function _incrementGhostRewardsToBeClaimedAndPaidAsFees(uint16 currentStakePool_, address currentActor_) public {
     uint16[] memory stakePoolIds_ = new uint16[](1);
     stakePoolIds_[0] = currentStakePool_;
     PreviewClaimableRewards[] memory reservePoolClaimableRewards_ =
@@ -323,6 +329,7 @@ contract RewardsManagerHandler is TestBase {
       PreviewClaimableRewardsData memory rewardPoolClaimableRewards_ =
         reservePoolClaimableRewards_[0].claimableRewardsData[j];
       ghost_rewardsClaimed[rewardPoolClaimableRewards_.asset] += rewardPoolClaimableRewards_.amount;
+      ghost_rewardsPaidAsFees[rewardPoolClaimableRewards_.asset] += rewardPoolClaimableRewards_.claimFeeAmount;
     }
   }
 

@@ -65,7 +65,8 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
   }
 
   function _initHandler() internal {
-    rewardsManagerHandler = new RewardsManagerHandler(rewardsManager, numStakePools, numRewardPools, block.timestamp);
+    rewardsManagerHandler =
+      new RewardsManagerHandler(rewardsManager, cozyManager, numStakePools, numRewardPools, block.timestamp);
     targetSelector(FuzzSelector({addr: address(rewardsManagerHandler), selectors: _fuzzedSelectors()}));
     targetContract(address(rewardsManagerHandler));
   }

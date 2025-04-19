@@ -296,12 +296,13 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
         ).accruedRewards
         : _previewAddUserRewardsData(ownerStkReceiptTokenBalance_, previewNextClaimableRewardsData_.indexSnapshot)
           .accruedRewards;
-      uint256 claimedRewardsAmount_ = accruedRewards_ - _computeClaimFeeAmount(accruedRewards_, claimFee_);
+      uint256 claimFeeAmount_ = _computeClaimFeeAmount(accruedRewards_, claimFee_);
 
       claimableRewardsData_[i] = PreviewClaimableRewardsData({
         rewardPoolId: i,
         asset: nextRewardDrips_[i].rewardAsset,
-        amount: claimedRewardsAmount_
+        amount: accruedRewards_ - claimFeeAmount_,
+        claimFeeAmount: claimFeeAmount_
       });
     }
 

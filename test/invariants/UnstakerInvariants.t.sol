@@ -25,6 +25,7 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
   }
 
   mapping(IERC20 rewardAsset_ => uint256) public actorRewardsToBeClaimed;
+  mapping(IERC20 rewardAsset_ => uint256) public rewardFeesToBePaid;
 
   function invariant_unstake() public syncCurrentTimestamp(rewardsManagerHandler) {
     UnstakeStakePoolData[] memory unstakeStakePoolData_ = new UnstakeStakePoolData[](numStakePools);
@@ -63,6 +64,8 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       actorRewardsToBeClaimed[rewardsManager.rewardPools(rewardPoolId_).asset] +=
         actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
+      rewardFeesToBePaid[rewardsManager.rewardPools(rewardPoolId_).asset] +=
+        actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].claimFeeAmount;
     }
 
     vm.prank(actor_);
@@ -106,7 +109,7 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
         require(
           currentAssetPool_.amount
             == unstakeStakePoolData_[stakePoolId_].assetPoolAmount - stkReceiptTokenUnstakeAmount_
-              - actorRewardsToBeClaimed[currentStakePool_.asset],
+              - (actorRewardsToBeClaimed[currentStakePool_.asset] + rewardFeesToBePaid[currentStakePool_.asset]),
           string.concat(
             "Invariant Violated: An asset pool's internal balance must decrease by the unstake amount + claimed rewards from reward pools using the same asset.",
             " stakePoolId_: ",
@@ -122,7 +125,7 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
         require(
           unstakedStakePool_.asset.balanceOf(address(rewardsManager))
             == unstakeStakePoolData_[stakePoolId_].assetAmount - stkReceiptTokenUnstakeAmount_
-              - actorRewardsToBeClaimed[currentStakePool_.asset],
+              - (actorRewardsToBeClaimed[currentStakePool_.asset] + rewardFeesToBePaid[currentStakePool_.asset]),
           string.concat(
             "Invariant Violated: The rewards manager's balance of the underlying stake asset must decrease by the unstake amount + claimed rewards from reward pools using the same asset.",
             " stakePoolId_: ",
@@ -167,7 +170,8 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
         );
         require(
           currentAssetPool_.amount
-            == unstakeStakePoolData_[stakePoolId_].assetPoolAmount - actorRewardsToBeClaimed[currentStakePool_.asset],
+            == unstakeStakePoolData_[stakePoolId_].assetPoolAmount
+              - (actorRewardsToBeClaimed[currentStakePool_.asset] + rewardFeesToBePaid[currentStakePool_.asset]),
           string.concat(
             "Invariant Violated: An asset pool's internal balance must not increase.",
             " stakePoolId_: ",
@@ -182,7 +186,8 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
         );
         require(
           currentStakePool_.asset.balanceOf(address(rewardsManager))
-            == unstakeStakePoolData_[stakePoolId_].assetAmount - actorRewardsToBeClaimed[currentStakePool_.asset],
+            == unstakeStakePoolData_[stakePoolId_].assetAmount
+              - (actorRewardsToBeClaimed[currentStakePool_.asset] + rewardFeesToBePaid[currentStakePool_.asset]),
           string.concat(
             "Invariant Violated: The rewards manager's balance of the underlying stake asset must not increase.",
             " stakePoolId_: ",

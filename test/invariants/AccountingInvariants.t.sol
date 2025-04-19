@@ -57,6 +57,8 @@ abstract contract AccountingInvariantsWithStateTransitions is InvariantTestBaseW
       if (!ghostRewardsClaimedIncluded[rewardPool_.asset]) {
         accountingSums[rewardPool_.asset] -=
           rewardsManagerHandler.ghost_rewardsClaimed(IERC20(address(rewardPool_.asset)));
+        accountingSums[rewardPool_.asset] -=
+          rewardsManagerHandler.ghost_rewardsPaidAsFees(IERC20(address(rewardPool_.asset)));
         ghostRewardsClaimedIncluded[rewardPool_.asset] = true;
       }
     }

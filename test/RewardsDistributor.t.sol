@@ -634,10 +634,14 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       new PreviewClaimableRewardsData[](rewardPools_.length);
     for (uint16 i = 0; i < rewardPools_.length; i++) {
       IERC20 asset_ = rewardPools_[i].asset;
-      expectedPreviewClaimableRewardsData_[i] =
-        PreviewClaimableRewardsData({rewardPoolId: i, amount: asset_.balanceOf(receiver_), asset: asset_});
+      expectedPreviewClaimableRewardsData_[i] = PreviewClaimableRewardsData({
+        rewardPoolId: i,
+        amount: asset_.balanceOf(receiver_),
+        claimFeeAmount: asset_.balanceOf(cozyManager.owner()),
+        asset: asset_
+      });
       expectedPreviewClaimableRewardsDataPool0_[i] =
-        PreviewClaimableRewardsData({rewardPoolId: i, amount: 0, asset: asset_});
+        PreviewClaimableRewardsData({rewardPoolId: i, amount: 0, claimFeeAmount: 0, asset: asset_});
     }
     expectedPreviewClaimableRewards_[0] =
       PreviewClaimableRewards({stakePoolId: stakePoolId_, claimableRewardsData: expectedPreviewClaimableRewardsData_});
@@ -677,6 +681,10 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       // claim
     assertEq(previewClaimableRewards_[0].claimableRewardsData[1].amount, 73_500_000);
     assertEq(previewClaimableRewards_[0].claimableRewardsData[2].amount, 2909);
+
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[0].claimFeeAmount, 6); // 300 * 0.02
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[1].claimFeeAmount, 1_500_000); // 73_500_000 * 0.02
+    assertEq(previewClaimableRewards_[0].claimableRewardsData[2].claimFeeAmount, 60); // 2969 * 0.02
 
     // Rewards Manager becomes paused.
     component.mockRewardsManagerState(RewardsManagerState.PAUSED);
