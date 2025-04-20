@@ -271,7 +271,7 @@ contract RewardsManagerHandler is TestBase {
     }
 
     uint256 boundedStkReceiptTokenTransferAmount_ =
-      bound(uint256(stkReceiptTokenTransferAmount_), 0, actorStkReceiptTokenBalance_);
+      bound(uint256(stkReceiptTokenTransferAmount_), 1, actorStkReceiptTokenBalance_);
 
     vm.startPrank(currentActor);
     // This will call `updateUserRewardsForStkReceiptTokenTransfer` in the RewardsManager.

@@ -55,6 +55,7 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
     if (actor_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
     uint16 unstakedStakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), actor_);
     StakePool memory unstakedStakePool_ = getStakePool(rewardsManager, unstakedStakePoolId_);
+    if (unstakedStakePool_.stkReceiptToken.balanceOf(actor_) == 0) return;
     uint256 stkReceiptTokenUnstakeAmount_ =
       bound(_randomUint256(), 1, unstakedStakePool_.stkReceiptToken.balanceOf(actor_));
 
@@ -269,15 +270,19 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
         )
       );
 
+      bool isActorOwner_ = actor_ == rewardsManager.cozyManager().owner();
       require(
         rewardPool_.asset.balanceOf(actor_)
-          == actorPreBalances_[rewardPoolId_] + actorRewardsToBeClaimed[rewardPool_.asset],
+          == actorPreBalances_[rewardPoolId_] + actorRewardsToBeClaimed[rewardPool_.asset]
+            + (isActorOwner_ ? rewardFeesToBePaid[rewardPool_.asset] : 0),
         string.concat(
           "Invariant Violated: The actor balance must be the pre-balance plus the rewards to be claimed.",
           " actorPostBalance: ",
           Strings.toString(IERC20(rewardsManager.rewardPools(rewardPoolId_).asset).balanceOf(actor_)),
           ", actorPreBalance: ",
           Strings.toString(actorPreBalances_[rewardPoolId_]),
+          ", actorRewardsToBeClaimed: ",
+          Strings.toString(actorRewardsToBeClaimed[rewardPool_.asset]),
           ", actor: ",
           Strings.toHexString(uint160(actor_)),
           ", stakePoolId: ",

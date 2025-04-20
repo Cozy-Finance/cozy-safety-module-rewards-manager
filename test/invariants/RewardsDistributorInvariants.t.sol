@@ -7,6 +7,7 @@ import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {Ownable} from "cozy-safety-module-libs/lib/Ownable.sol";
 import {StakePool, RewardPool} from "../../src/lib/structs/Pools.sol";
+import {RewardsManagerState} from "../../src/lib/RewardsManagerStates.sol";
 import {ClaimableRewardsData, UserRewardsData, PreviewClaimableRewards} from "../../src/lib/structs/Rewards.sol";
 import {
   InvariantTestBaseWithStateTransitions,
@@ -185,7 +186,9 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     ClaimableRewardsData[][] memory postClaimableRewards_ = rewardsManager.getClaimableRewards();
 
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
-      _invariant_dripRewardPoolChanged(preRewardPools_[rewardPoolId_], postRewardPools_[rewardPoolId_]);
+      if (rewardsManager.rewardsManagerState() == RewardsManagerState.ACTIVE) {
+        _invariant_dripRewardPoolChanged(preRewardPools_[rewardPoolId_], postRewardPools_[rewardPoolId_]);
+      }
 
       uint256 preCumulativeClaimableRewards_ =
         preClaimableRewards_[stakePoolId_][rewardPoolId_].cumulativeClaimableRewards;
@@ -364,8 +367,9 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
 
   function invariant_stkReceiptTokenTransferAccounting() public syncCurrentTimestamp(rewardsManagerHandler) {
     address to_ = _randomAddress();
-    (address from_,) = rewardsManagerHandler.stkReceiptTokenTransfer(_randomUint64(), to_, _randomUint256());
+    (address from_, uint256 amount_) = rewardsManagerHandler.stkReceiptTokenTransfer(_randomUint64(), to_, _randomUint256());
     if (from_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
+    if (amount_ == 0) return;
 
     uint16 stakePoolId_ = rewardsManagerHandler.currentStakePoolId();
     UserRewardsData[] memory fromUserRewards_ = rewardsManager.getUserRewards(stakePoolId_, from_);

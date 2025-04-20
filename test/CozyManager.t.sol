@@ -149,6 +149,15 @@ contract CozyManagerUpdateClaimFees is MockDeployProtocol, CozyManagerTestSetup 
     cozyManager.updateClaimFee(newClaimFee_);
   }
 
+  function test_updateOverrideClaimFee_revertInvalidClaimFee() public {
+    uint16 claimFee_ = uint16(bound(_randomUint16(), MathConstants.ZOC + 1, type(uint16).max));
+    IRewardsManager rewardsManager_ = IRewardsManager(_randomAddress());
+
+    vm.expectRevert(ICozyManagerEvents.InvalidClaimFee.selector);
+    vm.prank(owner);
+    cozyManager.updateOverrideClaimFee(rewardsManager_, claimFee_);
+  }
+
   function test_updateOverrideClaimFee_revertNonOwnerAddress() public {
     uint16 newClaimFee_ = uint16(bound(_randomUint16(), 0, MathConstants.ZOC));
     IRewardsManager rewardsManager_ = IRewardsManager(_randomAddress());
@@ -217,7 +226,7 @@ contract CozyManagerUpdateClaimFees is MockDeployProtocol, CozyManagerTestSetup 
   {
     vm.assume(rewardsManagerAddress_ != otherRewardsManagerAddress_);
 
-    uint16 newClaimFee_ = uint16(bound(claimFee_, 0, MathConstants.ZOC));
+    claimFee_ = uint16(bound(claimFee_, 0, MathConstants.ZOC));
     IRewardsManager rewardsManager_ = IRewardsManager(rewardsManagerAddress_);
     IRewardsManager otherRewardsManager_ = IRewardsManager(otherRewardsManagerAddress_);
 

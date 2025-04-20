@@ -229,11 +229,9 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
   function test_updateConfigs() public {
     (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setUpConfigUpdate();
 
-    vm.startPrank(owner);
     uint256 gasInitial_ = gasleft();
     rewardsManager.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
     console2.log("Gas used for updateConfigs: %s", gasInitial_ - gasleft());
-    vm.stopPrank();
   }
 }
 

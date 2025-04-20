@@ -50,6 +50,7 @@ contract CozyManager is Governable, ICozyManager {
   /// @param rewardsManager_ The RewardsManager to update the claim fee for.
   /// @param claimFee_ The new fee claim fee for the RewardsManager.
   function updateOverrideClaimFee(IRewardsManager rewardsManager_, uint16 claimFee_) external onlyOwner {
+    if (claimFee_ > MathConstants.ZOC) revert InvalidClaimFee();
     overrideClaimFees[rewardsManager_] = ClaimFeeLookup({exists: true, claimFee: claimFee_});
     emit OverrideClaimFeeUpdated(rewardsManager_, claimFee_);
   }

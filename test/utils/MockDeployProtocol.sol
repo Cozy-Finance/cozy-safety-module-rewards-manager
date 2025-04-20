@@ -23,7 +23,7 @@ contract MockDeployer is TestBase {
   IRewardsManager rewardsManagerLogic;
   ICozyManager cozyManager;
 
-  address owner = address(this);
+  address owner = address(0xABCD);
   address pauser = address(0xBEEF);
 
   uint16 constant ALLOWED_STAKE_POOLS = 100;
