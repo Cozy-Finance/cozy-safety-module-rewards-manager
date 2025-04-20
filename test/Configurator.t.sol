@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.22;
 
-import {ReceiptToken} from "cozy-safety-module-shared/ReceiptToken.sol";
-import {ReceiptTokenFactory} from "cozy-safety-module-shared/ReceiptTokenFactory.sol";
-import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
-import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
-import {ICommonErrors} from "cozy-safety-module-shared/interfaces/ICommonErrors.sol";
-import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
-import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
+import {ReceiptToken} from "cozy-safety-module-libs/ReceiptToken.sol";
+import {ReceiptTokenFactory} from "cozy-safety-module-libs/ReceiptTokenFactory.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
+import {Ownable} from "cozy-safety-module-libs/lib/Ownable.sol";
+import {ICommonErrors} from "cozy-safety-module-libs/interfaces/ICommonErrors.sol";
+import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
+import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
+import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptTokenFactory.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../src/lib/structs/Configs.sol";
 import {StakePool, RewardPool, IdLookup} from "../src/lib/structs/Pools.sol";
 import {ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
@@ -24,7 +24,6 @@ import {IConfiguratorEvents} from "../src/interfaces/IConfiguratorEvents.sol";
 import {IConfiguratorErrors} from "../src/interfaces/IConfiguratorErrors.sol";
 import {MockDripModel} from "./utils/MockDripModel.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
-import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 

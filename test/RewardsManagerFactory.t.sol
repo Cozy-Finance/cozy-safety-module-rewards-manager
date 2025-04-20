@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.22;
 
-import {ReceiptToken} from "cozy-safety-module-shared/ReceiptToken.sol";
-import {ReceiptTokenFactory} from "cozy-safety-module-shared/ReceiptTokenFactory.sol";
-import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
-import {SafetyModuleState} from "cozy-safety-module-shared/lib/SafetyModuleStates.sol";
+import {ReceiptToken} from "cozy-safety-module-libs/ReceiptToken.sol";
+import {ReceiptTokenFactory} from "cozy-safety-module-libs/ReceiptTokenFactory.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
+import {SafetyModuleState} from "cozy-safety-module-libs/lib/SafetyModuleStates.sol";
 import {IConfiguratorErrors} from "../src/interfaces/IConfiguratorErrors.sol";
-import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
-import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
+import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
+import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
+import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptTokenFactory.sol";
 import {StkReceiptToken} from "../src/StkReceiptToken.sol";
 import {StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../src/lib/structs/Configs.sol";

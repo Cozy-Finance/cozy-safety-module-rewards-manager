@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {Script} from "forge-std/Script.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 
 // Used to track the rewards a user is entitled to for a given (stake pool, reward pool) pair.
 struct UserRewardsData {
@@ -43,6 +43,8 @@ struct PreviewClaimableRewardsData {
   uint16 rewardPoolId;
   // The amount of claimable rewards.
   uint256 amount;
+  // The claim fee amount.
+  uint256 claimFeeAmount;
   // The reward asset.
   IERC20 asset;
 }

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
-import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
-import {ReceiptToken} from "cozy-safety-module-shared/ReceiptToken.sol";
-import {ReceiptTokenFactory} from "cozy-safety-module-shared/ReceiptTokenFactory.sol";
+import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
+import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptTokenFactory.sol";
+import {ReceiptToken} from "cozy-safety-module-libs/ReceiptToken.sol";
+import {ReceiptTokenFactory} from "cozy-safety-module-libs/ReceiptTokenFactory.sol";
 import {console2} from "forge-std/console2.sol";
 import {stdJson} from "forge-std/StdJson.sol";
 import {ScriptUtils} from "./utils/ScriptUtils.sol";
@@ -64,6 +64,9 @@ contract DeployProtocol is ScriptUtils {
   uint16 allowedStakePools;
   uint16 allowedRewardPools;
 
+  // The default claim fee.
+  uint16 claimFee;
+
   // Core contracts to deploy.
   CozyManager manager;
   RewardsManager rewardsManagerLogic;
@@ -87,6 +90,7 @@ contract DeployProtocol is ScriptUtils {
     // -------- Pool Limits --------
     allowedStakePools = uint16(json_.readUint(".allowedStakePools"));
     allowedRewardPools = uint16(json_.readUint(".allowedRewardPools"));
+    claimFee = uint16(json_.readUint(".claimFee"));
 
     // -------------------------------------
     // -------- Address Computation --------
@@ -111,7 +115,7 @@ contract DeployProtocol is ScriptUtils {
 
     // -------- Deploy: CozyManager --------
     vm.broadcast();
-    manager = new CozyManager(owner, pauser, computedAddrRewardsManagerFactory_);
+    manager = new CozyManager(owner, pauser, computedAddrRewardsManagerFactory_, claimFee);
     console2.log("CozyRewardsManager deployed:", address(manager));
     require(address(manager) == address(computedAddrManager_), "CozyManager address mismatch");
 

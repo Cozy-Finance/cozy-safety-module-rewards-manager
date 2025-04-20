@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
-import {Ownable} from "cozy-safety-module-shared/lib/Ownable.sol";
-import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
-import {SafeERC20} from "cozy-safety-module-shared/lib/SafeERC20.sol";
+import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
+import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
+import {Ownable} from "cozy-safety-module-libs/lib/Ownable.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
+import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {StakePool, AssetPool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
@@ -29,6 +30,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint16 indexed rewardPoolId_,
     IERC20 rewardAsset_,
     uint256 amount_,
+    uint256 claimFeeAmount_,
     address indexed owner_,
     address receiver_
   );
@@ -46,13 +48,14 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint256 numUserRewardAssets;
   }
 
-  struct TransferClaimedRewardsArgs {
+  struct FinalizeClaimedRewardsArgs {
     uint16 stakePoolId;
     uint16 rewardPoolId;
     IERC20 rewardAsset;
     address owner;
     address receiver;
     uint256 amount;
+    uint16 claimFee;
   }
 
   /// @notice Drip rewards for all reward pools.
@@ -125,10 +128,9 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[stakePoolId_];
 
     // Fully accure historical rewards for both users given their current stkReceiptToken balances. Moving forward all
-    // rewards
-    // will accrue based on: (1) the stkReceiptToken balances of the `from_` and `to_` address after the transfer, (2)
-    // the
-    // current claimable reward index snapshots.
+    // rewards will accrue based on: (1) the stkReceiptToken balances of the `from_` and `to_` address after the
+    // transfer, (2)
+    // the current claimable reward index snapshots.
     _updateUserRewards(stkReceiptToken_.balanceOf(from_), claimableRewards_, userRewards[stakePoolId_][from_]);
     _updateUserRewards(stkReceiptToken_.balanceOf(to_), claimableRewards_, userRewards[stakePoolId_][to_]);
   }
@@ -147,6 +149,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[args_.stakePoolId];
     UserRewardsData[] storage userRewards_ = userRewards[args_.stakePoolId][args_.owner];
+    uint16 claimFee_ = cozyManager.getClaimFee(IRewardsManager(address(this)));
 
     ClaimRewardsData memory claimRewardsData_ = ClaimRewardsData({
       userStkReceiptTokenBalance: stkReceiptToken_.balanceOf(args_.owner),
@@ -160,7 +163,8 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     // (1) Drip from the reward pool since time may have passed since the last drip.
     // (2) Compute and update the next claimable rewards data for the (stake pool, reward pool) pair.
     // (3) Update the user's accrued rewards data for the (stake pool, reward pool) pair.
-    // (4) Transfer the user's accrued rewards from the reward pool to the receiver.
+    // (4) Transfer the user's accrued rewards from the reward pool to the receiver, while potentially taking a fee (if
+    // set) that is sent to the protocol owner
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < claimRewardsData_.numRewardAssets; rewardPoolId_++) {
       // Step (1)
       RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
@@ -192,8 +196,8 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
         }
 
         // Step (4)
-        _transferClaimedRewards(
-          TransferClaimedRewardsArgs(
+        _finalizeClaimedRewards(
+          FinalizeClaimedRewardsArgs(
             args_.stakePoolId,
             rewardPoolId_,
             rewardPool_.asset,
@@ -202,7 +206,8 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
             oldAccruedRewards_
               + _getUserAccruedRewards(
                 claimRewardsData_.userStkReceiptTokenBalance, newClaimableRewardsData_.indexSnapshot, oldIndexSnapshot_
-              )
+              ),
+            claimFee_
           )
         );
       }
@@ -233,12 +238,26 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     }
   }
 
-  function _transferClaimedRewards(TransferClaimedRewardsArgs memory args_) internal {
+  function _finalizeClaimedRewards(FinalizeClaimedRewardsArgs memory args_) internal {
     if (args_.amount == 0) return;
     assetPools[args_.rewardAsset].amount -= args_.amount;
-    args_.rewardAsset.safeTransfer(args_.receiver, args_.amount);
+
+    // Transfer the claim fee to the protocol owner
+    uint256 claimFeeAmount_ = _computeClaimFeeAmount(args_.amount, args_.claimFee);
+    if (claimFeeAmount_ > 0) args_.rewardAsset.safeTransfer(cozyManager.owner(), claimFeeAmount_);
+    uint256 claimedAmount_ = args_.amount - claimFeeAmount_;
+
+    // Transfer the remaining amount to the receiver
+    args_.rewardAsset.safeTransfer(args_.receiver, claimedAmount_);
+
     emit ClaimedRewards(
-      args_.stakePoolId, args_.rewardPoolId, args_.rewardAsset, args_.amount, args_.owner, args_.receiver
+      args_.stakePoolId,
+      args_.rewardPoolId,
+      args_.rewardAsset,
+      claimedAmount_,
+      claimFeeAmount_,
+      args_.owner,
+      args_.receiver
     );
   }
 
@@ -259,6 +278,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint256 stkReceiptTokenSupply_ = stkReceiptToken_.totalSupply();
     uint256 ownerStkReceiptTokenBalance_ = stkReceiptToken_.balanceOf(owner_);
     uint256 rewardsWeight_ = stakePool_.rewardsWeight;
+    uint16 claimFee_ = cozyManager.getClaimFee(IRewardsManager(address(this)));
 
     // Compute preview user accrued rewards accounting for any pending rewards drips.
     PreviewClaimableRewardsData[] memory claimableRewardsData_ =
@@ -275,15 +295,20 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
         stkReceiptTokenSupply_,
         rewardsWeight_
       );
+
+      uint256 accruedRewards_ = i < numUserRewardAssets_
+        ? _previewUpdateUserRewardsData(
+          ownerStkReceiptTokenBalance_, previewNextClaimableRewardsData_.indexSnapshot, userRewards_[i]
+        ).accruedRewards
+        : _previewAddUserRewardsData(ownerStkReceiptTokenBalance_, previewNextClaimableRewardsData_.indexSnapshot)
+          .accruedRewards;
+      uint256 claimFeeAmount_ = _computeClaimFeeAmount(accruedRewards_, claimFee_);
+
       claimableRewardsData_[i] = PreviewClaimableRewardsData({
         rewardPoolId: i,
         asset: nextRewardDrips_[i].rewardAsset,
-        amount: i < numUserRewardAssets_
-          ? _previewUpdateUserRewardsData(
-            ownerStkReceiptTokenBalance_, previewNextClaimableRewardsData_.indexSnapshot, userRewards_[i]
-          ).accruedRewards
-          : _previewAddUserRewardsData(ownerStkReceiptTokenBalance_, previewNextClaimableRewardsData_.indexSnapshot)
-            .accruedRewards
+        amount: accruedRewards_ - claimFeeAmount_,
+        claimFeeAmount: claimFeeAmount_
       });
     }
 
@@ -405,5 +430,9 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   ) internal pure returns (uint256) {
     // Round down, in favor of leaving assets in the rewards pool.
     return stkReceiptTokenAmount_.mulDivDown(newRewardPoolIndex - oldRewardPoolIndex, MathConstants.WAD ** 2);
+  }
+
+  function _computeClaimFeeAmount(uint256 claimAmount_, uint16 claimFee_) internal pure returns (uint256) {
+    return claimAmount_.mulDivUp(claimFee_, MathConstants.ZOC);
   }
 }

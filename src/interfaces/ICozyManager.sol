@@ -1,14 +1,34 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import {IGovernable} from "cozy-safety-module-shared/interfaces/IGovernable.sol";
+import {IGovernable} from "cozy-safety-module-libs/interfaces/IGovernable.sol";
 import {IRewardsManager} from "./IRewardsManager.sol";
 import {IRewardsManagerFactory} from "./IRewardsManagerFactory.sol";
+import {ICozyManagerEvents} from "./ICozyManagerEvents.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 
-interface ICozyManager is IGovernable {
+interface ICozyManager is IGovernable, ICozyManagerEvents {
   /// @notice Cozy protocol RewardsManagerFactory.
   function rewardsManagerFactory() external view returns (IRewardsManagerFactory rewardsManagerFactory_);
+
+  /// @notice The default claim fee used for RewardsManagers, represented as a ZOC (e.g. 500 = 5%).
+  function claimFee() external view returns (uint16);
+
+  /// @notice Update the default claim fee used for RewardsManagers.
+  /// @param claimFee_ The new default claim fee.
+  function updateClaimFee(uint16 claimFee_) external;
+
+  /// @notice Update the claim fee for a specific RewardsManager.
+  /// @param rewardsManager_ The RewardsManager to update the claim fee for.
+  /// @param claimFee_ The new fee claim fee for the RewardsManager.
+  function updateOverrideClaimFee(IRewardsManager rewardsManager_, uint16 claimFee_) external;
+
+  /// @notice Reset the override claim fee for the specified RewardsManager back to the default.
+  /// @param rewardsManager_ The RewardsManager to update the claim fee for.
+  function resetOverrideClaimFee(IRewardsManager rewardsManager_) external;
+
+  /// @notice For the specified RewardsManager, returns the claim fee.
+  function getClaimFee(IRewardsManager rewardsManager_) external view returns (uint16);
 
   /// @notice Batch pauses rewardsManagers_. The manager's pauser or owner can perform this action.
   /// @param rewardsManagers_ The array of rewards managers to pause.

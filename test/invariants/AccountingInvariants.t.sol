@@ -3,7 +3,7 @@ pragma solidity 0.8.22;
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {StakePool, RewardPool} from "../../src/lib/structs/Pools.sol";
 import {
   InvariantTestBaseWithStateTransitions,
@@ -57,6 +57,8 @@ abstract contract AccountingInvariantsWithStateTransitions is InvariantTestBaseW
       if (!ghostRewardsClaimedIncluded[rewardPool_.asset]) {
         accountingSums[rewardPool_.asset] -=
           rewardsManagerHandler.ghost_rewardsClaimed(IERC20(address(rewardPool_.asset)));
+        accountingSums[rewardPool_.asset] -=
+          rewardsManagerHandler.ghost_rewardsPaidAsFees(IERC20(address(rewardPool_.asset)));
         ghostRewardsClaimedIncluded[rewardPool_.asset] = true;
       }
     }

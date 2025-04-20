@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.22;
 
-import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
+import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {DripModelExponential} from "cozy-safety-module-models/DripModelExponential.sol";
 import {RewardsManager} from "../../src/RewardsManager.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../../src/lib/structs/Configs.sol";
@@ -229,11 +229,9 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
   function test_updateConfigs() public {
     (StakePoolConfig[] memory stakePoolConfigs_, RewardPoolConfig[] memory rewardPoolConfigs_) = _setUpConfigUpdate();
 
-    vm.startPrank(owner);
     uint256 gasInitial_ = gasleft();
     rewardsManager.updateConfigs(stakePoolConfigs_, rewardPoolConfigs_);
     console2.log("Gas used for updateConfigs: %s", gasInitial_ - gasleft());
-    vm.stopPrank();
   }
 }
 

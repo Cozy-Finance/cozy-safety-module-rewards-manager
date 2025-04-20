@@ -3,11 +3,11 @@ pragma solidity 0.8.22;
 
 import {IRewardsManager} from "../../src/interfaces/IRewardsManager.sol";
 import {IRewardsManagerFactory} from "../../src/interfaces/IRewardsManagerFactory.sol";
-import {IReceiptToken} from "cozy-safety-module-shared/interfaces/IReceiptToken.sol";
-import {IReceiptTokenFactory} from "cozy-safety-module-shared/interfaces/IReceiptTokenFactory.sol";
+import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
+import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptTokenFactory.sol";
 import {CozyManager} from "../../src/CozyManager.sol";
-import {ReceiptToken} from "cozy-safety-module-shared/ReceiptToken.sol";
-import {ReceiptTokenFactory} from "cozy-safety-module-shared/ReceiptTokenFactory.sol";
+import {ReceiptToken} from "cozy-safety-module-libs/ReceiptToken.sol";
+import {ReceiptTokenFactory} from "cozy-safety-module-libs/ReceiptTokenFactory.sol";
 import {StkReceiptToken} from "../../src/StkReceiptToken.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../../src/lib/structs/Configs.sol";
 import {RewardsManager} from "../../src/RewardsManager.sol";
@@ -23,11 +23,12 @@ contract MockDeployer is TestBase {
   IRewardsManager rewardsManagerLogic;
   ICozyManager cozyManager;
 
-  address owner = address(this);
+  address owner = address(0xABCD);
   address pauser = address(0xBEEF);
 
   uint16 constant ALLOWED_STAKE_POOLS = 100;
   uint16 constant ALLOWED_REWARD_POOLS = 100;
+  uint16 constant DEFAULT_CLAIM_FEE = 100;
 
   function deployMockProtocol() public virtual {
     uint256 nonce_ = vm.getNonce(address(this));
@@ -56,7 +57,7 @@ contract MockDeployer is TestBase {
     depositReceiptTokenLogic.initialize(address(0), "", "", 0);
     stkReceiptTokenLogic.initialize(address(0), "", "", 0);
     receiptTokenFactory = new ReceiptTokenFactory(depositReceiptTokenLogic_, stkReceiptTokenLogic_);
-    cozyManager = new CozyManager(owner, pauser, rewardsManagerFactory);
+    cozyManager = new CozyManager(owner, pauser, rewardsManagerFactory, DEFAULT_CLAIM_FEE);
   }
 }
 

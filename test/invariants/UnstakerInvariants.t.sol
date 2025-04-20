@@ -3,9 +3,9 @@ pragma solidity 0.8.22;
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {ICommonErrors} from "cozy-safety-module-shared/interfaces/ICommonErrors.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
-import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
+import {ICommonErrors} from "cozy-safety-module-libs/interfaces/ICommonErrors.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {StakePool, RewardPool, AssetPool} from "../../src/lib/structs/Pools.sol";
 import {ClaimableRewardsData, UserRewardsData, PreviewClaimableRewards} from "../../src/lib/structs/Rewards.sol";
 import {
@@ -25,6 +25,7 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
   }
 
   mapping(IERC20 rewardAsset_ => uint256) public actorRewardsToBeClaimed;
+  mapping(IERC20 rewardAsset_ => uint256) public rewardFeesToBePaid;
 
   function invariant_unstake() public syncCurrentTimestamp(rewardsManagerHandler) {
     UnstakeStakePoolData[] memory unstakeStakePoolData_ = new UnstakeStakePoolData[](numStakePools);
@@ -54,6 +55,7 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
     if (actor_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
     uint16 unstakedStakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), actor_);
     StakePool memory unstakedStakePool_ = getStakePool(rewardsManager, unstakedStakePoolId_);
+    if (unstakedStakePool_.stkReceiptToken.balanceOf(actor_) == 0) return;
     uint256 stkReceiptTokenUnstakeAmount_ =
       bound(_randomUint256(), 1, unstakedStakePool_.stkReceiptToken.balanceOf(actor_));
 
@@ -63,6 +65,8 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       actorRewardsToBeClaimed[rewardsManager.rewardPools(rewardPoolId_).asset] +=
         actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
+      rewardFeesToBePaid[rewardsManager.rewardPools(rewardPoolId_).asset] +=
+        actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].claimFeeAmount;
     }
 
     vm.prank(actor_);
@@ -106,7 +110,7 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
         require(
           currentAssetPool_.amount
             == unstakeStakePoolData_[stakePoolId_].assetPoolAmount - stkReceiptTokenUnstakeAmount_
-              - actorRewardsToBeClaimed[currentStakePool_.asset],
+              - (actorRewardsToBeClaimed[currentStakePool_.asset] + rewardFeesToBePaid[currentStakePool_.asset]),
           string.concat(
             "Invariant Violated: An asset pool's internal balance must decrease by the unstake amount + claimed rewards from reward pools using the same asset.",
             " stakePoolId_: ",
@@ -122,7 +126,7 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
         require(
           unstakedStakePool_.asset.balanceOf(address(rewardsManager))
             == unstakeStakePoolData_[stakePoolId_].assetAmount - stkReceiptTokenUnstakeAmount_
-              - actorRewardsToBeClaimed[currentStakePool_.asset],
+              - (actorRewardsToBeClaimed[currentStakePool_.asset] + rewardFeesToBePaid[currentStakePool_.asset]),
           string.concat(
             "Invariant Violated: The rewards manager's balance of the underlying stake asset must decrease by the unstake amount + claimed rewards from reward pools using the same asset.",
             " stakePoolId_: ",
@@ -167,7 +171,8 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
         );
         require(
           currentAssetPool_.amount
-            == unstakeStakePoolData_[stakePoolId_].assetPoolAmount - actorRewardsToBeClaimed[currentStakePool_.asset],
+            == unstakeStakePoolData_[stakePoolId_].assetPoolAmount
+              - (actorRewardsToBeClaimed[currentStakePool_.asset] + rewardFeesToBePaid[currentStakePool_.asset]),
           string.concat(
             "Invariant Violated: An asset pool's internal balance must not increase.",
             " stakePoolId_: ",
@@ -182,7 +187,8 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
         );
         require(
           currentStakePool_.asset.balanceOf(address(rewardsManager))
-            == unstakeStakePoolData_[stakePoolId_].assetAmount - actorRewardsToBeClaimed[currentStakePool_.asset],
+            == unstakeStakePoolData_[stakePoolId_].assetAmount
+              - (actorRewardsToBeClaimed[currentStakePool_.asset] + rewardFeesToBePaid[currentStakePool_.asset]),
           string.concat(
             "Invariant Violated: The rewards manager's balance of the underlying stake asset must not increase.",
             " stakePoolId_: ",
@@ -264,15 +270,19 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
         )
       );
 
+      bool isActorOwner_ = actor_ == rewardsManager.cozyManager().owner();
       require(
         rewardPool_.asset.balanceOf(actor_)
-          == actorPreBalances_[rewardPoolId_] + actorRewardsToBeClaimed[rewardPool_.asset],
+          == actorPreBalances_[rewardPoolId_] + actorRewardsToBeClaimed[rewardPool_.asset]
+            + (isActorOwner_ ? rewardFeesToBePaid[rewardPool_.asset] : 0),
         string.concat(
           "Invariant Violated: The actor balance must be the pre-balance plus the rewards to be claimed.",
           " actorPostBalance: ",
           Strings.toString(IERC20(rewardsManager.rewardPools(rewardPoolId_).asset).balanceOf(actor_)),
           ", actorPreBalance: ",
           Strings.toString(actorPreBalances_[rewardPoolId_]),
+          ", actorRewardsToBeClaimed: ",
+          Strings.toString(actorRewardsToBeClaimed[rewardPool_.asset]),
           ", actor: ",
           Strings.toHexString(uint160(actor_)),
           ", stakePoolId: ",

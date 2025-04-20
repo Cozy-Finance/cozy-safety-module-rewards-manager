@@ -2,9 +2,9 @@
 pragma solidity 0.8.22;
 
 import {DripModelExponential} from "cozy-safety-module-models/DripModelExponential.sol";
-import {MathConstants} from "cozy-safety-module-shared/lib/MathConstants.sol";
-import {IDripModel} from "cozy-safety-module-shared/interfaces/IDripModel.sol";
-import {IERC20} from "cozy-safety-module-shared/interfaces/IERC20.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
+import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
+import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {RewardsManager} from "../../../src/RewardsManager.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../../../src/lib/structs/Configs.sol";
 import {IRewardsManager} from "../../../src/interfaces/IRewardsManager.sol";
@@ -65,7 +65,8 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
   }
 
   function _initHandler() internal {
-    rewardsManagerHandler = new RewardsManagerHandler(rewardsManager, numStakePools, numRewardPools, block.timestamp);
+    rewardsManagerHandler =
+      new RewardsManagerHandler(rewardsManager, cozyManager, numStakePools, numRewardPools, block.timestamp);
     targetSelector(FuzzSelector({addr: address(rewardsManagerHandler), selectors: _fuzzedSelectors()}));
     targetContract(address(rewardsManagerHandler));
   }
