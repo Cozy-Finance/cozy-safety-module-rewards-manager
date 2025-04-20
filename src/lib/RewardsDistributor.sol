@@ -128,10 +128,9 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[stakePoolId_];
 
     // Fully accure historical rewards for both users given their current stkReceiptToken balances. Moving forward all
-    // rewards
-    // will accrue based on: (1) the stkReceiptToken balances of the `from_` and `to_` address after the transfer, (2)
-    // the
-    // current claimable reward index snapshots.
+    // rewards will accrue based on: (1) the stkReceiptToken balances of the `from_` and `to_` address after the
+    // transfer, (2)
+    // the current claimable reward index snapshots.
     _updateUserRewards(stkReceiptToken_.balanceOf(from_), claimableRewards_, userRewards[stakePoolId_][from_]);
     _updateUserRewards(stkReceiptToken_.balanceOf(to_), claimableRewards_, userRewards[stakePoolId_][to_]);
   }

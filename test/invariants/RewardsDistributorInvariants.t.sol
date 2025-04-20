@@ -367,7 +367,8 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
 
   function invariant_stkReceiptTokenTransferAccounting() public syncCurrentTimestamp(rewardsManagerHandler) {
     address to_ = _randomAddress();
-    (address from_, uint256 amount_) = rewardsManagerHandler.stkReceiptTokenTransfer(_randomUint64(), to_, _randomUint256());
+    (address from_, uint256 amount_) =
+      rewardsManagerHandler.stkReceiptTokenTransfer(_randomUint64(), to_, _randomUint256());
     if (from_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
     if (amount_ == 0) return;
 
