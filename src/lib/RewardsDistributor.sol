@@ -30,6 +30,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint16 indexed rewardPoolId_,
     IERC20 rewardAsset_,
     uint256 amount_,
+    uint256 claimFeeAmount_,
     address indexed owner_,
     address receiver_
   );
@@ -251,7 +252,13 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     args_.rewardAsset.safeTransfer(args_.receiver, claimedAmount_);
 
     emit ClaimedRewards(
-      args_.stakePoolId, args_.rewardPoolId, args_.rewardAsset, claimedAmount_, args_.owner, args_.receiver
+      args_.stakePoolId,
+      args_.rewardPoolId,
+      args_.rewardAsset,
+      claimedAmount_,
+      claimFeeAmount_,
+      args_.owner,
+      args_.receiver
     );
   }
 
