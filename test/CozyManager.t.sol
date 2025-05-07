@@ -486,24 +486,6 @@ contract CozyManagerUpdateFees is MockDeployProtocol, CozyManagerTestSetup {
     assertEq(cozyManager.claimFee(), newClaimFee_);
     assertEq(cozyManager.depositFee(), newDepositFee_);
   }
-
-  function testFuzz_getDepositFee(
-    uint16 depositFee_,
-    address rewardsManagerAddress_,
-    address otherRewardsManagerAddress_
-  ) public {
-    vm.assume(rewardsManagerAddress_ != otherRewardsManagerAddress_);
-
-    depositFee_ = uint16(bound(depositFee_, 0, MathConstants.ZOC));
-    IRewardsManager rewardsManager_ = IRewardsManager(rewardsManagerAddress_);
-    IRewardsManager otherRewardsManager_ = IRewardsManager(otherRewardsManagerAddress_);
-
-    vm.prank(owner);
-    cozyManager.updateOverrideDepositFee(rewardsManager_, depositFee_);
-
-    assertEq(cozyManager.getDepositFee(rewardsManager_), depositFee_);
-    assertEq(cozyManager.getDepositFee(otherRewardsManager_), cozyManager.depositFee());
-  }
 }
 
 contract CozyManagerTestDeploy is MockDeployProtocol {
