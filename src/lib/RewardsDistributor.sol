@@ -49,13 +49,13 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   struct FinalizeClaimedRewardsArgs {
+    IERC20 rewardAsset;
     uint16 stakePoolId;
     uint16 rewardPoolId;
-    IERC20 rewardAsset;
+    uint16 claimFee;
     address owner;
     address receiver;
     uint256 amount;
-    uint16 claimFee;
   }
 
   /// @notice Drip rewards for all reward pools.
@@ -198,16 +198,16 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
         // Step (4)
         _finalizeClaimedRewards(
           FinalizeClaimedRewardsArgs(
+            rewardPool_.asset,
             args_.stakePoolId,
             rewardPoolId_,
-            rewardPool_.asset,
+            claimFee_,
             args_.owner,
             args_.receiver,
             oldAccruedRewards_
               + _getUserAccruedRewards(
                 claimRewardsData_.userStkReceiptTokenBalance, newClaimableRewardsData_.indexSnapshot, oldIndexSnapshot_
-              ),
-            claimFee_
+              )
           )
         );
       }
