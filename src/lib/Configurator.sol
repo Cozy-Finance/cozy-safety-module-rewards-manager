@@ -24,12 +24,12 @@ abstract contract Configurator is RewardsManagerCommon, Governable {
   {
     // A config update may change the rewards weights, which breaks the invariants that used to do claimable rewards
     // accounting. It may no longer hold that:
-    //    claimableRewards[stakePoolId][rewardPoolId].cumulativeClaimedRewards <=
+    //    claimableRewards[stakePoolId][rewardPoolId].cumulativeClaimableRewards <=
     //        rewardPools[rewardPoolId].cumulativeDrippedRewards.mulDivDown(stakePools[stakePoolId].rewardsWeight, ZOC)
-    // To mantain the invariant, before applying the update: we drip rewards, update claimable reward indices and
-    // reset the cumulative rewards values to 0. This reset is also executed when a config update occurs in the PAUSED
-    // state, but in that case, the rewards are not dripped; the rewards are dripped when the rewards manager first
-    // transitions to PAUSED.
+    // To maintain the invariant, before applying the update: we drip rewards, update claimable reward indices and reset
+    // the cumulative rewards values to 0. This reset is also executed when a config update occurs in the PAUSED state,
+    // but in that case, the rewards are not dripped; the rewards are dripped when the rewards manager first transitions
+    // to PAUSED.
     _dripAndResetCumulativeRewardsValues(stakePools, rewardPools);
 
     ConfiguratorLib.updateConfigs(
