@@ -10,12 +10,6 @@ import {AssetPool, StakePool, IdLookup, RewardPool} from "./structs/Pools.sol";
 import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";
 
 abstract contract RewardsManagerBaseStorage {
-  /// @notice Address of the Cozy protocol manager.
-  ICozyManager public immutable cozyManager;
-
-  /// @notice Address of the receipt token factory.
-  IReceiptTokenFactory public immutable receiptTokenFactory;
-
   /// @notice The reward manager's stake pools.
   /// @dev Stake pool index in this array is its ID.
   StakePool[] public stakePools;
@@ -42,15 +36,21 @@ abstract contract RewardsManagerBaseStorage {
   /// @dev Used for checking that new stake pools have unique underlying assets in config updates.
   mapping(IERC20 asset_ => IdLookup stakePoolId_) public assetToStakePoolIds;
 
-  /// @dev True if the rewards manager has been initialized.
-  bool public initialized;
-
-  /// @notice The state of this rewards manager.
-  RewardsManagerState public rewardsManagerState;
+  /// @notice Address of the Cozy protocol manager.
+  ICozyManager public immutable cozyManager;
 
   /// @notice The max number of stake pools allowed per rewards manager.
   uint16 public immutable allowedStakePools;
 
   /// @notice The max number of reward pools allowed per rewards manager.
   uint16 public immutable allowedRewardPools;
+
+  /// @dev True if the rewards manager has been initialized.
+  bool public initialized;
+
+  /// @notice The state of this rewards manager.
+  RewardsManagerState public rewardsManagerState;
+
+  /// @notice Address of the receipt token factory.
+  IReceiptTokenFactory public immutable receiptTokenFactory;
 }
