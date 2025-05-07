@@ -167,7 +167,7 @@ contract CozyManagerUpdateClaimFees is MockDeployProtocol, CozyManagerTestSetup 
     cozyManager.updateOverrideClaimFee(rewardsManager_, newClaimFee_);
   }
 
-  function test_resetOverrideFeeDripModel_revertNonOwnerAddress() public {
+  function test_resetOverrideClaimFee_revertNonOwnerAddress() public {
     IRewardsManager rewardsManager_ = IRewardsManager(_randomAddress());
 
     vm.expectRevert(Ownable.Unauthorized.selector);
@@ -277,7 +277,7 @@ contract CozyManagerUpdateDepositFees is MockDeployProtocol, CozyManagerTestSetu
     cozyManager.updateOverrideDepositFee(rewardsManager_, newDepositFee_);
   }
 
-  function test_resetOverrideFeeDripModel_revertNonOwnerAddress() public {
+  function test_resetOverrideDepositFee_revertNonOwnerAddress() public {
     IRewardsManager rewardsManager_ = IRewardsManager(_randomAddress());
 
     vm.expectRevert(Ownable.Unauthorized.selector);
@@ -330,6 +330,160 @@ contract CozyManagerUpdateDepositFees is MockDeployProtocol, CozyManagerTestSetu
 
     vm.prank(owner);
     cozyManager.updateDepositFee(newDepositFee_);
+    assertEq(cozyManager.depositFee(), newDepositFee_);
+  }
+
+  function testFuzz_getDepositFee(
+    uint16 depositFee_,
+    address rewardsManagerAddress_,
+    address otherRewardsManagerAddress_
+  ) public {
+    vm.assume(rewardsManagerAddress_ != otherRewardsManagerAddress_);
+
+    depositFee_ = uint16(bound(depositFee_, 0, MathConstants.ZOC));
+    IRewardsManager rewardsManager_ = IRewardsManager(rewardsManagerAddress_);
+    IRewardsManager otherRewardsManager_ = IRewardsManager(otherRewardsManagerAddress_);
+
+    vm.prank(owner);
+    cozyManager.updateOverrideDepositFee(rewardsManager_, depositFee_);
+
+    assertEq(cozyManager.getDepositFee(rewardsManager_), depositFee_);
+    assertEq(cozyManager.getDepositFee(otherRewardsManager_), cozyManager.depositFee());
+  }
+}
+
+contract CozyManagerUpdateFees is MockDeployProtocol, CozyManagerTestSetup {
+  function test_updateFees_revertNonOwnerAddress() public {
+    uint16 newDepositFee_ = uint16(bound(_randomUint16(), 0, MathConstants.ZOC));
+    uint16 newClaimFee_ = uint16(bound(_randomUint16(), 0, MathConstants.ZOC));
+
+    vm.expectRevert(Ownable.Unauthorized.selector);
+    vm.prank(_randomAddress());
+    cozyManager.updateFees(newClaimFee_, newDepositFee_);
+  }
+
+  function test_updateFees_revertInvalidDepositFee() public {
+    uint16 newDepositFee_ = uint16(bound(_randomUint16(), MathConstants.ZOC + 1, type(uint16).max));
+    uint16 newClaimFee_ = uint16(bound(_randomUint16(), 0, MathConstants.ZOC));
+
+    vm.expectRevert(ICozyManagerEvents.InvalidDepositFee.selector);
+    vm.prank(owner);
+    cozyManager.updateFees(newClaimFee_, newDepositFee_);
+  }
+
+  function test_updateFees_revertInvalidClaimFee() public {
+    uint16 newClaimFee_ = uint16(bound(_randomUint16(), MathConstants.ZOC + 1, type(uint16).max));
+    uint16 newDepositFee_ = uint16(bound(_randomUint16(), 0, MathConstants.ZOC));
+
+    vm.expectRevert(ICozyManagerEvents.InvalidClaimFee.selector);
+    vm.prank(owner);
+    cozyManager.updateFees(newClaimFee_, newDepositFee_);
+  }
+
+  function test_updateOverrideFees_revertInvalidDepositFee() public {
+    uint16 newClaimFee_ = uint16(bound(_randomUint16(), 0, MathConstants.ZOC));
+    uint16 newDepositFee_ = uint16(bound(_randomUint16(), MathConstants.ZOC + 1, type(uint16).max));
+    IRewardsManager rewardsManager_ = IRewardsManager(_randomAddress());
+
+    vm.expectRevert(ICozyManagerEvents.InvalidDepositFee.selector);
+    vm.prank(owner);
+    cozyManager.updateOverrideFees(rewardsManager_, newClaimFee_, newDepositFee_);
+  }
+
+  function test_updateOverrideFees_revertInvalidClaimFee() public {
+    uint16 newDepositFee_ = uint16(bound(_randomUint16(), 0, MathConstants.ZOC));
+    uint16 newClaimFee_ = uint16(bound(_randomUint16(), MathConstants.ZOC + 1, type(uint16).max));
+    IRewardsManager rewardsManager_ = IRewardsManager(_randomAddress());
+
+    vm.expectRevert(ICozyManagerEvents.InvalidClaimFee.selector);
+    vm.prank(owner);
+    cozyManager.updateOverrideFees(rewardsManager_, newClaimFee_, newDepositFee_);
+  }
+
+  function test_updateOverrideFees_revertNonOwnerAddress() public {
+    uint16 newDepositFee_ = uint16(bound(_randomUint16(), 0, MathConstants.ZOC));
+    uint16 newClaimFee_ = uint16(bound(_randomUint16(), 0, MathConstants.ZOC));
+    IRewardsManager rewardsManager_ = IRewardsManager(_randomAddress());
+
+    vm.expectRevert(Ownable.Unauthorized.selector);
+    vm.prank(_randomAddress());
+    cozyManager.updateOverrideFees(rewardsManager_, newClaimFee_, newDepositFee_);
+  }
+
+  function test_resetOverrideFees_revertNonOwnerAddress() public {
+    IRewardsManager rewardsManager_ = IRewardsManager(_randomAddress());
+
+    vm.expectRevert(Ownable.Unauthorized.selector);
+    vm.prank(_randomAddress());
+    cozyManager.resetOverrideFees(rewardsManager_);
+  }
+
+  function testFuzz_updateFees(uint16 claimFee_, uint16 depositFee_) public {
+    uint16 newDepositFee_ = uint16(bound(depositFee_, 0, MathConstants.ZOC));
+    uint16 newClaimFee_ = uint16(bound(claimFee_, 0, MathConstants.ZOC));
+
+    _expectEmit();
+    emit ICozyManagerEvents.ClaimFeeUpdated(newClaimFee_);
+    _expectEmit();
+    emit ICozyManagerEvents.DepositFeeUpdated(newDepositFee_);
+    vm.prank(owner);
+    cozyManager.updateFees(newClaimFee_, newDepositFee_);
+
+    assertEq(cozyManager.claimFee(), newClaimFee_);
+    assertEq(cozyManager.depositFee(), newDepositFee_);
+  }
+
+  function testFuzz_updateOverrideFees(uint16 claimFee_, uint16 depositFee_, address rewardsManagerAddress_) public {
+    uint16 newDepositFee_ = uint16(bound(depositFee_, 0, MathConstants.ZOC));
+    uint16 newClaimFee_ = uint16(bound(claimFee_, 0, MathConstants.ZOC));
+    IRewardsManager rewardsManager_ = IRewardsManager(rewardsManagerAddress_);
+
+    assertEq(cozyManager.depositFee(), cozyManager.depositFee());
+    assertEq(cozyManager.claimFee(), cozyManager.claimFee());
+    assertEq(cozyManager.getDepositFee(rewardsManager_), cozyManager.depositFee());
+    assertEq(cozyManager.getClaimFee(rewardsManager_), cozyManager.claimFee());
+
+    _expectEmit();
+    emit ICozyManagerEvents.OverrideClaimFeeUpdated(rewardsManager_, newClaimFee_);
+    _expectEmit();
+    emit ICozyManagerEvents.OverrideDepositFeeUpdated(rewardsManager_, newDepositFee_);
+    vm.prank(owner);
+    cozyManager.updateOverrideFees(rewardsManager_, newClaimFee_, newDepositFee_);
+
+    assertEq(cozyManager.getDepositFee(rewardsManager_), newDepositFee_);
+    assertEq(cozyManager.getClaimFee(rewardsManager_), newClaimFee_);
+  }
+
+  function testFuzz_resetOverrideFees(
+    uint16 claimFee_,
+    uint16 depositFee_,
+    uint16 newClaimFee_,
+    uint16 newDepositFee_,
+    address rewardsManagerAddress_
+  ) public {
+    IRewardsManager rewardsManager_ = IRewardsManager(rewardsManagerAddress_);
+    depositFee_ = uint16(bound(depositFee_, 0, MathConstants.ZOC));
+    newDepositFee_ = uint16(bound(newDepositFee_, 0, MathConstants.ZOC));
+    claimFee_ = uint16(bound(claimFee_, 0, MathConstants.ZOC));
+    newClaimFee_ = uint16(bound(newClaimFee_, 0, MathConstants.ZOC));
+
+    vm.prank(owner);
+    cozyManager.updateOverrideFees(rewardsManager_, claimFee_, depositFee_);
+    assertEq(cozyManager.getClaimFee(rewardsManager_), claimFee_);
+    assertEq(cozyManager.getDepositFee(rewardsManager_), depositFee_);
+
+    _expectEmit();
+    emit ICozyManagerEvents.OverrideClaimFeeUpdated(rewardsManager_, cozyManager.claimFee());
+    _expectEmit();
+    emit ICozyManagerEvents.OverrideDepositFeeUpdated(rewardsManager_, cozyManager.depositFee());
+    vm.prank(owner);
+    cozyManager.resetOverrideFees(rewardsManager_);
+    assertEq(cozyManager.getDepositFee(rewardsManager_), cozyManager.depositFee());
+    assertEq(cozyManager.getClaimFee(rewardsManager_), cozyManager.claimFee());
+
+    vm.prank(owner);
+    cozyManager.updateFees(newClaimFee_, newDepositFee_);
+    assertEq(cozyManager.claimFee(), newClaimFee_);
     assertEq(cozyManager.depositFee(), newDepositFee_);
   }
 

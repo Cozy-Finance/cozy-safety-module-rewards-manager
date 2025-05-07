@@ -25,6 +25,11 @@ interface ICozyManager is IGovernable, ICozyManagerEvents {
   /// @param depositFee_ The new default deposit fee.
   function updateDepositFee(uint16 depositFee_) external;
 
+  /// @notice Used to update the both the default claim and deposit fees used for RewardsManagers.
+  /// @param claimFee_ The new default claim fee.
+  /// @param depositFee_ The new default deposit fee.
+  function updateFees(uint16 claimFee_, uint16 depositFee_) external;
+
   /// @notice Update the claim fee for a specific RewardsManager.
   /// @param rewardsManager_ The RewardsManager to update the claim fee for.
   /// @param claimFee_ The new fee claim fee for the RewardsManager.
@@ -35,6 +40,12 @@ interface ICozyManager is IGovernable, ICozyManagerEvents {
   /// @param depositFee_ The new fee deposit fee for the RewardsManager.
   function updateOverrideDepositFee(IRewardsManager rewardsManager_, uint16 depositFee_) external;
 
+  /// @notice Used to update the both the override claim and deposit fees for a specific RewardsManager.
+  /// @param rewardsManager_ The RewardsManager to update the fees for.
+  /// @param claimFee_ The new fee claim fee for the RewardsManager.
+  /// @param depositFee_ The new fee deposit fee for the RewardsManager.
+  function updateOverrideFees(IRewardsManager rewardsManager_, uint16 claimFee_, uint16 depositFee_) external;
+
   /// @notice Reset the override claim fee for the specified RewardsManager back to the default.
   /// @param rewardsManager_ The RewardsManager to update the claim fee for.
   function resetOverrideClaimFee(IRewardsManager rewardsManager_) external;
@@ -42,6 +53,10 @@ interface ICozyManager is IGovernable, ICozyManagerEvents {
   /// @notice Reset the override deposit fee for the specified RewardsManager back to the default.
   /// @param rewardsManager_ The RewardsManager to update the deposit fee for.
   function resetOverrideDepositFee(IRewardsManager rewardsManager_) external;
+
+  /// @notice Used to reset the override claim and deposit fees for a specific RewardsManager back to the default.
+  /// @param rewardsManager_ The RewardsManager to update the fees for.
+  function resetOverrideFees(IRewardsManager rewardsManager_) external;
 
   /// @notice For the specified RewardsManager, returns the claim fee.
   function getClaimFee(IRewardsManager rewardsManager_) external view returns (uint16);
