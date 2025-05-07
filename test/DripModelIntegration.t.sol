@@ -60,6 +60,9 @@ contract RewardsDripModelExponentialIntegrationTest is DripModelIntegrationTestS
   function setUp() public virtual override {
     super.setUp();
 
+    vm.prank(cozyManager.owner());
+    cozyManager.updateDepositFee(0);
+
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
     stakePoolConfigs_[0] = StakePoolConfig({asset: stakeAsset, rewardsWeight: uint16(MathConstants.ZOC)}); // 100% of
       // rewards for the only stake pool
@@ -145,6 +148,9 @@ contract RewardsDripModelConstantIntegrationTest is DripModelIntegrationTestSetu
 
   function setUp() public virtual override {
     super.setUp();
+
+    vm.prank(cozyManager.owner());
+    cozyManager.updateDepositFee(0);
 
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
     stakePoolConfigs_[0] = StakePoolConfig({asset: stakeAsset, rewardsWeight: uint16(MathConstants.ZOC)}); // 100% of

@@ -29,6 +29,7 @@ contract MockDeployer is TestBase {
   uint16 constant ALLOWED_STAKE_POOLS = 100;
   uint16 constant ALLOWED_REWARD_POOLS = 100;
   uint16 constant DEFAULT_CLAIM_FEE = 100;
+  uint16 constant DEFAULT_DEPOSIT_FEE = 50;
 
   function deployMockProtocol() public virtual {
     uint256 nonce_ = vm.getNonce(address(this));
@@ -57,7 +58,7 @@ contract MockDeployer is TestBase {
     depositReceiptTokenLogic.initialize(address(0), "", "", 0);
     stkReceiptTokenLogic.initialize(address(0), "", "", 0);
     receiptTokenFactory = new ReceiptTokenFactory(depositReceiptTokenLogic_, stkReceiptTokenLogic_);
-    cozyManager = new CozyManager(owner, pauser, rewardsManagerFactory, DEFAULT_CLAIM_FEE);
+    cozyManager = new CozyManager(owner, pauser, rewardsManagerFactory, DEFAULT_CLAIM_FEE, DEFAULT_DEPOSIT_FEE);
   }
 }
 

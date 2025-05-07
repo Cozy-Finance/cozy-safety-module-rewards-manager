@@ -4,8 +4,11 @@ pragma solidity 0.8.22;
 import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IDepositorErrors} from "../interfaces/IDepositorErrors.sol";
 import {IDepositorEvents} from "../interfaces/IDepositorEvents.sol";
+import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardPool} from "./structs/Pools.sol";
 import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
@@ -13,6 +16,7 @@ import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 
 abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDepositorEvents {
   using SafeERC20 for IERC20;
+  using FixedPointMathLib for uint256;
 
   /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool on behalf of `from_`.
   /// @dev Assumes that `msg.sender` has approved the rewards manager to spend `rewardAssetAmount_` of the reward pool's
@@ -66,10 +70,14 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     // To ensure reward drip times are in sync with reward deposit times we drip rewards before depositing.
     _dripRewardPool(rewardPool_);
 
-    rewardPool_.undrippedRewards += rewardAssetAmount_;
-    assetPools[token_].amount += rewardAssetAmount_;
+    uint256 depositFeeAmount_ = _computeDepositFeeAmount(rewardAssetAmount_);
+    uint256 depositAmount_ = rewardAssetAmount_ - depositFeeAmount_;
 
-    emit Deposited(msg.sender, rewardPoolId_, rewardAssetAmount_);
+    rewardPool_.undrippedRewards += depositAmount_;
+    assetPools[token_].amount += depositAmount_;
+    token_.safeTransfer(cozyManager.owner(), depositFeeAmount_);
+
+    emit Deposited(msg.sender, rewardPoolId_, depositAmount_, depositFeeAmount_);
   }
 
   function _assertValidDepositBalance(IERC20 token_, uint256 assetPoolBalance_, uint256 depositAmount_)
@@ -78,5 +86,9 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     override
   {
     if (token_.balanceOf(address(this)) - assetPoolBalance_ < depositAmount_) revert InvalidDeposit();
+  }
+
+  function _computeDepositFeeAmount(uint256 rewardAssetAmount_) internal view returns (uint256) {
+    return rewardAssetAmount_.mulDivUp(cozyManager.getDepositFee(IRewardsManager(address(this))), MathConstants.ZOC);
   }
 }

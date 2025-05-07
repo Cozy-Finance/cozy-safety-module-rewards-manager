@@ -2,5 +2,7 @@
   "owner": "0x8a684A8bB9B91aBe43355bb7978401fB3a9F382B",
   "pauser": "0x032b8eAE4dA80397A596d4B9a68487bF11D6588D",
   "allowedRewardPools": 20,
-  "allowedStakePools": 30
+  "allowedStakePools": 30,
+  "claimFee": 0,
+  "depositFee": 0
 }
