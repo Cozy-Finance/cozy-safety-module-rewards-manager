@@ -39,12 +39,12 @@ struct PreviewClaimableRewards {
 }
 
 struct PreviewClaimableRewardsData {
+  // The reward asset.
+  IERC20 asset;
   // The ID of the reward pool.
   uint16 rewardPoolId;
   // The amount of claimable rewards.
   uint256 amount;
   // The claim fee amount.
   uint256 claimFeeAmount;
-  // The reward asset.
-  IERC20 asset;
 }
