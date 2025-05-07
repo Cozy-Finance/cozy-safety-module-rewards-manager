@@ -25,7 +25,7 @@ interface ICozyManager is IGovernable, ICozyManagerEvents {
   /// @param depositFee_ The new default deposit fee.
   function updateDepositFee(uint16 depositFee_) external;
 
-  /// @notice Used to update the both the default claim and deposit fees used for RewardsManagers.
+  /// @notice Used to update both the default claim and deposit fees used for RewardsManagers.
   /// @param claimFee_ The new default claim fee.
   /// @param depositFee_ The new default deposit fee.
   function updateFees(uint16 claimFee_, uint16 depositFee_) external;
@@ -40,7 +40,7 @@ interface ICozyManager is IGovernable, ICozyManagerEvents {
   /// @param depositFee_ The new fee deposit fee for the RewardsManager.
   function updateOverrideDepositFee(IRewardsManager rewardsManager_, uint16 depositFee_) external;
 
-  /// @notice Used to update the both the override claim and deposit fees for a specific RewardsManager.
+  /// @notice Used to update both the override claim and deposit fees for a specific RewardsManager.
   /// @param rewardsManager_ The RewardsManager to update the fees for.
   /// @param claimFee_ The new fee claim fee for the RewardsManager.
   /// @param depositFee_ The new fee deposit fee for the RewardsManager.
