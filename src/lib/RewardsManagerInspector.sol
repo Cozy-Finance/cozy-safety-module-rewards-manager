@@ -2,7 +2,6 @@
 pragma solidity 0.8.22;
 
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
-import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
 import {StakePool, RewardPool} from "./structs/Pools.sol";
 import {ClaimableRewardsData, UserRewardsData} from "./structs/Rewards.sol";
 

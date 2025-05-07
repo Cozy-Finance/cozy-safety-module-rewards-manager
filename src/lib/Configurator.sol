@@ -6,7 +6,6 @@ import {ConfiguratorLib} from "./ConfiguratorLib.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {IConfiguratorErrors} from "../interfaces/IConfiguratorErrors.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./structs/Configs.sol";
-import {StakePool, RewardPool} from "./structs/Pools.sol";
 
 abstract contract Configurator is RewardsManagerCommon, Governable {
   /// @notice Execute config update to the rewards manager.

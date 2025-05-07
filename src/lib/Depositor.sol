@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
 import {IDepositorErrors} from "../interfaces/IDepositorErrors.sol";
 import {IDepositorEvents} from "../interfaces/IDepositorEvents.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardPool} from "./structs/Pools.sol";
-import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 
 abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDepositorEvents {
