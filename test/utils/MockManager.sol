@@ -8,6 +8,7 @@ contract MockManager is Governable {
   uint256 public allowedReservePools;
   uint256 public allowedRewardPools;
   uint16 public claimFee;
+  uint16 public depositFee;
 
   function initGovernable(address owner_, address pauser_) external {
     __initGovernable(owner_, pauser_);
@@ -29,7 +30,15 @@ contract MockManager is Governable {
     claimFee = claimFee_;
   }
 
+  function setDepositFee(uint16 depositFee_) external {
+    depositFee = depositFee_;
+  }
+
   function getClaimFee(IRewardsManager /* rewardsManager_ */ ) external view returns (uint16) {
     return claimFee;
+  }
+
+  function getDepositFee(IRewardsManager /* rewardsManager_ */ ) external view returns (uint16) {
+    return depositFee;
   }
 }

@@ -7,6 +7,7 @@ import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
 import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IDepositorErrors} from "../src/interfaces/IDepositorErrors.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
@@ -14,20 +15,28 @@ import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {UserRewardsData, ClaimRewardsArgs, ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
+import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 
 contract DepositorUnitTest is TestBase {
+  using FixedPointMathLib for uint256;
+
   MockERC20 mockAsset = new MockERC20("Mock Asset", "MOCK", 6);
-  TestableDepositor component = new TestableDepositor();
+  MockManager cozyManager = new MockManager();
+  TestableDepositor component = new TestableDepositor(cozyManager);
 
   /// @dev Emitted when a user deposits rewards.
-  event Deposited(address indexed caller_, uint16 indexed rewardPoolId_, uint256 assetAmount_);
+  event Deposited(
+    address indexed caller_, uint16 indexed rewardPoolId_, uint256 depositAmount_, uint256 depositFeeAmount_
+  );
 
   event Transfer(address indexed from, address indexed to, uint256 amount);
 
   uint256 initialSafetyModuleBal = 50e18;
   uint256 initialUndrippedRewards = 50e18;
+
+  uint16 constant DEFAULT_DEPOSIT_FEE = 50;
 
   function setUp() public {
     RewardPool memory initialRewardPool_ = RewardPool({
@@ -40,6 +49,7 @@ contract DepositorUnitTest is TestBase {
     AssetPool memory initialAssetPool_ = AssetPool({amount: initialUndrippedRewards});
     component.mockAddRewardPool(initialRewardPool_);
     component.mockAddAssetPool(IERC20(address(mockAsset)), initialAssetPool_);
+    component.setDepositFee(DEFAULT_DEPOSIT_FEE);
     deal(address(mockAsset), address(component), initialUndrippedRewards);
   }
 
@@ -50,7 +60,8 @@ contract DepositorUnitTest is TestBase {
 
   function test_depositReward_DepositAndStorageUpdates() external {
     address depositor_ = _randomAddress();
-    uint128 amountToDeposit_ = 10e18;
+    uint256 amountToDeposit_ = 10e18;
+    uint256 depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
 
     // Mint initial balance for depositor.
     mockAsset.mint(depositor_, amountToDeposit_);
@@ -59,25 +70,27 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 0, amountToDeposit_);
+    emit Deposited(depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
     vm.prank(depositor_);
     _deposit(false, 0, amountToDeposit_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
-    // 50e18 + 10e18
-    assertEq(finalRewardPool_.undrippedRewards, 60e18);
-    // 50e18 + 10e18
-    assertEq(finalAssetPool_.amount, 60e18);
-    assertEq(mockAsset.balanceOf(address(component)), 60e18);
+    // 50e18 + 10e18 - 5e16
+    assertEq(finalRewardPool_.undrippedRewards, 60e18 - 5e16);
+    // 50e18 + 10e18 - 5e16
+    assertEq(finalAssetPool_.amount, 60e18 - 5e16);
+    assertEq(mockAsset.balanceOf(address(component)), 60e18 - 5e16);
 
     assertEq(mockAsset.balanceOf(depositor_), 0);
+    assertEq(mockAsset.balanceOf(cozyManager.owner()), 5e16);
   }
 
   function test_depositReward_DepositAndStorageUpdatesWithDrip() external {
     address depositor_ = _randomAddress();
-    uint128 amountToDeposit_ = 20e18;
+    uint256 amountToDeposit_ = 20e18;
+    uint256 depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
 
     // Mint initial balance for depositor.
     mockAsset.mint(depositor_, amountToDeposit_);
@@ -89,18 +102,19 @@ contract DepositorUnitTest is TestBase {
 
     vm.prank(depositor_);
     _expectEmit();
-    emit Deposited(depositor_, 0, amountToDeposit_);
+    emit Deposited(depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
     _deposit(false, 0, amountToDeposit_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
-    // 45e18 of the assets are dripped: 50e18 - 45e18 + 20e18
-    assertEq(finalRewardPool_.undrippedRewards, 25e18);
+    // 45e18 of the assets are dripped: 50e18 - 45e18 + 20e18 - 10e16
+    assertEq(finalRewardPool_.undrippedRewards, 25e18 - 10e16);
 
     // 50e18 + 20e18
-    assertEq(finalAssetPool_.amount, 70e18);
-    assertEq(mockAsset.balanceOf(address(component)), 70e18);
+    assertEq(finalAssetPool_.amount, 70e18 - 10e16);
+    assertEq(mockAsset.balanceOf(address(component)), 70e18 - 10e16);
     assertEq(mockAsset.balanceOf(depositor_), 0);
+    assertEq(mockAsset.balanceOf(cozyManager.owner()), 10e16);
   }
 
   function test_depositRewardAssets_RevertWhenPaused() external {
@@ -147,8 +161,8 @@ contract DepositorUnitTest is TestBase {
 
   function test_depositRewardAssetsWithoutTransfer_DepositAndStorageUpdates() external {
     address depositor_ = _randomAddress();
-    uint128 amountToDeposit_ = 10e18;
-
+    uint256 amountToDeposit_ = 10e18;
+    uint256 depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
     // Mint initial balance for depositor.
     mockAsset.mint(depositor_, amountToDeposit_);
     // Transfer to rewards manager.
@@ -156,25 +170,27 @@ contract DepositorUnitTest is TestBase {
     mockAsset.transfer(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 0, amountToDeposit_);
+    emit Deposited(depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
     vm.prank(depositor_);
     _deposit(true, 0, amountToDeposit_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
-    // 50e18 + 10e18
-    assertEq(finalRewardPool_.undrippedRewards, 60e18);
-    // 50e18 + 10e18
-    assertEq(finalAssetPool_.amount, 60e18);
-    assertEq(mockAsset.balanceOf(address(component)), 60e18);
+    // 50e18 + 10e18 - 5e16
+    assertEq(finalRewardPool_.undrippedRewards, 60e18 - 5e16);
+    // 50e18 + 10e18 - 5e16
+    assertEq(finalAssetPool_.amount, 60e18 - 5e16);
+    assertEq(mockAsset.balanceOf(address(component)), 60e18 - 5e16);
 
     assertEq(mockAsset.balanceOf(depositor_), 0);
+    assertEq(mockAsset.balanceOf(cozyManager.owner()), 5e16);
   }
 
   function test_depositRewardAssetsWithoutTransfer_DepositAndStorageUpdatesNonZeroSupply() external {
     address depositor_ = _randomAddress();
-    uint128 amountToDeposit_ = 20e18;
+    uint256 amountToDeposit_ = 20e18;
+    uint256 depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
 
     // Mint initial balance for depositor.
     mockAsset.mint(depositor_, amountToDeposit_);
@@ -183,20 +199,21 @@ contract DepositorUnitTest is TestBase {
     mockAsset.transfer(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 0, amountToDeposit_);
+    emit Deposited(depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
     vm.prank(depositor_);
     _deposit(true, 0, amountToDeposit_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
-    // 50e18 + 20e18
-    assertEq(finalRewardPool_.undrippedRewards, 70e18);
-    // 50e18 + 20e18
-    assertEq(finalAssetPool_.amount, 70e18);
-    assertEq(mockAsset.balanceOf(address(component)), 70e18);
+    // 50e18 + 20e18 - 10e16
+    assertEq(finalRewardPool_.undrippedRewards, 70e18 - 10e16);
+    // 50e18 + 20e18 - 10e16
+    assertEq(finalAssetPool_.amount, 70e18 - 10e16);
+    assertEq(mockAsset.balanceOf(address(component)), 70e18 - 10e16);
 
     assertEq(mockAsset.balanceOf(depositor_), 0);
+    assertEq(mockAsset.balanceOf(cozyManager.owner()), 10e16);
   }
 
   function test_depositRewardAssetsWithoutTransfer_RevertWhenPaused() external {
@@ -254,7 +271,8 @@ contract DepositorUnitTest is TestBase {
     deal(address(mockAsset_), address(component), initialUndrippedRewards_);
 
     address depositor_ = _randomAddress();
-    uint128 amountToDeposit_ = 1_000_000e30;
+    uint256 amountToDeposit_ = 1_000_000e30;
+    uint256 depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
 
     // Mint initial balance for depositor.
     mockAsset_.mint(depositor_, amountToDeposit_);
@@ -263,28 +281,30 @@ contract DepositorUnitTest is TestBase {
     mockAsset_.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 1, amountToDeposit_);
+    emit Deposited(depositor_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
     vm.prank(depositor_);
     _deposit(false, 1, amountToDeposit_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(1);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset_)));
-    // 100e30 + 1_000_000e30
-    assertEq(finalRewardPool_.undrippedRewards, 100e30 + 1_000_000e30);
-    // 100e30 + 1_000_000e30
-    assertEq(finalAssetPool_.amount, 100e30 + 1_000_000e30);
-    assertEq(mockAsset_.balanceOf(address(component)), 100e30 + 1_000_000e30);
+    // 100e30 + 1_000_000e30 - 5000e30
+    assertEq(finalRewardPool_.undrippedRewards, 100e30 + 1_000_000e30 - 5000e30);
+    // 100e30 + 1_000_000e30 - 5000e30
+    assertEq(finalAssetPool_.amount, 100e30 + 1_000_000e30 - 5000e30);
+    assertEq(mockAsset_.balanceOf(address(component)), 100e30 + 1_000_000e30 - 5000e30);
+    assertEq(mockAsset_.balanceOf(cozyManager.owner()), 5000e30);
 
     // Mint some more balance for depositor.
     amountToDeposit_ = 100_000e30;
+    depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
     mockAsset_.mint(depositor_, amountToDeposit_);
     // Approve rewards manager to spend asset.
     vm.prank(depositor_);
     mockAsset_.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 1, amountToDeposit_);
+    emit Deposited(depositor_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
     vm.prank(depositor_);
     _deposit(false, 1, amountToDeposit_);
@@ -292,15 +312,16 @@ contract DepositorUnitTest is TestBase {
     finalRewardPool_ = component.getRewardPool(1);
     finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset_)));
     // 100e30 + 1_000_000e30 + 100_000e30
-    assertEq(finalRewardPool_.undrippedRewards, 100e30 + 1_000_000e30 + 100_000e30);
+    assertEq(finalRewardPool_.undrippedRewards, 100e30 + 1_000_000e30 + 100_000e30 - 5000e30 - 500e30);
     // 100e30 + 1_000_000e30 + 100_000e30
-    assertEq(finalAssetPool_.amount, 100e30 + 1_000_000e30 + 100_000e30);
-    assertEq(mockAsset_.balanceOf(address(component)), 100e30 + 1_000_000e30 + 100_000e30);
+    assertEq(finalAssetPool_.amount, 100e30 + 1_000_000e30 + 100_000e30 - 5000e30 - 500e30);
+    assertEq(mockAsset_.balanceOf(address(component)), 100e30 + 1_000_000e30 + 100_000e30 - 5000e30 - 500e30);
+    assertEq(mockAsset_.balanceOf(cozyManager.owner()), 5000e30 + 500e30);
 
     component.mockSetNextRewardsDripAmount(1_000_000e30);
     vm.warp(_randomUint64());
     uint256 nextTotalPoolAmount_ = component.previewCurrentUndrippedRewards(1);
-    assertEq(nextTotalPoolAmount_, 100e30 + 100_000e30);
+    assertEq(nextTotalPoolAmount_, 100e30 + 100_000e30 - 5000e30 - 500e30);
   }
 
   function test_previewCurrentUndrippedRewardsWithDrip() external {
@@ -321,7 +342,14 @@ contract DepositorUnitTest is TestBase {
 contract TestableDepositor is Depositor, RewardsManagerInspector {
   uint256 internal mockNextRewardsDripAmount;
 
+  constructor(MockManager manager_) {
+    cozyManager = ICozyManager(address(manager_));
+  }
+
   // -------- Mock setters --------
+  function setDepositFee(uint16 depositFee_) external {
+    MockManager(address(cozyManager)).setDepositFee(depositFee_);
+  }
 
   function mockAddRewardPool(RewardPool memory rewardPool_) external {
     rewardPools.push(rewardPool_);

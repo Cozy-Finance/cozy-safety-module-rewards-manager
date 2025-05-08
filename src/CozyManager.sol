@@ -9,8 +9,8 @@ import {IRewardsManagerFactory} from "./interfaces/IRewardsManagerFactory.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./lib/structs/Configs.sol";
 
 contract CozyManager is Governable, ICozyManager {
-  struct ClaimFeeLookup {
-    uint16 claimFee;
+  struct FeeLookup {
+    uint16 fee;
     bool exists;
   }
 
@@ -20,24 +20,37 @@ contract CozyManager is Governable, ICozyManager {
   /// @notice The default claim fee used for RewardsManagers, represented as a ZOC (e.g. 500 = 5%).
   uint16 public claimFee;
 
+  /// @notice The default deposit fee used for RewardsManagers, represented as a ZOC (e.g. 500 = 5%).
+  uint16 public depositFee;
+
   /// @notice Override claim fees for specific RewardsManagers.
-  mapping(IRewardsManager => ClaimFeeLookup) public overrideClaimFees;
+  mapping(IRewardsManager => FeeLookup) public overrideClaimFees;
+
+  /// @notice Override deposit fees for specific RewardsManagers.
+  mapping(IRewardsManager => FeeLookup) public overrideDepositFees;
 
   /// @param owner_ The Cozy protocol owner.
   /// @param pauser_ The Cozy protocol pauser.
   /// @param rewardsManagerFactory_ The Cozy protocol RewardsManagerFactory.
   /// @param claimFee_ The default claim fee used for RewardsManagers, represented as a ZOC (e.g. 500 = 5%).
-  constructor(address owner_, address pauser_, IRewardsManagerFactory rewardsManagerFactory_, uint16 claimFee_) {
+  constructor(
+    address owner_,
+    address pauser_,
+    IRewardsManagerFactory rewardsManagerFactory_,
+    uint16 claimFee_,
+    uint16 depositFee_
+  ) {
     _assertAddressNotZero(owner_);
     _assertAddressNotZero(address(rewardsManagerFactory_));
     __initGovernable(owner_, pauser_);
 
     rewardsManagerFactory = rewardsManagerFactory_;
     _updateClaimFee(claimFee_);
+    _updateDepositFee(depositFee_);
   }
 
   // -------------------------------------------------
-  // --------------- Claim Fee Management ------------
+  // ------------------- Fee Management --------------
   // -------------------------------------------------
 
   /// @notice Update the default claim fee used for RewardsManagers.
@@ -46,13 +59,49 @@ contract CozyManager is Governable, ICozyManager {
     _updateClaimFee(claimFee_);
   }
 
+  /// @notice Update the default deposit fee used for RewardsManagers.
+  /// @param depositFee_ The new default deposit fee.
+  function updateDepositFee(uint16 depositFee_) external onlyOwner {
+    _updateDepositFee(depositFee_);
+  }
+
+  /// @notice Used to update both the default claim and deposit fees used for RewardsManagers.
+  /// @param claimFee_ The new default claim fee.
+  /// @param depositFee_ The new default deposit fee.
+  function updateFees(uint16 claimFee_, uint16 depositFee_) external onlyOwner {
+    _updateClaimFee(claimFee_);
+    _updateDepositFee(depositFee_);
+  }
+
   /// @notice Update the claim fee for a specific RewardsManager.
   /// @param rewardsManager_ The RewardsManager to update the claim fee for.
   /// @param claimFee_ The new fee claim fee for the RewardsManager.
   function updateOverrideClaimFee(IRewardsManager rewardsManager_, uint16 claimFee_) external onlyOwner {
     if (claimFee_ > MathConstants.ZOC) revert InvalidClaimFee();
-    overrideClaimFees[rewardsManager_] = ClaimFeeLookup({exists: true, claimFee: claimFee_});
+    overrideClaimFees[rewardsManager_] = FeeLookup({exists: true, fee: claimFee_});
     emit OverrideClaimFeeUpdated(rewardsManager_, claimFee_);
+  }
+
+  /// @notice Update the deposit fee for a specific RewardsManager.
+  /// @param rewardsManager_ The RewardsManager to update the deposit fee for.
+  /// @param depositFee_ The new fee deposit fee for the RewardsManager.
+  function updateOverrideDepositFee(IRewardsManager rewardsManager_, uint16 depositFee_) external onlyOwner {
+    if (depositFee_ > MathConstants.ZOC) revert InvalidDepositFee();
+    overrideDepositFees[rewardsManager_] = FeeLookup({exists: true, fee: depositFee_});
+    emit OverrideDepositFeeUpdated(rewardsManager_, depositFee_);
+  }
+
+  /// @notice Used to update both the override claim and deposit fees for a specific RewardsManager.
+  /// @param rewardsManager_ The RewardsManager to update the fees for.
+  /// @param claimFee_ The new fee claim fee for the RewardsManager.
+  /// @param depositFee_ The new fee deposit fee for the RewardsManager.
+  function updateOverrideFees(IRewardsManager rewardsManager_, uint16 claimFee_, uint16 depositFee_) external onlyOwner {
+    if (claimFee_ > MathConstants.ZOC) revert InvalidClaimFee();
+    if (depositFee_ > MathConstants.ZOC) revert InvalidDepositFee();
+    overrideClaimFees[rewardsManager_] = FeeLookup({exists: true, fee: claimFee_});
+    overrideDepositFees[rewardsManager_] = FeeLookup({exists: true, fee: depositFee_});
+    emit OverrideClaimFeeUpdated(rewardsManager_, claimFee_);
+    emit OverrideDepositFeeUpdated(rewardsManager_, depositFee_);
   }
 
   /// @notice Reset the override claim fee for the specified RewardsManager back to the default.
@@ -62,11 +111,34 @@ contract CozyManager is Governable, ICozyManager {
     emit OverrideClaimFeeUpdated(rewardsManager_, claimFee);
   }
 
+  /// @notice Reset the override deposit fee for the specified RewardsManager back to the default.
+  /// @param rewardsManager_ The RewardsManager to update the deposit fee for.
+  function resetOverrideDepositFee(IRewardsManager rewardsManager_) external onlyOwner {
+    delete overrideDepositFees[rewardsManager_];
+    emit OverrideDepositFeeUpdated(rewardsManager_, depositFee);
+  }
+
+  /// @notice Used to reset the override claim and deposit fees for a specific RewardsManager back to the default.
+  /// @param rewardsManager_ The RewardsManager to update the fees for.
+  function resetOverrideFees(IRewardsManager rewardsManager_) external onlyOwner {
+    delete overrideClaimFees[rewardsManager_];
+    delete overrideDepositFees[rewardsManager_];
+    emit OverrideClaimFeeUpdated(rewardsManager_, claimFee);
+    emit OverrideDepositFeeUpdated(rewardsManager_, depositFee);
+  }
+
   /// @notice For the specified RewardsManager, returns the claim fee.
   function getClaimFee(IRewardsManager rewardsManager_) public view returns (uint16) {
-    ClaimFeeLookup memory overrideClaimFee_ = overrideClaimFees[rewardsManager_];
-    if (overrideClaimFee_.exists) return overrideClaimFee_.claimFee;
+    FeeLookup memory overrideClaimFee_ = overrideClaimFees[rewardsManager_];
+    if (overrideClaimFee_.exists) return overrideClaimFee_.fee;
     else return claimFee;
+  }
+
+  /// @notice For the specified RewardsManager, returns the deposit fee.
+  function getDepositFee(IRewardsManager rewardsManager_) public view returns (uint16) {
+    FeeLookup memory overrideDepositFee_ = overrideDepositFees[rewardsManager_];
+    if (overrideDepositFee_.exists) return overrideDepositFee_.fee;
+    else return depositFee;
   }
 
   /// @dev Executes the claim fee update.
@@ -74,6 +146,13 @@ contract CozyManager is Governable, ICozyManager {
     if (claimFee_ > MathConstants.ZOC) revert InvalidClaimFee();
     claimFee = claimFee_;
     emit ClaimFeeUpdated(claimFee_);
+  }
+
+  /// @dev Executes the deposit fee update.
+  function _updateDepositFee(uint16 depositFee_) internal {
+    if (depositFee_ > MathConstants.ZOC) revert InvalidDepositFee();
+    depositFee = depositFee_;
+    emit DepositFeeUpdated(depositFee_);
   }
 
   // -------------------------------------------------
