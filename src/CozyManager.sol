@@ -41,6 +41,7 @@ contract CozyManager is Governable, ICozyManager {
     uint16 depositFee_
   ) {
     _assertAddressNotZero(owner_);
+    _assertAddressNotZero(pauser_);
     _assertAddressNotZero(address(rewardsManagerFactory_));
     __initGovernable(owner_, pauser_);
 

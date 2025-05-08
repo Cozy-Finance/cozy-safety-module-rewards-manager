@@ -20,6 +20,7 @@ import {ConfiguratorLib} from "../src/lib/ConfiguratorLib.sol";
 import {Configurator} from "../src/lib/Configurator.sol";
 import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
+import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IConfiguratorEvents} from "../src/interfaces/IConfiguratorEvents.sol";
 import {IConfiguratorErrors} from "../src/interfaces/IConfiguratorErrors.sol";
 import {MockDripModel} from "./utils/MockDripModel.sol";
@@ -39,7 +40,9 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     ReceiptTokenFactory receiptTokenFactory =
       new ReceiptTokenFactory(IReceiptToken(address(receiptTokenLogic_)), IReceiptToken(address(receiptTokenLogic_)));
 
-    component = new TestableConfigurator(address(this), receiptTokenFactory, ALLOWED_STAKE_POOLS, ALLOWED_REWARD_POOLS);
+    component = new TestableConfigurator(
+      address(this), receiptTokenFactory, ALLOWED_STAKE_POOLS, ALLOWED_REWARD_POOLS, _randomAddress()
+    );
   }
 
   function _generateRewardPools(uint256 numPools_) private returns (RewardPool[] memory) {
@@ -622,6 +625,7 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
 
   function testFuzz_updatePauser(address newPauser_) external {
     vm.assume(newPauser_ != address(component.cozyManager()));
+    vm.assume(newPauser_ != address(0));
     component.updatePauser(newPauser_);
     assertEq(component.pauser(), newPauser_);
   }
@@ -630,6 +634,11 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     address manager_ = address(component.cozyManager());
     vm.expectRevert(IConfiguratorErrors.InvalidConfiguration.selector);
     component.updatePauser(manager_);
+  }
+
+  function test_updatePauser_revertZeroAddress() external {
+    vm.expectRevert(Ownable.InvalidAddress.selector);
+    component.updatePauser(address(0));
   }
 }
 
@@ -642,12 +651,14 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     address owner_,
     IReceiptTokenFactory receiptTokenFactory_,
     uint16 allowedStakePools_,
-    uint16 allowedRewardPools_
+    uint16 allowedRewardPools_,
+    address cozyManager_
   ) {
     __initOwnable(owner_);
     receiptTokenFactory = receiptTokenFactory_;
     allowedStakePools = allowedStakePools_;
     allowedRewardPools = allowedRewardPools_;
+    cozyManager = ICozyManager(cozyManager_);
   }
 
   // -------- Mock setters --------
