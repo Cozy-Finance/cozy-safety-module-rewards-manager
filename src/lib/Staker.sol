@@ -8,7 +8,6 @@ import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {AssetPool, StakePool} from "./structs/Pools.sol";
 import {ClaimRewardsArgs, ClaimableRewardsData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
-import {RewardsManagerCalculationsLib} from "./RewardsManagerCalculationsLib.sol";
 
 abstract contract Staker is RewardsManagerCommon {
   using SafeERC20 for IERC20;

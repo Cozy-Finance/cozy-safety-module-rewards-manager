@@ -9,7 +9,7 @@ import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
-import {StakePool, AssetPool} from "./structs/Pools.sol";
+import {StakePool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {

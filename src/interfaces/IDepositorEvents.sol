@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
-
 interface IDepositorEvents {
   /// @notice Emitted when a user deposits.
   /// @param caller_ The caller of the deposit.
