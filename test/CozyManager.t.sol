@@ -10,6 +10,7 @@ import {CozyManager} from "../src/CozyManager.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
+import {IRewardsManagerFactory} from "../src/interfaces/IRewardsManagerFactory.sol";
 import {ICozyManagerEvents} from "../src/interfaces/ICozyManagerEvents.sol";
 import {MockDeployProtocol} from "./utils/MockDeployProtocol.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
@@ -28,6 +29,23 @@ abstract contract CozyManagerTestSetup is TestBase {
 
     rewardPoolConfigs_ = new RewardPoolConfig[](1);
     rewardPoolConfigs_[0] = RewardPoolConfig({asset: asset_, dripModel: IDripModel(address(new MockDripModel(1e18)))});
+  }
+}
+
+contract CozyManagerConstructorTest is CozyManagerTestSetup {
+  function test_RevertsZeroAddressOwner() public {
+    vm.expectRevert(Ownable.InvalidAddress.selector);
+    new CozyManager(address(0), _randomAddress(), IRewardsManagerFactory(_randomAddress()), 0, 0);
+  }
+
+  function test_RevertsZeroAddressPauser() public {
+    vm.expectRevert(Ownable.InvalidAddress.selector);
+    new CozyManager(_randomAddress(), address(0), IRewardsManagerFactory(_randomAddress()), 0, 0);
+  }
+
+  function test_RevertsZeroAddressFactory() public {
+    vm.expectRevert(Ownable.InvalidAddress.selector);
+    new CozyManager(_randomAddress(), _randomAddress(), IRewardsManagerFactory(address(0)), 0, 0);
   }
 }
 

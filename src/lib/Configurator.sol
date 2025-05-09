@@ -47,6 +47,7 @@ abstract contract Configurator is RewardsManagerCommon, Governable {
   /// @notice Update pauser to `newPauser_`.
   /// @param newPauser_ The new pauser.
   function updatePauser(address newPauser_) external {
+    _assertAddressNotZero(newPauser_);
     if (newPauser_ == address(cozyManager)) revert IConfiguratorErrors.InvalidConfiguration();
     _updatePauser(newPauser_);
   }
