@@ -85,7 +85,7 @@ abstract contract RewardsAccountingInvariantsWithStateTransitions is InvariantTe
             "Invariant Violated: The sum of user accrued rewards for a (stake pool, reward pool) pair must be less than or equal to the cumulative claimed rewards for the pair.",
             " sumUserAccruedRewards: ",
             Strings.toString(sumUserAccruedRewards_),
-            ", cumulativeClaimedRewards: ",
+            ", cumulativeClaimableRewards: ",
             Strings.toString(cumulativeClaimableRewards_),
             ", stakePoolId: ",
             Strings.toString(stakePoolId_),

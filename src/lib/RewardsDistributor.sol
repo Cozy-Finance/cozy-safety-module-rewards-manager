@@ -114,7 +114,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// @notice Update the user rewards data to prepare for a transfer of stkReceiptTokens.
   /// @dev stkReceiptTokens are expected to call this before the actual underlying ERC-20 transfer (e.g.
   /// `super.transfer(address to_, uint256 amount_)`). Otherwise, the `from_` user will have accrued less historical
-  /// rewards they are entitled to as their new balance is smaller after the transfer. Also, the `to_` user will accure
+  /// rewards they are entitled to as their new balance is smaller after the transfer. Also, the `to_` user will accrue
   /// more historical rewards than they are entitled to as their new balance is larger after the transfer.
   /// @param from_ The address of the user transferring stkReceiptTokens.
   /// @param to_ The address of the user receiving stkReceiptTokens.
@@ -127,7 +127,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     IReceiptToken stkReceiptToken_ = stakePools[stakePoolId_].stkReceiptToken;
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[stakePoolId_];
 
-    // Fully accure historical rewards for both users given their current stkReceiptToken balances. Moving forward all
+    // Fully accrue historical rewards for both users given their current stkReceiptToken balances. Moving forward all
     // rewards will accrue based on: (1) the stkReceiptToken balances of the `from_` and `to_` address after the
     // transfer, (2)
     // the current claimable reward index snapshots.
