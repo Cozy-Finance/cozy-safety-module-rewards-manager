@@ -8,6 +8,7 @@ import {Ownable} from "cozy-safety-module-libs/lib/Ownable.sol";
 import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import { PRBMathSD59x18 } from "@prb/math/contracts/PRBMathSD59x18.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {StakePool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
