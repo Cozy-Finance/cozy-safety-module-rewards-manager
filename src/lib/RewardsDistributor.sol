@@ -146,7 +146,7 @@ function _dripRewardPool(RewardPool storage rewardPool_, uint16 rewardPoolId_) i
 
     // First update lnCumulativeDripFactor += ln(1 - dripAmount / totalUndrippedRewards)
     if (rewardDrip_.amount == rewardPool_.undrippedRewards) {
-      // Full decay — reset cumulative factor and all depositor states. Otherwise you would get ln(1-1) = ln(0) which is undefined.
+      // Full decay — reset cumulative factor and increment dripSeries. Otherwise you would get ln(1-1) = ln(0) which is undefined.
       rewardPool_.lnCumulativeDripFactor = 0;
       rewardPool_.dripSeries += 1;
 
