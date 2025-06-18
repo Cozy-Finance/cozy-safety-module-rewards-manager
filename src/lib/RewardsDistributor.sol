@@ -148,12 +148,7 @@ function _dripRewardPool(RewardPool storage rewardPool_, uint16 rewardPoolId_) i
     if (rewardDrip_.amount == rewardPool_.undrippedRewards) {
       // Full decay — reset cumulative factor and all depositor states. Otherwise you would get ln(1-1) = ln(0) which is undefined.
       rewardPool_.lnCumulativeDripFactor = 0;
-
-      address[] storage depositors_ = rewardPoolDepositors[rewardPoolId_];
-      for (uint256 i = 0; i < depositors_.length; i++) {
-        address depositor_ = depositors_[i];
-        rewardPoolDepositorStates[rewardPoolId_][depositor_].lnLastDripFactor = 0;
-      }
+      rewardPool_.dripSeries += 1;
 
     } else {
       int256 lnThisDripFactor_ = (int256(1e18) - PRBMathSD59x18.fromUint(rewardDrip_.amount).div(PRBMathSD59x18.fromUint(rewardPool_.undrippedRewards))).ln();

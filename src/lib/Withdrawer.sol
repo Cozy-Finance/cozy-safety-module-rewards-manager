@@ -23,6 +23,14 @@ contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdrawerEvent
 
         if (depositorState_.lastAvailableToWithdraw == 0) revert BalanceTooLow();
 
+        if (depositorState_.dripSeries != rewardPool_.dripSeries) {
+            // Full decay occurred since last interaction so reset balance
+            depositorState_.lastAvailableToWithdraw = 0;
+            depositorState_.lnLastDripFactor = rewardPool_.lnCumulativeDripFactor;
+            depositorState_.dripSeries = rewardPool_.dripSeries;
+            revert BalanceTooLow();
+        }
+
         uint256 updatedWithdrawable_ = PRBMathSD59x18.fromUint(depositorState_.lastAvailableToWithdraw).mul((rewardPool_.lnCumulativeDripFactor - depositorState_.lnLastDripFactor).exp()).toUint();
 
         if (withdrawalAmount_ > updatedWithdrawable_) revert BalanceTooLow();

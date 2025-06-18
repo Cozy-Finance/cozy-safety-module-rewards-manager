@@ -76,10 +76,17 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
 
     DepositorRewardState storage depositorState_ = rewardPoolDepositorStates[rewardPoolId_][msg.sender];
 
-    uint256 updatedWithdrawable_ = PRBMathSD59x18.fromUint(depositorState_.lastAvailableToWithdraw).mul((rewardPool_.lnCumulativeDripFactor - depositorState_.lnLastDripFactor).exp()).toUint();
 
-    depositorState_.lastAvailableToWithdraw = updatedWithdrawable_ + depositAmount_;
-    depositorState_.lnLastDripFactor = rewardPool_.lnCumulativeDripFactor;
+    if (depositorState_.dripSeries != rewardPool_.dripSeries) {
+      // Full decay occurred since last interaction so reset balance
+      depositorState_.lastAvailableToWithdraw = 0;
+      depositorState_.lnLastDripFactor = rewardPool_.lnCumulativeDripFactor;
+      depositorState_.dripSeries = rewardPool_.dripSeries;
+    } else {
+      uint256 updatedWithdrawable_ = PRBMathSD59x18.fromUint(depositorState_.lastAvailableToWithdraw).mul((rewardPool_.lnCumulativeDripFactor - depositorState_.lnLastDripFactor).exp()).toUint();
+      depositorState_.lastAvailableToWithdraw = updatedWithdrawable_ + depositAmount_;
+      depositorState_.lnLastDripFactor = rewardPool_.lnCumulativeDripFactor;
+    }
 
     rewardPool_.undrippedRewards += depositAmount_;
     assetPools[token_].amount += depositAmount_;

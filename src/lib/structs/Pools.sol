@@ -38,6 +38,7 @@ struct RewardPool {
   // The drip model for the reward pool.
   IDripModel dripModel;
   int256 lnCumulativeDripFactor; // Natural Log of the cumulative drip factor, used to apply decay to depositor balances.
+  uint256 dripSeries; // Series of drips that determines how many resets have occured for this reward pool (occurs when pool balance = 0)
 }
 
 struct IdLookup {
