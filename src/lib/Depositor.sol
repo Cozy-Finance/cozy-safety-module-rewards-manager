@@ -75,18 +75,11 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     uint256 depositAmount_ = rewardAssetAmount_ - depositFeeAmount_;
 
     DepositorRewardState storage depositorState_ = rewardPoolDepositorStates[rewardPoolId_][msg.sender];
-    
-    uint256 lastAvailable_ = depositorState_.lastAvailableToWithdraw;
-    int256 lastAvailableFixed_ = PRBMathSD59x18.fromUint(lastAvailable_);
 
-    int256 lnC_ = rewardPool_.lnCumulativeDripFactor;
-    int256 lnL_ = depositorState_.lnLastDripFactor;
-    int256 decayFactor_ = (lnC_ - lnL_).exp();
-
-    uint256 updatedWithdrawable_ = lastAvailableFixed_.mul(decayFactor_).toUint();
+    uint256 updatedWithdrawable_ = PRBMathSD59x18.fromUint(depositorState_.lastAvailableToWithdraw).mul((rewardPool_.lnCumulativeDripFactor - depositorState_.lnLastDripFactor).exp()).toUint();
 
     depositorState_.lastAvailableToWithdraw = updatedWithdrawable_ + depositAmount_;
-    depositorState_.lnLastDripFactor = lnC_;
+    depositorState_.lnLastDripFactor = rewardPool_.lnCumulativeDripFactor;
 
     rewardPool_.undrippedRewards += depositAmount_;
     assetPools[token_].amount += depositAmount_;

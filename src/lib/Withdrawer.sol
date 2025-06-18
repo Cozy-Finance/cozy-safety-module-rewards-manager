@@ -21,20 +21,14 @@ contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdrawerEvent
         // Ensure reward pool drip is up-to-date before withdrawal
         _dripRewardPool(rewardPool_,rewardPoolId_);
 
-        uint256 lastAvailable_ = depositorState_.lastAvailableToWithdraw;
-        int256 lastAvailableFixed_ = PRBMathSD59x18.fromUint(lastAvailable_);
+        if (depositorState_.lastAvailableToWithdraw == 0) revert BalanceTooLow();
 
-        if (lastAvailable_ == 0) revert BalanceTooLow();
-
-        int256 lnC_ = rewardPool_.lnCumulativeDripFactor;
-        int256 lnL_ = depositorState_.lnLastDripFactor;
-        int256 decayFactor_ = (lnC_ - lnL_).exp();
-        uint256 updatedWithdrawable_ = lastAvailableFixed_.mul(decayFactor_).toUint();
+        uint256 updatedWithdrawable_ = PRBMathSD59x18.fromUint(depositorState_.lastAvailableToWithdraw).mul((rewardPool_.lnCumulativeDripFactor - depositorState_.lnLastDripFactor).exp()).toUint();
 
         if (withdrawalAmount_ > updatedWithdrawable_) revert BalanceTooLow();
 
         depositorState_.lastAvailableToWithdraw = updatedWithdrawable_ - withdrawalAmount_;
-        depositorState_.lnLastDripFactor = lnC_;
+        depositorState_.lnLastDripFactor = rewardPool_.lnCumulativeDripFactor;
         
         rewardPool_.undrippedRewards -= withdrawalAmount_;
         assetPools[token_].amount -= withdrawalAmount_;

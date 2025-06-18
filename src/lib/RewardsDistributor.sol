@@ -143,10 +143,9 @@ function _dripRewardPool(RewardPool storage rewardPool_, uint16 rewardPoolId_) i
   RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
 
   if (rewardDrip_.amount > 0) {
-    uint256 undrippedBefore_ = rewardPool_.undrippedRewards;
 
     // First update lnCumulativeDripFactor += ln(1 - dripAmount / totalUndrippedRewards)
-    if (rewardDrip_.amount == undrippedBefore_) {
+    if (rewardDrip_.amount == rewardPool_.undrippedRewards) {
       // Full decay — reset cumulative factor and all depositor states. Otherwise you would get ln(1-1) = ln(0) which is undefined.
       rewardPool_.lnCumulativeDripFactor = 0;
 
@@ -157,9 +156,7 @@ function _dripRewardPool(RewardPool storage rewardPool_, uint16 rewardPoolId_) i
       }
 
     } else {
-      int256 dripAmountFixed_ = PRBMathSD59x18.fromUint(rewardDrip_.amount);
-      int256 undrippedFixed_ = PRBMathSD59x18.fromUint(undrippedBefore_);
-      int256 lnThisDripFactor_ = (int256(1e18) - dripAmountFixed_.div(undrippedFixed_)).ln();
+      int256 lnThisDripFactor_ = (int256(1e18) - PRBMathSD59x18.fromUint(rewardDrip_.amount).div(PRBMathSD59x18.fromUint(rewardPool_.undrippedRewards))).ln();
 
       rewardPool_.lnCumulativeDripFactor += lnThisDripFactor_;
     }
