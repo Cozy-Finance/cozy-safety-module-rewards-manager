@@ -21,6 +21,7 @@ contract RewardsManager is
   Depositor,
   RewardsDistributor,
   Staker,
+  Withdrawer,
   StateChanger
 {
   /// @notice Thrown if the rewards manager is already initialized.

@@ -17,12 +17,14 @@ import {
   PreviewClaimableRewardsData,
   PreviewClaimableRewards,
   ClaimRewardsArgs,
-  ClaimableRewardsData
+  ClaimableRewardsData,
+  DepositorRewardState
 } from "./structs/Rewards.sol";
 import {RewardPool, IdLookup} from "./structs/Pools.sol";
 
 abstract contract RewardsDistributor is RewardsManagerCommon {
   using FixedPointMathLib for uint256;
+  using PRBMathSD59x18 for int256;
   using SafeERC20 for IERC20;
 
   event ClaimedRewards(
@@ -135,14 +137,40 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     _updateUserRewards(stkReceiptToken_.balanceOf(to_), claimableRewards_, userRewards[stakePoolId_][to_]);
   }
 
-  function _dripRewardPool(RewardPool storage rewardPool_) internal override {
-    RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
-    if (rewardDrip_.amount > 0) {
-      rewardPool_.undrippedRewards -= rewardDrip_.amount;
-      rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
+
+function _dripRewardPool(RewardPool storage rewardPool_, uint16 rewardPoolId_) internal override {
+  RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
+
+  if (rewardDrip_.amount > 0) {
+    uint256 undrippedBefore_ = rewardPool_.undrippedRewards;
+
+    // First update lnCumulativeDripFactor += ln(1 - dripAmount / totalUndrippedRewards)
+    if (rewardDrip_.amount == undrippedBefore_) {
+      // Full decay — reset cumulative factor and all depositor states. Otherwise you would get ln(1-1) = ln(0) which is undefined.
+      rewardPool_.lnCumulativeDripFactor = 0;
+
+      address[] storage depositors_ = rewardPoolDepositors[rewardPoolId_];
+      for (uint256 i = 0; i < depositors_.length; i++) {
+        address depositor_ = depositors_[i];
+        rewardPoolDepositorStates[rewardPoolId_][depositor_].lnLastDripFactor = 0;
+      }
+
+    } else {
+      int256 dripAmountFixed_ = PRBMathSD59x18.fromUint(rewardDrip_.amount);
+      int256 undrippedFixed_ = PRBMathSD59x18.fromUint(undrippedBefore_);
+      int256 lnThisDripFactor_ = (int256(1e18) - dripAmountFixed_.div(undrippedFixed_)).ln();
+
+      rewardPool_.lnCumulativeDripFactor += lnThisDripFactor_;
     }
-    rewardPool_.lastDripTime = uint128(block.timestamp);
+
+    rewardPool_.undrippedRewards -= rewardDrip_.amount;
+    rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
   }
+
+  rewardPool_.lastDripTime = uint128(block.timestamp);
+}
+
+
 
   function _claimRewards(ClaimRewardsArgs memory args_) internal override {
     StakePool storage stakePool_ = stakePools[args_.stakePoolId];

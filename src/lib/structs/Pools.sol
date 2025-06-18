@@ -5,6 +5,7 @@ import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
 
+
 struct AssetPool {
   // The total balance of assets held by a rewards manager. This should be equivalent to asset.balanceOf(address(this)),
   // discounting any assets directly sent to the rewards manager via direct transfer.
@@ -36,6 +37,7 @@ struct RewardPool {
   IERC20 asset;
   // The drip model for the reward pool.
   IDripModel dripModel;
+  int256 lnCumulativeDripFactor; // Natural Log of the cumulative drip factor, used to apply decay to depositor balances.
 }
 
 struct IdLookup {

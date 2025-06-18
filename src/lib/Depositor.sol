@@ -11,10 +11,12 @@ import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardPool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {DepositorRewardState} from "./structs/Rewards.sol";
 
 abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDepositorEvents {
   using SafeERC20 for IERC20;
   using FixedPointMathLib for uint256;
+  using PRBMathSD59x18 for int256;
 
   /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool on behalf of `from_`.
   /// @dev Assumes that `msg.sender` has approved the rewards manager to spend `rewardAssetAmount_` of the reward pool's
@@ -66,10 +68,24 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
 
     // To ensure reward drip times are in sync with reward deposit times we drip rewards before depositing.
-    _dripRewardPool(rewardPool_);
+    _dripRewardPool(rewardPool_,rewardPoolId_);
 
     uint256 depositFeeAmount_ = _computeDepositFeeAmount(rewardAssetAmount_);
     uint256 depositAmount_ = rewardAssetAmount_ - depositFeeAmount_;
+
+    DepositorRewardState storage depositorState_ = rewardPoolDepositorStates[rewardPoolId_][msg.sender];
+    
+    uint256 lastAvailable_ = depositorState_.lastAvailableToWithdraw;
+    int256 lastAvailableFixed_ = PRBMathSD59x18.fromUint(lastAvailable_);
+
+    int256 lnC_ = rewardPool_.lnCumulativeDripFactor;
+    int256 lnL_ = depositorState_.lnLastDripFactor;
+    int256 decayFactor_ = (lnC_ - lnL_).exp();
+
+    uint256 updatedWithdrawable_ = lastAvailableFixed_.mul(decayFactor_).toUint();
+
+    depositorState_.lastAvailableToWithdraw = updatedWithdrawable_ + depositAmount_;
+    depositorState_.lnLastDripFactor = lnC_;
 
     rewardPool_.undrippedRewards += depositAmount_;
     assetPools[token_].amount += depositAmount_;

@@ -7,7 +7,7 @@ import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptT
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {ICozyManager} from "../interfaces/ICozyManager.sol";
 import {AssetPool, StakePool, IdLookup, RewardPool} from "./structs/Pools.sol";
-import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";
+import {UserRewardsData, ClaimableRewardsData,DepositorRewardState} from "./structs/Rewards.sol";
 
 abstract contract RewardsManagerBaseStorage {
   /// @notice Address of the Cozy protocol manager.
@@ -42,6 +42,10 @@ abstract contract RewardsManagerBaseStorage {
   /// @dev Used for checking that new stake pools have unique underlying assets in config updates.
   mapping(IERC20 asset_ => IdLookup stakePoolId_) public assetToStakePoolIds;
 
+  /// @notice Tracks the state of each depositor's rewards per reward pool.
+  /// @dev Used to calculate decayed available rewards using natural log math. Indexed first by rewardPoolId, then by depositor address.
+  mapping(uint16 => mapping(address => DepositorRewardState)) public rewardPoolDepositorStates;
+ 
   /// @dev True if the rewards manager has been initialized.
   bool public initialized;
 
