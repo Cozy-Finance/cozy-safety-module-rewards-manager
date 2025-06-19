@@ -5,16 +5,19 @@ import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
 import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import { PRBMathSD59x18 } from "@prb/math/contracts/PRBMathSD59x18.sol";
 import {IDepositorErrors} from "../interfaces/IDepositorErrors.sol";
 import {IDepositorEvents} from "../interfaces/IDepositorEvents.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardPool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {DepositorRewardState} from "./structs/Rewards.sol";
 
 abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDepositorEvents {
   using SafeERC20 for IERC20;
   using FixedPointMathLib for uint256;
+  using PRBMathSD59x18 for int256;
 
   /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool on behalf of `from_`.
   /// @dev Assumes that `msg.sender` has approved the rewards manager to spend `rewardAssetAmount_` of the reward pool's
@@ -70,6 +73,20 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
 
     uint256 depositFeeAmount_ = _computeDepositFeeAmount(rewardAssetAmount_);
     uint256 depositAmount_ = rewardAssetAmount_ - depositFeeAmount_;
+
+    DepositorRewardState storage depositorState_ = rewardPoolDepositorStates[rewardPoolId_][msg.sender];
+
+
+    if (depositorState_.dripSeries != rewardPool_.dripSeries) {
+      // Full decay occurred since last interaction so reset balance
+      depositorState_.lastAvailableToWithdraw = 0;
+      depositorState_.lnLastDripFactor = rewardPool_.lnCumulativeDripFactor;
+      depositorState_.dripSeries = rewardPool_.dripSeries;
+    } else {
+      uint256 updatedWithdrawable_ = PRBMathSD59x18.fromUint(depositorState_.lastAvailableToWithdraw).mul((rewardPool_.lnCumulativeDripFactor - depositorState_.lnLastDripFactor).exp()).toUint();
+      depositorState_.lastAvailableToWithdraw = updatedWithdrawable_ + depositAmount_;
+      depositorState_.lnLastDripFactor = rewardPool_.lnCumulativeDripFactor;
+    }
 
     rewardPool_.undrippedRewards += depositAmount_;
     assetPools[token_].amount += depositAmount_;

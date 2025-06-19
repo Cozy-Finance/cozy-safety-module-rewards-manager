@@ -8,6 +8,7 @@ import {Ownable} from "cozy-safety-module-libs/lib/Ownable.sol";
 import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import { PRBMathSD59x18 } from "@prb/math/contracts/PRBMathSD59x18.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {StakePool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
@@ -17,12 +18,14 @@ import {
   PreviewClaimableRewardsData,
   PreviewClaimableRewards,
   ClaimRewardsArgs,
-  ClaimableRewardsData
+  ClaimableRewardsData,
+  DepositorRewardState
 } from "./structs/Rewards.sol";
 import {RewardPool, IdLookup} from "./structs/Pools.sol";
 
 abstract contract RewardsDistributor is RewardsManagerCommon {
   using FixedPointMathLib for uint256;
+  using PRBMathSD59x18 for int256;
   using SafeERC20 for IERC20;
 
   event ClaimedRewards(
@@ -135,14 +138,32 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     _updateUserRewards(stkReceiptToken_.balanceOf(to_), claimableRewards_, userRewards[stakePoolId_][to_]);
   }
 
-  function _dripRewardPool(RewardPool storage rewardPool_) internal override {
-    RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
-    if (rewardDrip_.amount > 0) {
-      rewardPool_.undrippedRewards -= rewardDrip_.amount;
-      rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
+
+function _dripRewardPool(RewardPool storage rewardPool_) internal override {
+  RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
+
+  if (rewardDrip_.amount > 0) {
+
+    // First update lnCumulativeDripFactor += ln(1 - dripAmount / totalUndrippedRewards)
+    if (rewardDrip_.amount == rewardPool_.undrippedRewards) {
+      // Full decay — reset cumulative factor and increment dripSeries. Otherwise you would get ln(1-1) = ln(0) which is undefined.
+      rewardPool_.lnCumulativeDripFactor = 0;
+      rewardPool_.dripSeries += 1;
+
+    } else {
+      int256 lnThisDripFactor_ = (int256(1e18) - PRBMathSD59x18.fromUint(rewardDrip_.amount).div(PRBMathSD59x18.fromUint(rewardPool_.undrippedRewards))).ln();
+
+      rewardPool_.lnCumulativeDripFactor += lnThisDripFactor_;
     }
-    rewardPool_.lastDripTime = uint128(block.timestamp);
+
+    rewardPool_.undrippedRewards -= rewardDrip_.amount;
+    rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
   }
+
+  rewardPool_.lastDripTime = uint128(block.timestamp);
+}
+
+
 
   function _claimRewards(ClaimRewardsArgs memory args_) internal override {
     StakePool storage stakePool_ = stakePools[args_.stakePoolId];

@@ -48,3 +48,9 @@ struct PreviewClaimableRewardsData {
   // The claim fee amount.
   uint256 claimFeeAmount;
 }
+
+struct DepositorRewardState {
+    uint256 lastAvailableToWithdraw; // Amount that a depositor could withdraw from a pool as of their last deposit or withdrawal.
+    int256 lnLastDripFactor;         // Snapshot of lnCumulativeDripFactor as of a user's last deposit or withdrawal.
+    uint256 dripSeries;  // Series of drips that determines what reward pool reset # this depositor's state is at (occurs when pool balance = 0)
+}
