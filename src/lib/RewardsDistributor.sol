@@ -139,7 +139,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
 
-function _dripRewardPool(RewardPool storage rewardPool_, uint16 rewardPoolId_) internal override {
+function _dripRewardPool(RewardPool storage rewardPool_) internal override {
   RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
 
   if (rewardDrip_.amount > 0) {

@@ -19,7 +19,7 @@ contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdrawerEvent
         IERC20 token_ = rewardPool_.asset;
 
         // Ensure reward pool drip is up-to-date before withdrawal
-        _dripRewardPool(rewardPool_,rewardPoolId_);
+        _dripRewardPool(rewardPool_);
 
         if (depositorState_.lastAvailableToWithdraw == 0) revert BalanceTooLow();
 

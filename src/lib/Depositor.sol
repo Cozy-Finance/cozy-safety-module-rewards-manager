@@ -69,7 +69,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
 
     // To ensure reward drip times are in sync with reward deposit times we drip rewards before depositing.
-    _dripRewardPool(rewardPool_,rewardPoolId_);
+    _dripRewardPool(rewardPool_);
 
     uint256 depositFeeAmount_ = _computeDepositFeeAmount(rewardAssetAmount_);
     uint256 depositAmount_ = rewardAssetAmount_ - depositFeeAmount_;
