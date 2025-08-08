@@ -10,7 +10,9 @@ import {IDepositorEvents} from "../interfaces/IDepositorEvents.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardPool} from "./structs/Pools.sol";
+import {DepositorInfo} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {RewardMathLib} from "./RewardMathLib.sol";
 
 abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDepositorEvents {
   using SafeERC20 for IERC20;
@@ -75,6 +77,9 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     assetPools[token_].amount += depositAmount_;
     token_.safeTransfer(cozyManager.owner(), depositFeeAmount_);
 
+    // Update depositor tracking for withdrawals
+    _updateDepositorBalance(rewardPoolId_, msg.sender, depositAmount_, true);
+
     emit Deposited(msg.sender, rewardPoolId_, depositAmount_, depositFeeAmount_);
   }
 
@@ -88,5 +93,31 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
 
   function _computeDepositFeeAmount(uint256 rewardAssetAmount_) internal view returns (uint256) {
     return rewardAssetAmount_.mulDivUp(cozyManager.getDepositFee(IRewardsManager(address(this))), MathConstants.ZOC);
+  }
+
+  /// @dev Updates depositor balance when they deposit reward assets.
+  function _updateDepositorBalance(uint16 rewardPoolId_, address depositor_, uint256 amount_, bool isDeposit_) internal {
+    DepositorInfo storage info = depositorInfos[rewardPoolId_][depositor_];
+    uint256 currentLogIndex = rewardPoolLogIndex[rewardPoolId_];
+
+    // If log index is max, all deposits are worthless
+    if (currentLogIndex == type(uint256).max) {
+      info.balance = isDeposit_ ? 0 : info.balance;
+      info.logIndexSnapshot = currentLogIndex;
+      return;
+    }
+
+    // TODO: questionable if we need both of these conditions.
+    if (info.balance > 0 && info.logIndexSnapshot != currentLogIndex) {
+      // Update existing balance to current time
+      uint256 deltaLogIndex = currentLogIndex - info.logIndexSnapshot;
+      info.balance = info.balance.mulWadDown(RewardMathLib.expNeg(deltaLogIndex));
+    }
+
+    // Update balance and snapshot
+    if (isDeposit_) info.balance += amount_;
+    else info.balance = amount_; // For withdrawals, this will be the remaining balance
+
+    info.logIndexSnapshot = currentLogIndex;
   }
 }

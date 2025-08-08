@@ -11,6 +11,7 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {StakePool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {RewardMathLib} from "./RewardMathLib.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {
   UserRewardsData,
@@ -63,7 +64,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     uint256 numRewardAssets_ = rewardPools.length;
     for (uint16 i = 0; i < numRewardAssets_; i++) {
-      _dripRewardPool(rewardPools[i]);
+      _dripRewardPoolWithId(i, rewardPools[i]);
     }
   }
 
@@ -71,7 +72,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// @param rewardPoolId_ The ID of the reward pool to drip rewards for.
   function dripRewardPool(uint16 rewardPoolId_) external {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
-    _dripRewardPool(rewardPools[rewardPoolId_]);
+    _dripRewardPoolWithId(rewardPoolId_, rewardPools[rewardPoolId_]);
   }
 
   /// @notice Claim rewards for a specific stake pool and transfer rewards to `receiver_`.
@@ -140,6 +141,22 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     if (rewardDrip_.amount > 0) {
       rewardPool_.undrippedRewards -= rewardDrip_.amount;
       rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
+    }
+    rewardPool_.lastDripTime = uint128(block.timestamp);
+  }
+
+  function _dripRewardPoolWithId(uint16 rewardPoolId_, RewardPool storage rewardPool_) internal {
+    RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
+    if (rewardDrip_.amount > 0) {
+      // Calculate drip factor before updating state
+      uint256 undrippedBefore_ = rewardPool_.undrippedRewards;
+      uint256 dripFactor_ = rewardPool_.dripModel.dripFactor(rewardPool_.lastDripTime, undrippedBefore_);
+
+      rewardPool_.undrippedRewards -= rewardDrip_.amount;
+      rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
+
+      // Update log index for withdrawals
+      _updateRewardPoolLogIndex(rewardPoolId_, dripFactor_);
     }
     rewardPool_.lastDripTime = uint128(block.timestamp);
   }
@@ -434,5 +451,19 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
   function _computeClaimFeeAmount(uint256 claimAmount_, uint16 claimFee_) internal pure returns (uint256) {
     return claimAmount_.mulDivUp(claimFee_, MathConstants.ZOC);
+  }
+
+  /// @dev Updates the log index for a reward pool after a drip.
+  function _updateRewardPoolLogIndex(uint16 rewardPoolId_, uint256 dripFactor_) internal {
+    // Calculate retention factor (1 - dripFactor)
+    uint256 retentionFactor = MathConstants.WAD - dripFactor_;
+
+    if (retentionFactor == 0) {
+      // Full drip - all existing deposits become worthless
+      rewardPoolLogIndex[rewardPoolId_] = type(uint256).max;
+    } else {
+      // Update log index: logIndex += -ln(retentionFactor)
+      rewardPoolLogIndex[rewardPoolId_] += RewardMathLib.negLn(retentionFactor);
+    }
   }
 }

@@ -48,3 +48,11 @@ struct PreviewClaimableRewardsData {
   // The claim fee amount.
   uint256 claimFeeAmount;
 }
+
+// Used to track depositor state for reward withdrawals.
+struct DepositorInfo {
+  // The current withdrawable balance after applying all drips.
+  uint256 balance;
+  // The log index value when this depositor's balance was last updated.
+  uint256 logIndexSnapshot;
+}
