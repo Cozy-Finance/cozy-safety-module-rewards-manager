@@ -24,7 +24,7 @@ library RewardMathLib {
     // We need -ln(x), which is positive for x < 1.
     // Since lnWad effectively returns |ln(x)| for x < 1, and ln(x) < 0 for x < 1,
     // -ln(x) = |ln(x)| which is what lnWad gives us.
-    return MathConstants.WAD.lnWad() - x_.lnWad();
+    return uint256(FixedPointMathLib.lnWad(int256(MathConstants.WAD)) - FixedPointMathLib.lnWad(int256(x_)));
   }
 
   /// @notice Computes e^(-x) where x is in WAD precision.
@@ -41,6 +41,6 @@ library RewardMathLib {
     // expWad expects a signed int256 for negative exponents
     // We need e^(-x), so we negate x
     // Safe to cast since we've bounded x above
-    return FixedPointMathLib.expWad(-int256(x_));
+    return uint256(FixedPointMathLib.expWad(-int256(x_)));
   }
 }
