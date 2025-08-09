@@ -55,4 +55,6 @@ struct DepositorInfo {
   uint256 balance;
   // The log index value when this depositor's balance was last updated.
   uint256 logIndexSnapshot;
+  // The epoch when this balance was last updated.
+  uint32 epoch;
 }

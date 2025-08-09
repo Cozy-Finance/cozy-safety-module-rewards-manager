@@ -97,20 +97,16 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
 
   /// @dev Updates depositor balance when they deposit reward assets.
   function _updateDepositorBalance(uint16 rewardPoolId_, address depositor_, uint256 amount_, bool isDeposit_) internal {
+    RewardPool storage rewardPool = rewardPools[rewardPoolId_];
     DepositorInfo storage info = depositorInfos[rewardPoolId_][depositor_];
-    uint256 currentLogIndex = rewardPoolLogIndex[rewardPoolId_];
 
-    // If log index is max, all deposits are worthless
-    if (currentLogIndex == type(uint256).max) {
-      info.balance = isDeposit_ ? 0 : info.balance;
-      info.logIndexSnapshot = currentLogIndex;
-      return;
-    }
-
-    // TODO: questionable if we need both of these conditions.
-    if (info.balance > 0 && info.logIndexSnapshot != currentLogIndex) {
-      // Update existing balance to current time
-      uint256 deltaLogIndex = currentLogIndex - info.logIndexSnapshot;
+    // Check if depositor is from a previous epoch
+    if (info.epoch < rewardPool.epoch) {
+      // Previous epoch balance is worthless, reset
+      info.balance = 0;
+    } else if (info.balance > 0 && info.logIndexSnapshot != rewardPool.logIndex) {
+      // Same epoch, update balance based on drips
+      uint256 deltaLogIndex = rewardPool.logIndex - info.logIndexSnapshot;
       info.balance = info.balance.mulWadDown(RewardMathLib.expNeg(deltaLogIndex));
     }
 
@@ -118,6 +114,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     if (isDeposit_) info.balance += amount_;
     else info.balance = amount_; // For withdrawals, this will be the remaining balance
 
-    info.logIndexSnapshot = currentLogIndex;
+    info.logIndexSnapshot = rewardPool.logIndex;
+    info.epoch = rewardPool.epoch;
   }
 }

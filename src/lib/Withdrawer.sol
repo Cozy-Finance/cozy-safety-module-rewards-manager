@@ -58,30 +58,38 @@ abstract contract Withdrawer is RewardsManagerCommon {
   /// @param depositor_ The address of the depositor.
   /// @return The current withdrawable balance.
   function getWithdrawableBalance(uint16 rewardPoolId_, address depositor_) external view returns (uint256) {
+    RewardPool storage rewardPool = rewardPools[rewardPoolId_];
     DepositorInfo storage info = depositorInfos[rewardPoolId_][depositor_];
-    uint256 currentLogIndex = rewardPoolLogIndex[rewardPoolId_];
 
-    if (currentLogIndex == type(uint256).max || info.balance == 0) return 0; // Full drip occurred or no balance
+    // Check epoch first
+    if (info.epoch < rewardPool.epoch || info.balance == 0) return 0;
 
-    if (info.logIndexSnapshot == currentLogIndex) return info.balance; // No change since last update
+    if (info.logIndexSnapshot == rewardPool.logIndex) return info.balance; // No change since last update
 
     // Calculate current balance
-    uint256 deltaLogIndex = currentLogIndex - info.logIndexSnapshot;
+    uint256 deltaLogIndex = rewardPool.logIndex - info.logIndexSnapshot;
     return info.balance.mulWadDown(RewardMathLib.expNeg(deltaLogIndex));
   }
 
   /// @dev Updates and returns the current withdrawable balance for a depositor.
   function _updateAndGetWithdrawableBalance(uint16 rewardPoolId_, address depositor_) internal returns (uint256) {
+    RewardPool storage rewardPool = rewardPools[rewardPoolId_];
     DepositorInfo storage info = depositorInfos[rewardPoolId_][depositor_];
-    uint256 currentLogIndex = rewardPoolLogIndex[rewardPoolId_];
 
-    if (currentLogIndex == type(uint256).max || info.balance == 0) return 0; // Full drip occurred or no balance
+    // Check epoch first
+    if (info.epoch < rewardPool.epoch || info.balance == 0) {
+      // Reset to current epoch with 0 balance
+      info.balance = 0;
+      info.logIndexSnapshot = rewardPool.logIndex;
+      info.epoch = rewardPool.epoch;
+      return 0;
+    }
 
-    if (info.logIndexSnapshot != currentLogIndex) {
+    if (info.logIndexSnapshot != rewardPool.logIndex) {
       // Update balance to current time
-      uint256 deltaLogIndex = currentLogIndex - info.logIndexSnapshot;
+      uint256 deltaLogIndex = rewardPool.logIndex - info.logIndexSnapshot;
       info.balance = info.balance.mulWadDown(RewardMathLib.expNeg(deltaLogIndex));
-      info.logIndexSnapshot = currentLogIndex;
+      info.logIndexSnapshot = rewardPool.logIndex;
     }
 
     return info.balance;

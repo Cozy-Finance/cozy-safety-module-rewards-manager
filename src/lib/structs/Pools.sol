@@ -36,6 +36,10 @@ struct RewardPool {
   IERC20 asset;
   // The drip model for the reward pool.
   IDripModel dripModel;
+  // The current epoch for this reward pool. Incremented on full drips.
+  uint32 epoch;
+  // The logarithmic index for the current epoch to enable withdrawals.
+  uint256 logIndex;
 }
 
 struct IdLookup {
