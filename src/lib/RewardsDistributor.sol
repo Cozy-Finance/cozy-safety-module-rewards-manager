@@ -456,15 +456,15 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// @dev Updates the log index for a reward pool after a drip.
   function _updateRewardPoolLogIndex(RewardPool storage rewardPool_, uint256 dripFactor_) internal {
     // Calculate retention factor (1 - dripFactor)
-    uint256 retentionFactor = MathConstants.WAD - dripFactor_;
+    uint256 retentionFactor_ = MathConstants.WAD - dripFactor_;
 
-    if (retentionFactor == 0) {
+    if (retentionFactor_ == 0) {
       // Full drip - increment epoch and reset log index
       rewardPool_.epoch++;
       rewardPool_.logIndex = 0;
     } else {
-      // Update log index: logIndex += -ln(retentionFactor)
-      rewardPool_.logIndex += RewardMathLib.negLn(retentionFactor);
+      // Update log index: logIndex += -ln(retentionFactor_)
+      rewardPool_.logIndex += RewardMathLib.negLn(retentionFactor_);
     }
   }
 }

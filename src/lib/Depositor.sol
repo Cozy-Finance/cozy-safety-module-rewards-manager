@@ -10,7 +10,7 @@ import {IDepositorEvents} from "../interfaces/IDepositorEvents.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardPool} from "./structs/Pools.sol";
-import {DepositorInfo} from "./structs/Rewards.sol";
+import {DepositorRewardsData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {RewardMathLib} from "./RewardMathLib.sol";
 
@@ -97,24 +97,24 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
 
   /// @dev Updates depositor balance when they deposit reward assets.
   function _updateDepositorBalance(uint16 rewardPoolId_, address depositor_, uint256 amount_, bool isDeposit_) internal {
-    RewardPool storage rewardPool = rewardPools[rewardPoolId_];
-    DepositorInfo storage info = depositorInfos[rewardPoolId_][depositor_];
+    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
+    DepositorRewardsData storage info_ = depositorRewards[rewardPoolId_][depositor_];
 
     // Check if depositor is from a previous epoch
-    if (info.epoch < rewardPool.epoch) {
+    if (info_.epoch < rewardPool_.epoch) {
       // Previous epoch balance is worthless, reset
-      info.balance = 0;
-    } else if (info.balance > 0 && info.logIndexSnapshot != rewardPool.logIndex) {
+      info_.withdrawableRewards = 0;
+    } else if (info_.withdrawableRewards > 0 && info_.logIndexSnapshot != rewardPool_.logIndex) {
       // Same epoch, update balance based on drips
-      uint256 deltaLogIndex = rewardPool.logIndex - info.logIndexSnapshot;
-      info.balance = info.balance.mulWadDown(RewardMathLib.expNeg(deltaLogIndex));
+      uint256 deltaLogIndex_ = rewardPool_.logIndex - info_.logIndexSnapshot;
+      info_.withdrawableRewards = info_.withdrawableRewards.mulWadDown(RewardMathLib.expNeg(deltaLogIndex_));
     }
 
     // Update balance and snapshot
-    if (isDeposit_) info.balance += amount_;
-    else info.balance = amount_; // For withdrawals, this will be the remaining balance
+    if (isDeposit_) info_.withdrawableRewards += amount_;
+    else info_.withdrawableRewards = amount_; // For withdrawals, this will be the remaining balance
 
-    info.logIndexSnapshot = rewardPool.logIndex;
-    info.epoch = rewardPool.epoch;
+    info_.logIndexSnapshot = rewardPool_.logIndex;
+    info_.epoch = rewardPool_.epoch;
   }
 }
