@@ -13,3 +13,7 @@
 [submodule "lib/cozy-safety-module-libs"]
 	path = lib/cozy-safety-module-libs
 	url = https://github.com/Cozy-Finance/cozy-safety-module-libs
+[submodule "lib/prb-math"]
+	path = lib/prb-math
+	url = https://github.com/PaulRBerg/prb-math
+	branch = v4

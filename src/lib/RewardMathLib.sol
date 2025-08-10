@@ -1,46 +1,39 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
-import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+// PRBMath typed fixed-point wrappers (v4+)
+import {UD60x18, ud} from "@prb/math/src/UD60x18.sol";
+import {SD59x18, sd} from "@prb/math/src/SD59x18.sol";
 
-/// @notice Library for reward withdrawal mathematical operations.
-/// @dev All functions operate in WAD (1e18) precision.
+/// @notice Reward math helpers using PRBMath (WAD: 1e18).
 library RewardMathLib {
-  using FixedPointMathLib for uint256;
+  uint256 internal constant WAD = 1e18;
 
-  /// @notice Computes -ln(x) where x is in WAD precision.
-  /// @param x_ The input value in WAD precision (must be > 0 and <= WAD).
-  /// @return The negative natural logarithm of x in WAD precision.
+  /// @notice Computes -ln(x) for 0 < x <= 1 (WAD-scaled).
+  /// @dev Returns WAD-scaled result in uint256.
   function negLn(uint256 x_) internal pure returns (uint256) {
-    require(x_ > 0 && x_ <= MathConstants.WAD, "RewardMathLib: Invalid input for ln");
+    require(x_ > 0 && x_ <= WAD, "RewardMathLib: x out of (0,1]");
 
-    // lnWad returns ln(x) in WAD precision
-    // Since x <= 1, ln(x) <= 0, so we need to handle the sign
-    if (x_ == MathConstants.WAD) return 0; // -ln(1) = 0
+    // ln(x) for x in (0,1] is <= 0. We compute it in signed space,
+    // then negate and cast back to uint256.
+    if (x_ == WAD) return 0; // -ln(1) = 0
 
-    // For x < 1, ln(x) is negative, but lnWad returns the absolute value
-    // with the understanding that the result represents a negative number.
-    // We need -ln(x), which is positive for x < 1.
-    // Since lnWad effectively returns |ln(x)| for x < 1, and ln(x) < 0 for x < 1,
-    // -ln(x) = |ln(x)| which is what lnWad gives us.
-    return uint256(FixedPointMathLib.lnWad(int256(MathConstants.WAD)) - FixedPointMathLib.lnWad(int256(x_)));
+    // Convert raw WAD to PRB signed 59.18 and take ln.
+    int256 lnRaw = sd(int256(x_)).ln().unwrap();
+    return uint256(-lnRaw);
   }
 
-  /// @notice Computes e^(-x) where x is in WAD precision.
-  /// @param x_ The input value in WAD precision (non-negative).
-  /// @return The value e^(-x) in WAD precision.
+  /// @notice Computes e^(-x) for x >= 0 (WAD-scaled).
+  /// @dev Returns WAD-scaled result in uint256.
   function expNeg(uint256 x_) internal pure returns (uint256) {
-    if (x_ == 0) return MathConstants.WAD; // e^0 = 1
+    if (x_ == 0) return WAD;
 
-    // For very large x, e^(-x) approaches 0
-    // expWad has a minimum input of -42139678854452767551 (approximately -42.14 in WAD)
-    // Below this, it returns 0
-    if (x_ > 42_139_678_854_452_767_551) return 0;
+    // For x > ~41.4465e18, e^(-x) < 1e-18 so it rounds to 0 in WAD.
+    // Using 42e18 gives a cheap and safe early-out without calling exp.
+    if (x_ >= 42e18) return 0;
 
-    // expWad expects a signed int256 for negative exponents
-    // We need e^(-x), so we negate x
-    // Safe to cast since we've bounded x above
-    return uint256(FixedPointMathLib.expWad(-int256(x_)));
+    // Compute exp(-x) in signed space, unwrap (still WAD), cast to uint.
+    SD59x18 y = sd(-int256(x_));
+    return uint256(y.exp().unwrap());
   }
 }

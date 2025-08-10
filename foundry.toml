@@ -12,6 +12,7 @@ remappings = [
   "solmate/=lib/solmate/src/",
   "cozy-safety-module-models/=lib/cozy-safety-module-models/src",
   "cozy-safety-module-libs/=lib/cozy-safety-module-libs/src",
+  "@prb/math/=lib/prb-math/",
 ]
 fs_permissions = [{ access = "read", path = "./script/input"}]
 allow_internal_expect_revert = true
