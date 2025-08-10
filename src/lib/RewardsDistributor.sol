@@ -64,7 +64,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     uint256 numRewardAssets_ = rewardPools.length;
     for (uint16 i = 0; i < numRewardAssets_; i++) {
-      _dripRewardPoolWithId(rewardPools[i]);
+      _dripRewardPool(rewardPools[i]);
     }
   }
 
@@ -72,7 +72,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// @param rewardPoolId_ The ID of the reward pool to drip rewards for.
   function dripRewardPool(uint16 rewardPoolId_) external {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
-    _dripRewardPoolWithId(rewardPools[rewardPoolId_]);
+    _dripRewardPool(rewardPools[rewardPoolId_]);
   }
 
   /// @notice Claim rewards for a specific stake pool and transfer rewards to `receiver_`.
@@ -137,15 +137,6 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   function _dripRewardPool(RewardPool storage rewardPool_) internal override {
-    RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
-    if (rewardDrip_.amount > 0) {
-      rewardPool_.undrippedRewards -= rewardDrip_.amount;
-      rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
-    }
-    rewardPool_.lastDripTime = uint128(block.timestamp);
-  }
-
-  function _dripRewardPoolWithId(RewardPool storage rewardPool_) internal {
     RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
     if (rewardDrip_.amount > 0) {
       // Calculate drip factor before updating state
