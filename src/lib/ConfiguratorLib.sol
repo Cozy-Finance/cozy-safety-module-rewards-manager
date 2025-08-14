@@ -259,7 +259,7 @@ library ConfiguratorLib {
         asset: rewardPoolConfig_.asset,
         dripModel: rewardPoolConfig_.dripModel,
         epoch: 0,
-        logIndex: 0
+        logIndexSnapshot: 0
       })
     );
 

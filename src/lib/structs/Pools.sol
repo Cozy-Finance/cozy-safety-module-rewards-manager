@@ -38,8 +38,8 @@ struct RewardPool {
   IDripModel dripModel;
   // The current epoch for this reward pool. Incremented on full drips.
   uint32 epoch;
-  // The logarithmic index for the current epoch to enable withdrawals.
-  uint256 logIndex;
+  // The log index snapshot for the current epoch.
+  uint256 logIndexSnapshot;
 }
 
 struct IdLookup {

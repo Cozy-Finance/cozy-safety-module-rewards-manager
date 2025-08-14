@@ -78,7 +78,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     token_.safeTransfer(cozyManager.owner(), depositFeeAmount_);
 
     // Update depositor tracking for withdrawals
-    _updateDepositorBalance(rewardPoolId_, msg.sender, depositAmount_, true);
+    _updateDepositorRewardsData(rewardPoolId_, msg.sender, depositAmount_);
 
     emit Deposited(msg.sender, rewardPoolId_, depositAmount_, depositFeeAmount_);
   }
@@ -96,25 +96,28 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
   }
 
   /// @dev Updates depositor balance when they deposit reward assets.
-  function _updateDepositorBalance(uint16 rewardPoolId_, address depositor_, uint256 amount_, bool isDeposit_) internal {
+  function _updateDepositorRewardsData(uint16 rewardPoolId_, address depositor_, uint256 amount_) internal {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    DepositorRewardsData storage info_ = depositorRewards[rewardPoolId_][depositor_];
+    DepositorRewardsData storage depositorRewards_ = depositorRewards[rewardPoolId_][depositor_];
 
     // Check if depositor is from a previous epoch
-    if (info_.epoch < rewardPool_.epoch) {
-      // Previous epoch balance is worthless, reset
-      info_.withdrawableRewards = 0;
-    } else if (info_.withdrawableRewards > 0 && info_.logIndexSnapshot != rewardPool_.logIndex) {
-      // Same epoch, update balance based on drips
-      uint256 deltaLogIndex_ = rewardPool_.logIndex - info_.logIndexSnapshot;
-      info_.withdrawableRewards = info_.withdrawableRewards.mulWadDown(RewardMathLib.expNeg(deltaLogIndex_));
+    if (depositorRewards_.epoch < rewardPool_.epoch) {
+      // Since the reward pool epoch has incremented, that means rewards have fully dripped and the user has zero
+      // withdrawable rewards
+      depositorRewards_.withdrawableRewards = 0;
+    } else if (
+      depositorRewards_.withdrawableRewards > 0 && depositorRewards_.logIndexSnapshot != rewardPool_.logIndexSnapshot
+    ) {
+      // Same epoch, update withdrawable rewards based on drips
+      depositorRewards_.withdrawableRewards = depositorRewards_.withdrawableRewards.mulWadDown(
+        RewardMathLib.expNeg(rewardPool_.logIndexSnapshot - depositorRewards_.logIndexSnapshot)
+      );
     }
 
     // Update balance and snapshot
-    if (isDeposit_) info_.withdrawableRewards += amount_;
-    else info_.withdrawableRewards = amount_; // For withdrawals, this will be the remaining balance
+    depositorRewards_.withdrawableRewards += amount_;
 
-    info_.logIndexSnapshot = rewardPool_.logIndex;
-    info_.epoch = rewardPool_.epoch;
+    depositorRewards_.logIndexSnapshot = rewardPool_.logIndexSnapshot;
+    depositorRewards_.epoch = rewardPool_.epoch;
   }
 }

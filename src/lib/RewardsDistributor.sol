@@ -147,7 +147,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
       rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
 
       // Update log index for withdrawals
-      _updateRewardPoolLogIndex(rewardPool_, dripFactor_);
+      _updateRewardPoolLogIndexSnapshot(rewardPool_, dripFactor_);
     }
     rewardPool_.lastDripTime = uint128(block.timestamp);
   }
@@ -445,17 +445,17 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   /// @dev Updates the log index for a reward pool after a drip.
-  function _updateRewardPoolLogIndex(RewardPool storage rewardPool_, uint256 dripFactor_) internal {
+  function _updateRewardPoolLogIndexSnapshot(RewardPool storage rewardPool_, uint256 dripFactor_) internal {
     // Calculate retention factor (1 - dripFactor)
     uint256 retentionFactor_ = MathConstants.WAD - dripFactor_;
 
     if (retentionFactor_ == 0) {
       // Full drip - increment epoch and reset log index
       rewardPool_.epoch++;
-      rewardPool_.logIndex = 0;
+      rewardPool_.logIndexSnapshot = 0;
     } else {
-      // Update log index: logIndex += -ln(retentionFactor_)
-      rewardPool_.logIndex += RewardMathLib.negLn(retentionFactor_);
+      // Update log index: logIndexSnapshot += -ln(retentionFactor_)
+      rewardPool_.logIndexSnapshot += RewardMathLib.negLn(retentionFactor_);
     }
   }
 }
