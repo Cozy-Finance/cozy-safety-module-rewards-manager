@@ -39,9 +39,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
   FlexibleMockDripModel flexibleDripModel;
   RewardsManager rewardsManager;
 
-  event RewardAssetsWithdrawn(
-    address indexed depositor_, uint16 indexed rewardPoolId_, uint256 amount_, address receiver_
-  );
+  event Withdrawn(address indexed depositor_, uint16 indexed rewardPoolId_, uint256 amount_, address receiver_);
 
   uint256 constant WAD = 1e18;
   uint256 constant HALF_WAD = 0.5e18;
@@ -182,7 +180,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     // Try to withdraw (should revert)
     vm.prank(depositor);
-    vm.expectRevert(Withdrawer.InsufficientWithdrawableBalance.selector);
+    vm.expectRevert(Withdrawer.InvalidWithdraw.selector);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 1, depositor);
 
     // Verify pool state
@@ -341,7 +339,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     );
 
     vm.prank(oldDepositor);
-    vm.expectRevert(Withdrawer.InsufficientWithdrawableBalance.selector);
+    vm.expectRevert(Withdrawer.InvalidWithdraw.selector);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 1, oldDepositor);
 
     // New depositor can withdraw their full amount
