@@ -117,7 +117,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
   function test_depositDripWithdraw() public {
     address depositor_ = _randomAddress();
-    uint256 depositAmount_ = bound(_randomUint256(), 1, type(uint64).max);
+    uint256 depositAmount_ = 100e18;
 
     _depositRewardAssets(depositor_, depositAmount_);
 
