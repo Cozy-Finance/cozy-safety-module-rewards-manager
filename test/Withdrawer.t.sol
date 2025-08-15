@@ -10,7 +10,7 @@ import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {IWithdrawerErrors} from "../src/interfaces/IWithdrawerErrors.sol";
 import {Withdrawer} from "../src/lib/Withdrawer.sol";
-import {RewardMathLib} from "../src/lib/RewardMathLib.sol";
+import {RewardsMathLib} from "../src/lib/RewardsMathLib.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../src/lib/structs/Configs.sol";
 import {DepositorRewardsData} from "../src/lib/structs/Rewards.sol";

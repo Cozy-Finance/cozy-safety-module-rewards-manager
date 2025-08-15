@@ -8,7 +8,7 @@ import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardPool} from "./structs/Pools.sol";
 import {DepositorRewardsData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
-import {RewardMathLib} from "./RewardMathLib.sol";
+import {RewardsMathLib} from "./RewardsMathLib.sol";
 import {IWithdrawerErrors} from "../interfaces/IWithdrawerErrors.sol";
 import {IWithdrawerEvents} from "../interfaces/IWithdrawerEvents.sol";
 
@@ -64,7 +64,7 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdr
       // Rewards have dripped since the last update, so scale down the depositor's withdrawable rewards by the amount of
       // drip.
       return depositorRewardsData_.withdrawableRewards.mulWadDown(
-        RewardMathLib.expNeg(rewardPool_.logIndexSnapshot - depositorRewardsData_.logIndexSnapshot)
+        RewardsMathLib.expNeg(rewardPool_.logIndexSnapshot - depositorRewardsData_.logIndexSnapshot)
       );
     }
   }

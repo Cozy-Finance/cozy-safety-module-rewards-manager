@@ -11,7 +11,7 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {StakePool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
-import {RewardMathLib} from "./RewardMathLib.sol";
+import {RewardsMathLib} from "./RewardsMathLib.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {
   UserRewardsData,
@@ -150,7 +150,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
         rewardPool_.epoch += 1;
         rewardPool_.logIndexSnapshot = 0;
       } else {
-        rewardPool_.logIndexSnapshot += RewardMathLib.negLn(MathConstants.WAD - dripFactor_);
+        rewardPool_.logIndexSnapshot += RewardsMathLib.negLn(MathConstants.WAD - dripFactor_);
       }
     }
 
