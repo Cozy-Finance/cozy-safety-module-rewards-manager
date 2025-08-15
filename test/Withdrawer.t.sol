@@ -45,7 +45,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
   );
 
   uint256 constant WAD = 1e18;
-  uint256 constant HALF_WAD = 0.5e18;
   uint16 constant DEFAULT_REWARD_POOL_ID = 0;
   uint16 constant DEFAULT_STAKE_POOL_ID = 0;
 
@@ -146,17 +145,17 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertEq(depositorBalanceBeforeWithdrawal, 0, "Depositor shouldn't have deposited rewards");
 
     // Perform 50% drip
-    _performDrip(HALF_WAD);
+    _performDrip(0.5e18);
 
     // Check withdrawable balance (should be 50% of original)
     uint256 withdrawable = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor);
-    assertEq(withdrawable, 50e18, "Should have 50% remaining after 50% drip");
+    assertApproxEqAbs(withdrawable, 50e18, 100, "Should have 50% remaining after 50% drip");
 
     // Withdraw remaining
     vm.prank(depositor);
-    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 50e18, depositor);
+    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, withdrawable, depositor);
 
-    assertEq(rewardAsset.balanceOf(depositor), 50e18, "Depositor should get 50%");
+    assertEq(rewardAsset.balanceOf(depositor), withdrawable, "Depositor should get 50%");
     assertEq(
       rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor),
       0,

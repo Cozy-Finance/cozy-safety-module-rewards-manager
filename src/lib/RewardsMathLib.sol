@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {sd} from "@prb/math/src/SD59x18.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 library RewardsMathLib {
+  using FixedPointMathLib for int256;
+
   uint256 internal constant WAD = 1e18;
 
   /// @notice Computes -ln(x) for 0 < x <= 1 (WAD-scaled).
@@ -13,7 +15,7 @@ library RewardsMathLib {
     if (x_ == WAD) return 0; // -ln(1) = 0
 
     // ln(x) for x in (0,1] is <= 0. We take the ln in signed space, negate and cast back to uint256.
-    return uint256(-sd(int256(x_)).ln().unwrap());
+    return uint256(-int256(x_).lnWad());
   }
 
   /// @notice Computes e^(-x) for x >= 0 (WAD-scaled).
@@ -26,6 +28,6 @@ library RewardsMathLib {
     if (x_ >= 42e18) return 0;
 
     // Compute exp(-x) in signed space and cast back to unit256.
-    return uint256(sd(-int256(x_)).exp().unwrap());
+    return uint256((-int256(x_)).expWad());
   }
 }
