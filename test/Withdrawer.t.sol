@@ -6,6 +6,7 @@ import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IWithdrawerErrors} from "../src/interfaces/IWithdrawerErrors.sol";
+import {IWithdrawerEvents} from "../src/interfaces/IWithdrawerEvents.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../src/lib/structs/Configs.sol";
@@ -98,6 +99,8 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     assertEq(rewardAsset.balanceOf(depositor_), 0, "Depositor should have fully deposited rewards");
 
+    _expectEmit();
+    emit IWithdrawerEvents.Withdrawn(depositor_, DEFAULT_REWARD_POOL_ID, depositAmount_, depositor_);
     vm.prank(depositor_);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, depositAmount_, depositor_);
 
@@ -130,6 +133,8 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertLe(withdrawableRewards_, 50e18);
     assertApproxEqRel(withdrawableRewards_, 50e18, 1e15, "Should have 50% remaining after 50% drip");
 
+    _expectEmit();
+    emit IWithdrawerEvents.Withdrawn(depositor_, DEFAULT_REWARD_POOL_ID, withdrawableRewards_, depositor_);
     vm.prank(depositor_);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, withdrawableRewards_, depositor_);
 
@@ -169,7 +174,11 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertEq(pool.epoch, 1, "Epoch should increment after 100% drip");
     assertEq(pool.logIndexSnapshot, 0, "Log index should reset after 100% drip");
     assertEq(pool.undrippedRewards, 0, "Undripped rewards should be 0");
-    assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 0, "Asset pool should be empty");
+    assertEq(
+      rewardsManager.assetPools(IERC20(address(rewardAsset))).amount,
+      depositAmount_,
+      "Asset pool should contain all assets"
+    );
   }
 
   function test_withdrawMultipleDripsCompound() public {
@@ -374,6 +383,8 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie_), 240e18, 1e16);
 
     // Alice makes partial withdrawal
+    _expectEmit();
+    emit IWithdrawerEvents.Withdrawn(alice_, DEFAULT_REWARD_POOL_ID, 200e18, alice_);
     vm.prank(alice_);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 200e18, alice_);
     assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice_), 520e18, 1e16);
@@ -435,6 +446,8 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // Charlie withdraws everything
     uint256 charlieWithdrawableRewards_ =
       rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie_);
+    _expectEmit();
+    emit IWithdrawerEvents.Withdrawn(charlie_, DEFAULT_REWARD_POOL_ID, charlieWithdrawableRewards_, charlie_);
     vm.prank(charlie_);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, charlieWithdrawableRewards_, charlie_);
 
