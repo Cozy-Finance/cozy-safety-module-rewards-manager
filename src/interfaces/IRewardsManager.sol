@@ -63,11 +63,15 @@ interface IRewardsManager {
     view
     returns (PreviewClaimableRewards[] memory);
 
+  function previewCurrentWithdrawableRewards(uint16 rewardPoolId_, address depositor_) external view returns (uint256);
+
   function receiptTokenFactory() external view returns (address);
 
   function rewardPools(uint256 id_) external view returns (RewardPool memory);
 
   function rewardsManagerState() external view returns (RewardsManagerState);
+
+  function withdrawRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) external;
 
   function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external;
 
