@@ -18,7 +18,7 @@ import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {AssetPool, StakePool} from "../src/lib/structs/Pools.sol";
 import {RewardPool} from "../src/lib/structs/Pools.sol";
-import {ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
+import {ClaimableRewardsData, DepositorRewardsData} from "../src/lib/structs/Rewards.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockDripModel} from "./utils/MockDripModel.sol";
@@ -647,7 +647,9 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManager
         dripModel: IDripModel(address(new MockDripModel(1e18))),
         undrippedRewards: 0,
         cumulativeDrippedRewards: cumulativeDrippedRewards_,
-        lastDripTime: uint128(block.timestamp)
+        lastDripTime: uint128(block.timestamp),
+        epoch: 0,
+        logIndexSnapshot: 0
       })
     );
   }
@@ -696,5 +698,12 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManager
     returns (ClaimableRewardsData memory)
   {
     return claimableRewards[stakePoolId_][rewardPoolid_];
+  }
+
+  function _previewCurrentWithdrawableRewards(
+    RewardPool storage, /*rewardPool_*/
+    DepositorRewardsData storage /*depositorRewardsData_*/
+  ) internal view override returns (uint256) {
+    __readStub__();
   }
 }

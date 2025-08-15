@@ -7,7 +7,7 @@ import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptT
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {ICozyManager} from "../interfaces/ICozyManager.sol";
 import {AssetPool, StakePool, IdLookup, RewardPool} from "./structs/Pools.sol";
-import {UserRewardsData, ClaimableRewardsData} from "./structs/Rewards.sol";
+import {UserRewardsData, ClaimableRewardsData, DepositorRewardsData} from "./structs/Rewards.sol";
 
 abstract contract RewardsManagerBaseStorage {
   /// @notice Address of the Cozy protocol manager.
@@ -33,6 +33,10 @@ abstract contract RewardsManagerBaseStorage {
 
   /// @notice Maps a stake pool id to a user address to an array of user rewards data.
   mapping(uint16 => mapping(address => UserRewardsData[])) public userRewards;
+
+  /// @notice Tracks depositor rewards data for withdrawals
+  /// @dev Maps a reward pool id to a depositor address to depositor rewards data.
+  mapping(uint16 => mapping(address => DepositorRewardsData)) public depositorRewards;
 
   /// @notice Maps a stake receipt token to an index lookup for its stake pool id.
   /// @dev Used for authorization check when transferring stkReceiptTokens.

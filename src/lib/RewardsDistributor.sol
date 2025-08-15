@@ -11,6 +11,7 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {StakePool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {RewardsMathLib} from "./RewardsMathLib.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {
   UserRewardsData,
@@ -136,11 +137,23 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   function _dripRewardPool(RewardPool storage rewardPool_) internal override {
-    RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
-    if (rewardDrip_.amount > 0) {
-      rewardPool_.undrippedRewards -= rewardDrip_.amount;
-      rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
+    uint256 dripFactor_ =
+      _getNextDripFactor(rewardPool_.undrippedRewards, rewardPool_.dripModel, rewardPool_.lastDripTime);
+    uint256 rewardDripAmount_ = rewardPool_.undrippedRewards.mulWadDown(dripFactor_);
+
+    if (rewardDripAmount_ > 0) {
+      rewardPool_.undrippedRewards -= rewardDripAmount_;
+      rewardPool_.cumulativeDrippedRewards += rewardDripAmount_;
+
+      if (dripFactor_ == MathConstants.WAD) {
+        // Full drip, so increment epoch and reset log index
+        rewardPool_.epoch += 1;
+        rewardPool_.logIndexSnapshot = 0;
+      } else {
+        rewardPool_.logIndexSnapshot += RewardsMathLib.negLn(MathConstants.WAD - dripFactor_);
+      }
     }
+
     rewardPool_.lastDripTime = uint128(block.timestamp);
   }
 
@@ -321,20 +334,19 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     override
     returns (uint256)
   {
+    return totalBaseAmount_.mulWadDown(_getNextDripFactor(totalBaseAmount_, dripModel_, lastDripTime_));
+  }
+
+  function _getNextDripFactor(uint256 totalBaseAmount_, IDripModel dripModel_, uint256 lastDripTime_)
+    internal
+    view
+    returns (uint256)
+  {
     if (rewardsManagerState == RewardsManagerState.PAUSED) return 0;
     uint256 dripFactor_ = dripModel_.dripFactor(lastDripTime_, totalBaseAmount_);
     if (dripFactor_ > MathConstants.WAD) revert InvalidDripFactor();
 
-    return _computeNextDripAmount(totalBaseAmount_, dripFactor_);
-  }
-
-  function _computeNextDripAmount(uint256 totalBaseAmount_, uint256 dripFactor_)
-    internal
-    pure
-    override
-    returns (uint256)
-  {
-    return totalBaseAmount_.mulWadDown(dripFactor_);
+    return dripFactor_;
   }
 
   function _dripAndApplyPendingDrippedRewards(

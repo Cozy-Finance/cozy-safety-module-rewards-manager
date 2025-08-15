@@ -256,8 +256,10 @@ library ConfiguratorLib {
         asset: rewardPoolConfig_.asset,
         undrippedRewards: 0,
         cumulativeDrippedRewards: 0,
+        lastDripTime: uint128(block.timestamp),
         dripModel: rewardPoolConfig_.dripModel,
-        lastDripTime: uint128(block.timestamp)
+        epoch: 0,
+        logIndexSnapshot: 0
       })
     );
 

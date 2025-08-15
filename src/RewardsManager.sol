@@ -10,6 +10,7 @@ import {Depositor} from "./lib/Depositor.sol";
 import {RewardsDistributor} from "./lib/RewardsDistributor.sol";
 import {Staker} from "./lib/Staker.sol";
 import {StateChanger} from "./lib/StateChanger.sol";
+import {Withdrawer} from "./lib/Withdrawer.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./lib/structs/Configs.sol";
 import {IConfiguratorErrors} from "./interfaces/IConfiguratorErrors.sol";
 import {ICozyManager} from "./interfaces/ICozyManager.sol";
@@ -21,7 +22,8 @@ contract RewardsManager is
   Depositor,
   RewardsDistributor,
   Staker,
-  StateChanger
+  StateChanger,
+  Withdrawer
 {
   /// @notice Thrown if the rewards manager is already initialized.
   error Initialized();

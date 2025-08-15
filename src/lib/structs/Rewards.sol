@@ -48,3 +48,13 @@ struct PreviewClaimableRewardsData {
   // The claim fee amount.
   uint256 claimFeeAmount;
 }
+
+// Used to track withdrawable rewards for a depositor.
+struct DepositorRewardsData {
+  // The current withdrawable rewards.
+  uint256 withdrawableRewards;
+  // The log index snapshot when this depositor's withdrawable rewards were last updated.
+  uint256 logIndexSnapshot;
+  // The epoch when this depositor's withdrawable rewards were last updated.
+  uint32 epoch;
+}

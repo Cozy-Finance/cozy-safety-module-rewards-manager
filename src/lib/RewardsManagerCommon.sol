@@ -5,7 +5,7 @@ import {ICommonErrors} from "cozy-safety-module-libs/interfaces/ICommonErrors.so
 import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {RewardsManagerBaseStorage} from "./RewardsManagerBaseStorage.sol";
-import {ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData} from "./structs/Rewards.sol";
+import {ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData, DepositorRewardsData} from "./structs/Rewards.sol";
 import {StakePool, RewardPool} from "./structs/Pools.sol";
 
 abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErrors {
@@ -37,14 +37,6 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
     virtual
     returns (uint256);
 
-  /// @notice Compute the next amount of rewards/fees to be dripped given a base amount and a drip factor.
-  /// @dev Defined in RewardsDistributor.
-  function _computeNextDripAmount(uint256 totalBaseAmount_, uint256 dripFactor_)
-    internal
-    view
-    virtual
-    returns (uint256);
-
   /// @dev Defined in RewardsDistributor.
   function _updateUserRewards(
     uint256 userStkReceiptTokenBalance_,
@@ -65,4 +57,10 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
   function _dripAndResetCumulativeRewardsValues(StakePool[] storage stakePools_, RewardPool[] storage rewardPools_)
     internal
     virtual;
+
+  /// @dev Defined in Withdrawer.
+  function _previewCurrentWithdrawableRewards(
+    RewardPool storage rewardPool_,
+    DepositorRewardsData storage depositorRewardsData_
+  ) internal view virtual returns (uint256);
 }

@@ -10,10 +10,13 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IDepositorErrors} from "../src/interfaces/IDepositorErrors.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
+import {Withdrawer} from "../src/lib/Withdrawer.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
-import {UserRewardsData, ClaimRewardsArgs, ClaimableRewardsData} from "../src/lib/structs/Rewards.sol";
+import {
+  UserRewardsData, ClaimRewardsArgs, ClaimableRewardsData, DepositorRewardsData
+} from "../src/lib/structs/Rewards.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
@@ -44,7 +47,9 @@ contract DepositorUnitTest is TestBase {
       dripModel: IDripModel(address(0)),
       undrippedRewards: initialUndrippedRewards,
       cumulativeDrippedRewards: 0,
-      lastDripTime: uint128(block.timestamp)
+      lastDripTime: uint128(block.timestamp),
+      epoch: 0,
+      logIndexSnapshot: 0
     });
     AssetPool memory initialAssetPool_ = AssetPool({amount: initialUndrippedRewards});
     component.mockAddRewardPool(initialRewardPool_);
@@ -263,7 +268,9 @@ contract DepositorUnitTest is TestBase {
       dripModel: IDripModel(address(0)),
       undrippedRewards: initialUndrippedRewards_,
       cumulativeDrippedRewards: 0,
-      lastDripTime: uint128(block.timestamp)
+      lastDripTime: uint128(block.timestamp),
+      epoch: 0,
+      logIndexSnapshot: 0
     });
     AssetPool memory initialAssetPool_ = AssetPool({amount: initialUndrippedRewards_});
     component.mockAddRewardPool(initialRewardPool_);
@@ -339,7 +346,9 @@ contract DepositorUnitTest is TestBase {
   }
 }
 
-contract TestableDepositor is Depositor, RewardsManagerInspector {
+contract TestableDepositor is Withdrawer, Depositor, RewardsManagerInspector {
+  using FixedPointMathLib for uint256;
+
   uint256 internal mockNextRewardsDripAmount;
 
   constructor(MockManager manager_) {
@@ -407,15 +416,6 @@ contract TestableDepositor is Depositor, RewardsManagerInspector {
     return block.timestamp - lastDripTime_ == 0 || rewardsManagerState == RewardsManagerState.PAUSED
       ? 0
       : mockNextRewardsDripAmount;
-  }
-
-  function _computeNextDripAmount(uint256, /* totalBaseAmount_ */ uint256 /* dripFactor_ */ )
-    internal
-    view
-    override
-    returns (uint256)
-  {
-    __readStub__();
   }
 
   function _updateUserRewards(

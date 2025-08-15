@@ -10,7 +10,9 @@ import {IDepositorEvents} from "../interfaces/IDepositorEvents.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardPool} from "./structs/Pools.sol";
+import {DepositorRewardsData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {RewardsMathLib} from "./RewardsMathLib.sol";
 
 abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDepositorEvents {
   using SafeERC20 for IERC20;
@@ -71,6 +73,13 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     uint256 depositFeeAmount_ = _computeDepositFeeAmount(rewardAssetAmount_);
     uint256 depositAmount_ = rewardAssetAmount_ - depositFeeAmount_;
 
+    uint256 currentWithdrawableRewards_ =
+      _previewCurrentWithdrawableRewards(rewardPool_, depositorRewards[rewardPoolId_][msg.sender]);
+    depositorRewards[rewardPoolId_][msg.sender] = DepositorRewardsData({
+      withdrawableRewards: currentWithdrawableRewards_ + depositAmount_,
+      logIndexSnapshot: rewardPool_.logIndexSnapshot,
+      epoch: rewardPool_.epoch
+    });
     rewardPool_.undrippedRewards += depositAmount_;
     assetPools[token_].amount += depositAmount_;
     token_.safeTransfer(cozyManager.owner(), depositFeeAmount_);
