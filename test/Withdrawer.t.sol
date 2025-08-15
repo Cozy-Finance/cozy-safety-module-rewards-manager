@@ -15,7 +15,6 @@ import {MockERC20} from "./utils/MockERC20.sol";
 import {MockDripModelFlexible} from "./utils/MockDripModelFlexible.sol";
 import {MockDeployProtocol} from "./utils/MockDeployProtocol.sol";
 import {TestBase} from "./utils/TestBase.sol";
-import {console2} from "forge-std/console2.sol";
 
 contract WithdrawerTest is TestBase, MockDeployProtocol {
   using FixedPointMathLib for uint256;
@@ -113,6 +112,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertEq(pool_.undrippedRewards, 0, "Pool should be empty");
     assertEq(pool_.epoch, 0, "Epoch should be 0");
     assertEq(pool_.logIndexSnapshot, 0, "Log index snapshot should be 0");
+    assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 0, "Asset pool should be empty");
   }
 
   function test_depositDripWithdraw() public {
@@ -139,6 +139,11 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
       0,
       "Depositor should have no balance left"
     );
+    assertEq(
+      rewardsManager.assetPools(IERC20(address(rewardAsset))).amount,
+      depositAmount_ - withdrawableRewards_,
+      "Asset pool should be empty"
+    );
   }
 
   function test_depositFullDripWithdraw() public {
@@ -164,6 +169,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertEq(pool.epoch, 1, "Epoch should increment after 100% drip");
     assertEq(pool.logIndexSnapshot, 0, "Log index should reset after 100% drip");
     assertEq(pool.undrippedRewards, 0, "Undripped rewards should be 0");
+    assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 0, "Asset pool should be empty");
   }
 
   function test_withdrawMultipleDripsCompound() public {
@@ -338,6 +344,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // Epoch 0: Initial deposits
     _depositRewardAssets(alice_, 1000e18);
     _depositRewardAssets(bob_, 500e18);
+    assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 1000e18 + 500e18);
 
     // Verify initial balances
     assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice_), 1000e18);
@@ -354,6 +361,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // Charlie joins with deposit
     _depositRewardAssets(charlie_, 300e18);
     assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie_), 300e18);
+    assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 1000e18 + 500e18 + 300e18);
 
     // Second partial drip: 20%
     _performDrip(0.2e18);
@@ -370,11 +378,15 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 200e18, alice_);
     assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice_), 520e18, 1e16);
     assertEq(rewardAsset.balanceOf(alice_), 200e18);
+    assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 1000e18 + 500e18 + 300e18 - 200e18);
 
     // Bob adds more deposits
     _depositRewardAssets(bob_, 100e18);
     assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob_), 460e18, 1e16); // 360
       // + 100
+    assertEq(
+      rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 1000e18 + 500e18 + 300e18 - 200e18 + 100e18
+    );
 
     // Third partial drip: 25%
     _performDrip(0.25e18);
@@ -400,6 +412,10 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // Epoch 1: New deposits
     _depositRewardAssets(alice_, 200e18);
     _depositRewardAssets(charlie_, 400e18);
+    assertEq(
+      rewardsManager.assetPools(IERC20(address(rewardAsset))).amount,
+      1000e18 + 500e18 + 300e18 - 200e18 + 100e18 + 200e18 + 400e18
+    );
 
     assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice_), 200e18);
     assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob_), 0); // Bob didn't deposit
@@ -417,7 +433,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie_), 280e18, 1e16);
 
     // Charlie withdraws everything
-    console2.log("Charlie withdraws everything");
     uint256 charlieWithdrawableRewards_ =
       rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie_);
     vm.prank(charlie_);
@@ -425,6 +440,10 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie_), 0);
     assertApproxEqAbs(rewardAsset.balanceOf(charlie_), 280e18, 1e16);
+    assertEq(
+      rewardsManager.assetPools(IERC20(address(rewardAsset))).amount,
+      1000e18 + 500e18 + 300e18 - 200e18 + 100e18 + 200e18 + 400e18 - charlieWithdrawableRewards_
+    );
 
     // Final state
     // Alice has 140e18 withdrawable + 200e18 already withdrawn = 340e18 total value extracted
