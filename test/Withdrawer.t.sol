@@ -8,6 +8,7 @@ import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
+import {IWithdrawerErrors} from "../src/interfaces/IWithdrawerErrors.sol";
 import {Withdrawer} from "../src/lib/Withdrawer.sol";
 import {RewardMathLib} from "../src/lib/RewardMathLib.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
@@ -93,7 +94,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     _depositRewardAssets(depositor, depositAmount);
 
     // Check withdrawable balance
-    uint256 withdrawable = rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor);
+    uint256 withdrawable = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor);
     assertEq(withdrawable, depositAmount, "Should be able to withdraw full amount");
 
     // Verify reward pool state
@@ -110,7 +111,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     _depositRewardAssets(depositor, depositAmount);
 
     // Check withdrawable balance
-    uint256 withdrawable = rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor);
+    uint256 withdrawable = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor);
     assertEq(withdrawable, depositAmount, "Should be able to withdraw full amount");
 
     // Check user rewards asset balance
@@ -124,7 +125,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // Verify balances
     assertEq(rewardAsset.balanceOf(depositor), depositAmount, "Depositor should get full amount");
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor),
       0,
       "Depositor should have no balance left"
     );
@@ -148,7 +149,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     _performDrip(HALF_WAD);
 
     // Check withdrawable balance (should be 50% of original)
-    uint256 withdrawable = rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor);
+    uint256 withdrawable = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor);
     assertEq(withdrawable, 50e18, "Should have 50% remaining after 50% drip");
 
     // Withdraw remaining
@@ -157,7 +158,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     assertEq(rewardAsset.balanceOf(depositor), 50e18, "Depositor should get 50%");
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor),
       0,
       "Depositor should have no balance left"
     );
@@ -177,12 +178,12 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertEq(depositorBalanceBeforeWithdrawal, 0, "Depositor shouldn't have deposited rewards");
 
     // Check withdrawable balance (should be 0)
-    uint256 withdrawable = rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor);
+    uint256 withdrawable = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor);
     assertEq(withdrawable, 0, "Should have nothing after 100% drip");
 
     // Try to withdraw (should revert)
     vm.prank(depositor);
-    vm.expectRevert(Withdrawer.InsufficientWithdrawableBalance.selector);
+    vm.expectRevert(IWithdrawerErrors.InvalidWithdraw.selector);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 1, depositor);
 
     // Verify pool state
@@ -204,7 +205,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     _performDrip(0.2e18); // 20% drip, 80% retention
     _performDrip(0.3e18); // 30% drip, 70% retention
 
-    uint256 withdrawable = rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor);
+    uint256 withdrawable = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor);
     assertApproxEqRel(withdrawable, 504e18, 1e15, "Should have 50.4% remaining after compound drips");
   }
 
@@ -232,7 +233,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     // Depositor 1 should have no balance
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor1),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor1),
       0,
       "Old epoch depositor should have 0 balance"
     );
@@ -240,14 +241,14 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // Depositor 2 deposits in new epoch
     _depositRewardAssets(depositor2, depositAmount);
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor2),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor2),
       depositAmount,
       "New epoch depositor should have full balance"
     );
 
     // Depositor 1 still has 0
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor1),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor1),
       0,
       "Old epoch depositor should still have 0"
     );
@@ -265,7 +266,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     _performDrip(WAD);
     assertEq(_getRewardPool(DEFAULT_REWARD_POOL_ID).epoch, 1, "Should be epoch 1");
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor),
       0,
       "Should have 0 balance after epoch change"
     );
@@ -273,7 +274,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // Deposit in epoch 1
     _depositRewardAssets(depositor, depositAmount);
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor),
       depositAmount,
       "Should have full balance in new epoch"
     );
@@ -282,7 +283,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     _performDrip(WAD);
     assertEq(_getRewardPool(DEFAULT_REWARD_POOL_ID).epoch, 2, "Should be epoch 2");
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor),
       0,
       "Should have 0 balance after second epoch change"
     );
@@ -299,14 +300,14 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     _performDrip(0.1e18); // 10% drip
     _performDrip(0.2e18); // 20% drip
 
-    uint256 balanceBeforeEpoch = rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor);
+    uint256 balanceBeforeEpoch = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor);
     assertGt(balanceBeforeEpoch, 0, "Should have balance before epoch transition");
 
     // 100% drip -> new epoch
     _performDrip(WAD);
 
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor),
       0,
       "Should have 0 after epoch transition"
     );
@@ -315,7 +316,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // New deposit in new epoch works normally
     _depositRewardAssets(depositor, depositAmount);
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, depositor),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor),
       depositAmount,
       "New deposit should work in new epoch"
     );
@@ -337,16 +338,18 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     // Old depositor tries to withdraw
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, oldDepositor), 0, "Old depositor should have 0"
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, oldDepositor),
+      0,
+      "Old depositor should have 0"
     );
 
     vm.prank(oldDepositor);
-    vm.expectRevert(Withdrawer.InsufficientWithdrawableBalance.selector);
+    vm.expectRevert(IWithdrawerErrors.InvalidWithdraw.selector);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 1, oldDepositor);
 
     // New depositor can withdraw their full amount
     assertEq(
-      rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, newDepositor),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, newDepositor),
       depositAmount * 2,
       "New depositor should have full amount"
     );
@@ -364,20 +367,20 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     _depositRewardAssets(bob, 500e18);
 
     // Verify initial balances
-    assertEq(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, alice), 1000e18);
-    assertEq(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, bob), 500e18);
+    assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice), 1000e18);
+    assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob), 500e18);
 
     // First partial drip: 10%
     _performDrip(0.1e18);
 
     // Alice: 1000 * 0.9 = 900
     // Bob: 500 * 0.9 = 450
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, alice), 900e18, 1e16);
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, bob), 450e18, 1e16);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice), 900e18, 1e16);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob), 450e18, 1e16);
 
     // Charlie joins with deposit
     _depositRewardAssets(charlie, 300e18);
-    assertEq(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, charlie), 300e18);
+    assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie), 300e18);
 
     // Second partial drip: 20%
     _performDrip(0.2e18);
@@ -385,19 +388,20 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // Alice: 900 * 0.8 = 720
     // Bob: 450 * 0.8 = 360
     // Charlie: 300 * 0.8 = 240
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, alice), 720e18, 1e16);
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, bob), 360e18, 1e16);
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, charlie), 240e18, 1e16);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice), 720e18, 1e16);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob), 360e18, 1e16);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie), 240e18, 1e16);
 
     // Alice makes partial withdrawal
     vm.prank(alice);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 200e18, alice);
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, alice), 520e18, 1e16);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice), 520e18, 1e16);
     assertEq(rewardAsset.balanceOf(alice), 200e18);
 
     // Bob adds more deposits
     _depositRewardAssets(bob, 100e18);
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, bob), 460e18, 1e16); // 360 + 100
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob), 460e18, 1e16); // 360
+      // + 100
 
     // Third partial drip: 25%
     _performDrip(0.25e18);
@@ -405,17 +409,17 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // Alice: 520 * 0.75 = 390
     // Bob: 460 * 0.75 = 345
     // Charlie: 240 * 0.75 = 180
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, alice), 390e18, 1e16);
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, bob), 345e18, 1e16);
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, charlie), 180e18, 1e16);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice), 390e18, 1e16);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob), 345e18, 1e16);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie), 180e18, 1e16);
 
     // 100% drip - Epoch transition
     _performDrip(WAD);
 
     // All balances should be 0 in new epoch
-    assertEq(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, alice), 0);
-    assertEq(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, bob), 0);
-    assertEq(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, charlie), 0);
+    assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice), 0);
+    assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob), 0);
+    assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie), 0);
 
     // Verify epoch changed
     assertEq(_getRewardPool(DEFAULT_REWARD_POOL_ID).epoch, 1, "Should be in epoch 1");
@@ -424,9 +428,10 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     _depositRewardAssets(alice, 200e18);
     _depositRewardAssets(charlie, 400e18);
 
-    assertEq(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, alice), 200e18);
-    assertEq(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, bob), 0); // Bob didn't deposit in new epoch
-    assertEq(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, charlie), 400e18);
+    assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice), 200e18);
+    assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob), 0); // Bob didn't deposit in
+      // new epoch
+    assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie), 400e18);
 
     // Partial drip in new epoch: 30%
     _performDrip(0.3e18);
@@ -434,15 +439,15 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // Alice: 200 * 0.7 = 140
     // Bob: still 0
     // Charlie: 400 * 0.7 = 280
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, alice), 140e18, 1e16);
-    assertEq(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, bob), 0);
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, charlie), 280e18, 1e16);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice), 140e18, 1e16);
+    assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob), 0);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie), 280e18, 1e16);
 
     // Charlie withdraws everything
-    uint256 charlieBalance = rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, charlie);
+    uint256 charlieBalance = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie);
     vm.prank(charlie);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, charlieBalance, charlie);
-    assertApproxEqAbs(rewardsManager.getWithdrawableBalance(DEFAULT_REWARD_POOL_ID, charlie), 0, 1e4);
+    assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie), 0, 1e4);
     assertApproxEqAbs(rewardAsset.balanceOf(charlie), 280e18, 1e16);
 
     // Final state

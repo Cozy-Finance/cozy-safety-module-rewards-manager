@@ -34,6 +34,10 @@ abstract contract RewardsManagerBaseStorage {
   /// @notice Maps a stake pool id to a user address to an array of user rewards data.
   mapping(uint16 => mapping(address => UserRewardsData[])) public userRewards;
 
+  /// @notice Tracks depositor rewards data for withdrawals
+  /// @dev Maps a reward pool id to a depositor address to depositor rewards data.
+  mapping(uint16 => mapping(address => DepositorRewardsData)) public depositorRewards;
+
   /// @notice Maps a stake receipt token to an index lookup for its stake pool id.
   /// @dev Used for authorization check when transferring stkReceiptTokens.
   mapping(IReceiptToken stkReceiptToken_ => IdLookup stakePoolId_) public stkReceiptTokenToStakePoolIds;
@@ -41,10 +45,6 @@ abstract contract RewardsManagerBaseStorage {
   /// @notice Maps an asset to an index lookup for its stake pool id.
   /// @dev Used for checking that new stake pools have unique underlying assets in config updates.
   mapping(IERC20 asset_ => IdLookup stakePoolId_) public assetToStakePoolIds;
-
-  /// @notice Tracks depositor information for reward withdrawals.
-  /// @dev Maps reward pool ID => depositor address => depositor info.
-  mapping(uint16 => mapping(address => DepositorRewardsData)) public depositorRewards;
 
   /// @dev True if the rewards manager has been initialized.
   bool public initialized;

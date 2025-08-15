@@ -137,18 +137,23 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   function _dripRewardPool(RewardPool storage rewardPool_) internal override {
-    RewardDrip memory rewardDrip_ = _previewNextRewardDrip(rewardPool_);
-    if (rewardDrip_.amount > 0) {
-      // Calculate drip factor before updating state
-      uint256 undrippedBefore_ = rewardPool_.undrippedRewards;
-      uint256 dripFactor_ = rewardPool_.dripModel.dripFactor(rewardPool_.lastDripTime, undrippedBefore_);
+    uint256 dripFactor_ =
+      _getNextDripFactor(rewardPool_.undrippedRewards, rewardPool_.dripModel, rewardPool_.lastDripTime);
+    uint256 rewardDripAmount_ = rewardPool_.undrippedRewards.mulWadDown(dripFactor_);
 
-      rewardPool_.undrippedRewards -= rewardDrip_.amount;
-      rewardPool_.cumulativeDrippedRewards += rewardDrip_.amount;
+    if (rewardDripAmount_ > 0) {
+      rewardPool_.undrippedRewards -= rewardDripAmount_;
+      rewardPool_.cumulativeDrippedRewards += rewardDripAmount_;
 
-      // Update log index for withdrawals
-      _updateRewardPoolLogIndexSnapshot(rewardPool_, dripFactor_);
+      if (dripFactor_ == MathConstants.WAD) {
+        // Full drip, so increment epoch and reset log index
+        rewardPool_.epoch += 1;
+        rewardPool_.logIndexSnapshot = 0;
+      } else {
+        rewardPool_.logIndexSnapshot += RewardMathLib.negLn(MathConstants.WAD - dripFactor_);
+      }
     }
+
     rewardPool_.lastDripTime = uint128(block.timestamp);
   }
 
@@ -329,20 +334,19 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     override
     returns (uint256)
   {
+    return totalBaseAmount_.mulWadDown(_getNextDripFactor(totalBaseAmount_, dripModel_, lastDripTime_));
+  }
+
+  function _getNextDripFactor(uint256 totalBaseAmount_, IDripModel dripModel_, uint256 lastDripTime_)
+    internal
+    view
+    returns (uint256)
+  {
     if (rewardsManagerState == RewardsManagerState.PAUSED) return 0;
     uint256 dripFactor_ = dripModel_.dripFactor(lastDripTime_, totalBaseAmount_);
     if (dripFactor_ > MathConstants.WAD) revert InvalidDripFactor();
 
-    return _computeNextDripAmount(totalBaseAmount_, dripFactor_);
-  }
-
-  function _computeNextDripAmount(uint256 totalBaseAmount_, uint256 dripFactor_)
-    internal
-    pure
-    override
-    returns (uint256)
-  {
-    return totalBaseAmount_.mulWadDown(dripFactor_);
+    return dripFactor_;
   }
 
   function _dripAndApplyPendingDrippedRewards(
@@ -442,20 +446,5 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
   function _computeClaimFeeAmount(uint256 claimAmount_, uint16 claimFee_) internal pure returns (uint256) {
     return claimAmount_.mulDivUp(claimFee_, MathConstants.ZOC);
-  }
-
-  /// @dev Updates the log index for a reward pool after a drip.
-  function _updateRewardPoolLogIndexSnapshot(RewardPool storage rewardPool_, uint256 dripFactor_) internal {
-    // Calculate retention factor (1 - dripFactor)
-    uint256 retentionFactor_ = MathConstants.WAD - dripFactor_;
-
-    if (retentionFactor_ == 0) {
-      // Full drip - increment epoch and reset log index
-      rewardPool_.epoch++;
-      rewardPool_.logIndexSnapshot = 0;
-    } else {
-      // Update log index: logIndexSnapshot += -ln(retentionFactor_)
-      rewardPool_.logIndexSnapshot += RewardMathLib.negLn(retentionFactor_);
-    }
   }
 }

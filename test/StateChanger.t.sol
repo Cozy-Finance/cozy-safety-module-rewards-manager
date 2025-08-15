@@ -8,7 +8,9 @@ import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IStateChangerEvents} from "../src/interfaces/IStateChangerEvents.sol";
 import {RewardPool, StakePool} from "../src/lib/structs/Pools.sol";
-import {ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
+import {
+  ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData, DepositorRewardsData
+} from "../src/lib/structs/Rewards.sol";
 import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {StateChanger} from "../src/lib/StateChanger.sol";
 import {MockManager} from "./utils/MockManager.sol";
@@ -234,15 +236,6 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
     __readStub__();
   }
 
-  function _computeNextDripAmount(uint256, /* totalBaseAmount_ */ uint256 /* dripFactor_ */ )
-    internal
-    view
-    override
-    returns (uint256)
-  {
-    __readStub__();
-  }
-
   function _updateUserRewards(
     uint256, /*userStkReceiptTokenBalance_*/
     mapping(uint16 => ClaimableRewardsData) storage, /*claimableRewards_*/
@@ -274,6 +267,13 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
     StakePool[] storage, /*stakePools_*/
     RewardPool[] storage /*rewardPools_*/
   ) internal view override {
+    __readStub__();
+  }
+
+  function _previewCurrentWithdrawableRewards(
+    RewardPool storage, /*rewardPool_*/
+    DepositorRewardsData storage /*depositorRewardsData_*/
+  ) internal view override returns (uint256) {
     __readStub__();
   }
 

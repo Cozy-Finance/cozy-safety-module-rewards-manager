@@ -12,7 +12,9 @@ import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.so
 import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptTokenFactory.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../src/lib/structs/Configs.sol";
 import {StakePool, RewardPool, IdLookup} from "../src/lib/structs/Pools.sol";
-import {ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData} from "../src/lib/structs/Rewards.sol";
+import {
+  ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData, DepositorRewardsData
+} from "../src/lib/structs/Rewards.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
@@ -53,7 +55,9 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
         dripModel: IDripModel(_randomAddress()),
         undrippedRewards: _randomUint256(),
         cumulativeDrippedRewards: 0,
-        lastDripTime: uint128(block.timestamp)
+        lastDripTime: uint128(block.timestamp),
+        epoch: 0,
+        logIndexSnapshot: 0
       });
     }
     return rewardPools_;
@@ -755,20 +759,18 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     __writeStub__();
   }
 
+  function _previewCurrentWithdrawableRewards(
+    RewardPool storage, /*rewardPool_*/
+    DepositorRewardsData storage /*depositorRewardsData_*/
+  ) internal view override returns (uint256) {
+    __readStub__();
+  }
+
   function dripRewards() public view override {
     __readStub__();
   }
 
   function _getNextDripAmount(uint256, /* totalBaseAmount_ */ IDripModel, /* dripModel_ */ uint256 /*lastDripTime_*/ )
-    internal
-    view
-    override
-    returns (uint256)
-  {
-    __readStub__();
-  }
-
-  function _computeNextDripAmount(uint256, /* totalBaseAmount_ */ uint256 /* dripFactor_ */ )
     internal
     view
     override

@@ -19,7 +19,8 @@ import {
   UserRewardsData,
   PreviewClaimableRewardsData,
   PreviewClaimableRewards,
-  ClaimableRewardsData
+  ClaimableRewardsData,
+  DepositorRewardsData
 } from "../src/lib/structs/Rewards.sol";
 import {IdLookup} from "../src/lib/structs/Pools.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
@@ -59,7 +60,9 @@ contract RewardsDistributorUnitTest is TestBase {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAsset_)),
-        dripModel: IDripModel(address(new MockDripModel(0.1e18))) // Constant 10% drip rate
+        dripModel: IDripModel(address(new MockDripModel(0.1e18))), // Constant 10% drip rate
+        epoch: 0,
+        logIndexSnapshot: 0
       });
       component.mockAddRewardPool(rewardPool_);
 
@@ -166,7 +169,9 @@ contract RewardsDistributorUnitTest is TestBase {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAssetA_)),
-        dripModel: IDripModel(address(new DripModelExponential(318_475_925))) // 1% drip rate
+        dripModel: IDripModel(address(new DripModelExponential(318_475_925))), // 1% drip rate
+        epoch: 0,
+        logIndexSnapshot: 0
       });
       component.mockAddRewardPool(rewardPoolA_);
 
@@ -183,7 +188,9 @@ contract RewardsDistributorUnitTest is TestBase {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAssetB_)),
-        dripModel: IDripModel(address(new DripModelExponential(9_116_094_774))) // 25% annual drip rate
+        dripModel: IDripModel(address(new DripModelExponential(9_116_094_774))), // 25% annual drip rate
+        epoch: 0,
+        logIndexSnapshot: 0
       });
       component.mockAddRewardPool(rewardPoolB_);
 
@@ -200,7 +207,9 @@ contract RewardsDistributorUnitTest is TestBase {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAssetC_)),
-        dripModel: IDripModel(address(new DripModelExponential(145_929_026_605))) // 99% annual drip rate
+        dripModel: IDripModel(address(new DripModelExponential(145_929_026_605))), // 99% annual drip rate
+        epoch: 0,
+        logIndexSnapshot: 0
       });
       component.mockAddRewardPool(rewardPoolC_);
 
@@ -641,7 +650,9 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAsset_)),
-        dripModel: IDripModel(address(new DripModelExponential(318_475_925))) // 1% drip rate
+        dripModel: IDripModel(address(new DripModelExponential(318_475_925))), // 1% drip rate
+        epoch: 0,
+        logIndexSnapshot: 0
       });
       component.mockAddRewardPool(rewardPool_);
       mockRewardAsset_.mint(address(component), undrippedRewards_);
@@ -807,7 +818,9 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
         asset: IERC20(address(mockRewardAsset_)),
-        dripModel: IDripModel(address(new MockDripModel(0.01e18))) // 1% drip rate
+        dripModel: IDripModel(address(new MockDripModel(0.01e18))), // 1% drip rate
+        epoch: 0,
+        logIndexSnapshot: 0
       });
       component.mockAddRewardPool(rewardPool_);
       mockRewardAsset_.mint(address(component), undrippedRewards_);
@@ -1285,5 +1298,12 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
 
   function dripAndResetCumulativeRewardsValues() external {
     _dripAndResetCumulativeRewardsValues(stakePools, rewardPools);
+  }
+
+  function _previewCurrentWithdrawableRewards(
+    RewardPool storage, /*rewardPool_*/
+    DepositorRewardsData storage /*depositorRewardsData_*/
+  ) internal view override returns (uint256) {
+    __readStub__();
   }
 }

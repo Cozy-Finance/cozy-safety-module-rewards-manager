@@ -253,10 +253,10 @@ library ConfiguratorLib {
   ) internal {
     rewardPools_.push(
       RewardPool({
+        asset: rewardPoolConfig_.asset,
         undrippedRewards: 0,
         cumulativeDrippedRewards: 0,
         lastDripTime: uint128(block.timestamp),
-        asset: rewardPoolConfig_.asset,
         dripModel: rewardPoolConfig_.dripModel,
         epoch: 0,
         logIndexSnapshot: 0

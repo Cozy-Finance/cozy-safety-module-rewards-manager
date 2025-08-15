@@ -49,12 +49,12 @@ struct PreviewClaimableRewardsData {
   uint256 claimFeeAmount;
 }
 
-// Used to track depositor state for reward withdrawals.
+// Used to track withdrawable rewards for a depositor.
 struct DepositorRewardsData {
-  // The current withdrawable balance after applying all drips.
+  // The current withdrawable rewards.
   uint256 withdrawableRewards;
-  // The log index snapshot when this depositor's balance was last updated.
+  // The log index snapshot when this depositor's withdrawable rewards were last updated.
   uint256 logIndexSnapshot;
-  // The epoch when this balance was last updated.
+  // The epoch when this depositor's withdrawable rewards were last updated.
   uint32 epoch;
 }
