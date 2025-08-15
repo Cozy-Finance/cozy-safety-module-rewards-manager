@@ -4,7 +4,6 @@ pragma solidity 0.8.22;
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardPool} from "./structs/Pools.sol";
 import {DepositorRewardsData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
@@ -21,7 +20,6 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdr
   /// @param rewardAssetAmount_ The amount of reward assets to withdraw.
   /// @param receiver_ The address that will receive the withdrawn assets.
   function withdrawRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) external {
-    // TODO: Should we revert if the RM is paused?
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
 
     uint256 currentWithdrawableRewards_ =
