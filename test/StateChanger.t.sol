@@ -168,7 +168,7 @@ contract StateChangerUnpauseTest is StateChangerUnitTest {
     component_.unpause();
   }
 
-  function test_unpause_zeroPendingSlashes() public {
+  function test_unpause_zeroPendingRaises() public {
     TestCaller[2] memory validCallers_ = [TestCaller.OWNER, TestCaller.MANAGER];
 
     for (uint256 i = 0; i < validCallers_.length; i++) {
