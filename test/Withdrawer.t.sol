@@ -179,6 +179,49 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     );
   }
 
+  function test_withdrawAutoDrips() public {
+    address depositor_ = _randomAddress();
+    uint256 depositAmount_ = 100e18;
+
+    _depositRewardAssets(depositor_, depositAmount_);
+
+    uint256 warpTime_ = block.timestamp + 1;
+    vm.warp(warpTime_);
+
+    // Set up a 50% drip but do not manually drip before withdrawal.
+    flexibleDripModel.setNextDripFactor(0.5e18);
+
+    // Withdrawable rewards should still reflect the full deposit before withdrawing.
+    uint256 expectedWithdraw_ = depositAmount_.mulWadDown(MathConstants.WAD - 0.5e18);
+    uint256 expectedDrippedRewards_ = depositAmount_.mulWadDown(0.5e18);
+    assertApproxEqRel(
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
+      expectedWithdraw_,
+      0.001e18,
+      "Withdrawable should not change before auto drip"
+    );
+
+    uint256 previewWithdrawable_ = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_);
+
+    _expectEmit();
+    emit IWithdrawerEvents.Withdrawn(depositor_, DEFAULT_REWARD_POOL_ID, previewWithdrawable_, depositor_);
+    vm.prank(depositor_);
+    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, type(uint256).max, depositor_);
+
+    assertEq(rewardAsset.balanceOf(depositor_), previewWithdrawable_);
+    assertEq(
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
+      0,
+      "Depositor should have no withdrawable rewards"
+    );
+
+    RewardPool memory pool_ = getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID);
+    assertEq(pool_.undrippedRewards, depositAmount_ - previewWithdrawable_ - expectedDrippedRewards_);
+    assertEq(pool_.cumulativeDrippedRewards, expectedDrippedRewards_);
+    assertEq(pool_.lastDripTime, warpTime_);
+    assertGt(pool_.logIndexSnapshot, 0);
+  }
+
   function test_withdrawMultipleDripsCompound() public {
     address depositor_ = _randomAddress();
     uint256 depositAmount_ = 1000e18;
