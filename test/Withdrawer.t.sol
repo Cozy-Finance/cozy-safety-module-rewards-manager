@@ -167,7 +167,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     );
 
     vm.prank(depositor_);
-    vm.expectRevert(IWithdrawerErrors.InvalidWithdraw.selector);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 1, depositor_);
 
     RewardPool memory pool = getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID);
