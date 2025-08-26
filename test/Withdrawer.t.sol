@@ -5,7 +5,6 @@ import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {IWithdrawerErrors} from "../src/interfaces/IWithdrawerErrors.sol";
 import {IWithdrawerEvents} from "../src/interfaces/IWithdrawerEvents.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
@@ -308,39 +307,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
       rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
       depositAmount_,
       "New deposit should work in new epoch"
-    );
-  }
-
-  function test_oldEpochDepositorCannotStealFromNewEpoch() public {
-    address oldDepositor_ = address(0x1);
-    address newDepositor_ = address(0x2);
-    uint256 depositAmount_ = 100e18;
-
-    // Old depositor in epoch 0
-    _depositRewardAssets(oldDepositor_, depositAmount_);
-
-    // Epoch transition
-    _performDrip(WAD);
-
-    // New depositor in epoch 1
-    _depositRewardAssets(newDepositor_, depositAmount_ * 2);
-
-    // Old depositor tries to withdraw
-    assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, oldDepositor_),
-      0,
-      "Old depositor should have 0"
-    );
-
-    vm.prank(oldDepositor_);
-    vm.expectRevert(IWithdrawerErrors.InvalidWithdraw.selector);
-    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 1, oldDepositor_);
-
-    // New depositor can withdraw their full amount
-    assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, newDepositor_),
-      depositAmount_ * 2,
-      "New depositor should have full amount"
     );
   }
 

@@ -4,17 +4,15 @@ pragma solidity 0.8.22;
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
 import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
-
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {RewardPool} from "./structs/Pools.sol";
 import {DepositorRewardsData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {RewardsMathLib} from "./RewardsMathLib.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
-import {IWithdrawerErrors} from "../interfaces/IWithdrawerErrors.sol";
 import {IWithdrawerEvents} from "../interfaces/IWithdrawerEvents.sol";
 
-abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdrawerEvents {
+abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerEvents {
   using SafeERC20 for IERC20;
   using FixedPointMathLib for uint256;
 
