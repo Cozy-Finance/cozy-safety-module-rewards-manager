@@ -40,7 +40,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     }
 
     vm.prank(actor_);
-    rewardsManager.claimAllRewards(stakePoolId_, receiver_);
+    rewardsManager.claimRewards(stakePoolId_, receiver_);
 
     UserRewardsData[] memory userRewards_ = rewardsManager.getUserRewards(stakePoolId_, actor_);
     require(
@@ -131,7 +131,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     }
 
     vm.prank(actor_);
-    rewardsManager.claimAllRewards(stakePoolId_, receiver_);
+    rewardsManager.claimRewards(stakePoolId_, receiver_);
 
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
       require(
@@ -176,7 +176,7 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     RewardPool[] memory preRewardPools_ = rewardsManager.getRewardPools();
     ClaimableRewardsData[][] memory preClaimableRewards_ = rewardsManager.getClaimableRewards();
 
-    address actor_ = rewardsManagerHandler.claimAllRewards(_randomAddress(), _randomUint256());
+    address actor_ = rewardsManagerHandler.claimRewards(_randomAddress(), _randomUint256());
     // The default address is used when there are no actors with stakes, in which case we just skip this invariant.
     if (actor_ == rewardsManagerHandler.DEFAULT_ADDRESS()) return;
 

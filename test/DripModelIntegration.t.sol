@@ -44,7 +44,7 @@ abstract contract DripModelIntegrationTestSetup is MockDeployProtocol {
     address receiver_ = _randomAddress();
 
     vm.prank(alice);
-    rewardsManager.claimAllRewards(0, receiver_);
+    rewardsManager.claimRewards(0, receiver_);
 
     assertEq(rewardAsset.balanceOf(receiver_), expectedClaimedRewards_);
 

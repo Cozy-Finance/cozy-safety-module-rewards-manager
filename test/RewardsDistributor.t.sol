@@ -447,7 +447,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       );
 
       vm.prank(userA_);
-      component.claimAllRewards(stakePoolId_, rewardsReceiver_);
+      component.claimRewards(stakePoolId_, rewardsReceiver_);
 
       // Check that the rewards receiver received the assets.
       assertEq(rewardAssetA_.balanceOf(rewardsReceiver_), rewardsReceivedPoolA_);
@@ -522,7 +522,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       );
 
       vm.prank(userA_);
-      component.claimAllRewards(stakePoolId_, rewardsReceiver_);
+      component.claimRewards(stakePoolId_, rewardsReceiver_);
 
       // Check that the rewards receiver received the assets.
       assertEq(rewardAssetA_.balanceOf(rewardsReceiver_), rewardsReceivedPoolA_);
@@ -581,7 +581,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       // Event is not emitted from rewardPoolC because no rewards are transfered.
 
       vm.prank(userB_);
-      component.claimAllRewards(stakePoolId_, rewardsReceiver_);
+      component.claimRewards(stakePoolId_, rewardsReceiver_);
 
       // Check that the rewards receiver received the assets.
       assertEq(rewardAssetA_.balanceOf(rewardsReceiver_), rewardsReceivedPoolA_);
@@ -617,7 +617,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       );
 
       vm.prank(userB_);
-      component.claimAllRewards(stakePoolId_, rewardsReceiver_);
+      component.claimRewards(stakePoolId_, rewardsReceiver_);
 
       // Since user claimed rewards, accrued rewards should be 0 and index snapshot should be updated.
       for (uint16 sid_ = 0; sid_ < 2; sid_++) {
@@ -668,7 +668,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     previewStakePoolIds_[1] = 0;
     PreviewClaimableRewards[] memory previewClaimableRewards_ =
       component.previewClaimableRewards(previewStakePoolIds_, user_);
-    component.claimAllRewards(stakePoolId_, receiver_);
+    component.claimRewards(stakePoolId_, receiver_);
     vm.stopPrank();
 
     // Check preview claimable rewards.
@@ -759,7 +759,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     ClaimableRewardsData[] memory oldClaimableRewards_ = component.getClaimableRewards(stakePoolId_);
 
     vm.prank(user_);
-    component.claimAllRewards(stakePoolId_, receiver_);
+    component.claimRewards(stakePoolId_, receiver_);
 
     RewardPool[] memory newRewardPools_ = component.getRewardPools();
     ClaimableRewardsData[] memory newClaimableRewards_ = component.getClaimableRewards(stakePoolId_);
@@ -833,7 +833,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
     skip(bound(_randomUint64(), 1, type(uint64).max));
     vm.prank(user_);
-    component.claimAllRewards(stakePoolId_, receiver_);
+    component.claimRewards(stakePoolId_, receiver_);
 
     // Make sure receiver received rewards from new reward asset pool.
     {
@@ -864,14 +864,14 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     skip(bound(_randomUint64(), 1, type(uint64).max));
 
     vm.startPrank(user_);
-    component.claimAllRewards(stakePoolId_, receiver_);
+    component.claimRewards(stakePoolId_, receiver_);
     UserRewardsData[] memory oldUserRewardsData_ = component.getUserRewards(stakePoolId_, user_);
     vm.stopPrank();
 
     // User claims rewards again.
     address newReceiver_ = _randomAddress();
     vm.startPrank(user_);
-    component.claimAllRewards(stakePoolId_, newReceiver_);
+    component.claimRewards(stakePoolId_, newReceiver_);
     UserRewardsData[] memory newUserRewardsData_ = component.getUserRewards(stakePoolId_, user_);
     vm.stopPrank();
 
@@ -904,9 +904,9 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     skip(ONE_YEAR);
     // Both user and receiver claim rewards.
     vm.prank(user_);
-    component.claimAllRewards(0, user_);
+    component.claimRewards(0, user_);
     vm.prank(receiver_);
-    component.claimAllRewards(0, receiver_);
+    component.claimRewards(0, receiver_);
 
     IERC20 rewardAssetA_ = component.getRewardPool(0).asset;
     IERC20 rewardAssetB_ = component.getRewardPool(1).asset;
@@ -963,7 +963,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     stakePoolIds_[0] = 0;
     stakePoolIds_[1] = 1;
     vm.startPrank(user_);
-    component.claimAllRewards(stakePoolIds_, receiver_);
+    component.claimRewards(stakePoolIds_, receiver_);
     vm.stopPrank();
 
     // Check that the rewards receiver received the assets.
@@ -1018,7 +1018,7 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
 
     // User claims rewards.
     vm.prank(user_);
-    component.claimAllRewards(0, user_);
+    component.claimRewards(0, user_);
 
     // Check user rewards balances.
     RewardPool[] memory rewardPools_ = component.getRewardPools();
@@ -1046,7 +1046,7 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
     skip(ONE_YEAR); // Will induce another drip of rewards
     vm.startPrank(receiver_);
     // Receiver claims rewards.
-    component.claimAllRewards(0, receiver_);
+    component.claimRewards(0, receiver_);
     vm.stopPrank();
 
     assertApproxEqAbs(rewardAssetA_.balanceOf(receiver_), 23, 1); // (100_000 + 99_000) * 0.01 * 0.1 * (0.5 * 0.25) *
@@ -1085,10 +1085,10 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
     stakePool_.stkReceiptToken.transfer(user_, 100e6);
 
     vm.prank(user_);
-    component.claimAllRewards(0, user_);
+    component.claimRewards(0, user_);
 
     vm.prank(receiver_);
-    component.claimAllRewards(0, receiver_);
+    component.claimRewards(0, receiver_);
 
     // Reward amounts received by `user_` are calculated as: rewardPool.amount * dripRate *
     // rewardsPoolWeight * (userStkReceiptTokenBalance / totalStkReceiptTokenSupply).

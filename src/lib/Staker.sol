@@ -8,8 +8,9 @@ import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {AssetPool, StakePool} from "./structs/Pools.sol";
 import {ClaimRewardsArgs, ClaimableRewardsData, ClaimRewardsPoolData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
+import {IStakerErrors} from "../interfaces/IStakerErrors.sol";
 
-abstract contract Staker is RewardsManagerCommon {
+abstract contract Staker is RewardsManagerCommon, IStakerErrors {
   using SafeERC20 for IERC20;
 
   /// @notice Emitted when a user stakes.
@@ -90,7 +91,7 @@ abstract contract Staker is RewardsManagerCommon {
   /// @dev The `owner_` is transferred ALL claimable rewards of the `owner_`, not just those associated with the
   /// input amount, `stkReceiptTokenAmount_`.
   /// @dev Note that by default all reward pools are dripped and claimed when unstaking. If you want to unstake without
-  /// dripping from specific reward pools, you can use `unstakeAndClaimRewards` instead.
+  /// dripping from specific reward pools, you can use `unstakeDripAndClaimRewards` instead.
   /// @param stakePoolId_ The ID of the stake pool to unstake from.
   /// @param stkReceiptTokenAmount_ The amount of stkReceiptTokens to unstake.
   /// @param receiver_ The address that will receive the unstaked assets.
@@ -106,14 +107,24 @@ abstract contract Staker is RewardsManagerCommon {
     _executeUnstake(stakePoolId_, stkReceiptTokenAmount_, receiver_, owner_);
   }
 
-  function unstakeAndClaimRewards(
+  /// @param dripRewardPool_ Whether to drip and claim rewards for each reward pool.
+  /// @dev Rewards from all pools are claimed when unstaking. The `dripRewardPool_` array is used to specify whether to
+  /// drip from each reward pool. It must be the same length as the number of reward pools.
+  function unstakeDripAndClaimRewards(
     uint16 stakePoolId_,
     uint256 stkReceiptTokenAmount_,
     address receiver_,
     address owner_,
-    uint16[] memory rewardPoolIds_
+    bool[] memory dripRewardPool_
   ) external {
     if (stkReceiptTokenAmount_ == 0) revert AmountIsZero();
+    if (dripRewardPool_.length != rewardPools.length) revert InvalidLength();
+
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools.length);
+    for (uint16 i = 0; i < dripRewardPool_.length; i++) {
+      claimRewardsPoolData_[i] = ClaimRewardsPoolData({rewardPoolId: i, drip: dripRewardPool_[i]});
+    }
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, owner_, owner_), claimRewardsPoolData_);
     _executeUnstake(stakePoolId_, stkReceiptTokenAmount_, receiver_, owner_);
   }
 
