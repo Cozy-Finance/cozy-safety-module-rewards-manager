@@ -18,7 +18,8 @@ import {
   PreviewClaimableRewardsData,
   PreviewClaimableRewards,
   ClaimRewardsArgs,
-  ClaimableRewardsData
+  ClaimableRewardsData,
+  ClaimRewardsPoolData
 } from "./structs/Rewards.sol";
 import {RewardPool, IdLookup} from "./structs/Pools.sol";
 
@@ -77,38 +78,44 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// @notice Claim rewards for a specific stake pool and reward pools and transfer rewards to `receiver_`.
   /// @param stakePoolId_ The ID of the stake pool to claim rewards for.
   /// @param receiver_ The address to transfer the claimed rewards to.
-  /// @param rewardPoolIds_ The IDs of the reward pools to claim rewards for.
-  function claimRewards(uint16 stakePoolId_, uint16[] calldata rewardPoolIds_, address receiver_) external {
-    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), rewardPoolIds_);
+  /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip or not.
+  function claimRewards(uint16 stakePoolId_, ClaimRewardsPoolData[] calldata claimRewardsPoolData_, address receiver_)
+    external
+  {
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), claimRewardsPoolData_);
   }
 
   /// @notice Claim rewards for a set of stake pools and reward pools and transfer rewards to `receiver_`.
   /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
   /// @param receiver_ The address to transfer the claimed rewards to.
-  /// @param rewardPoolIds_ The IDs of the reward pools to claim rewards for.
-  function claimRewards(uint16[] calldata stakePoolIds_, uint16[] calldata rewardPoolIds_, address receiver_) external {
+  /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip or not.
+  function claimRewards(
+    uint16[] calldata stakePoolIds_,
+    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
+    address receiver_
+  ) external {
     for (uint256 i = 0; i < stakePoolIds_.length; i++) {
-      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), rewardPoolIds_);
+      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), claimRewardsPoolData_);
     }
   }
 
   /// @notice Claim rewards for a specific stake pool and all reward pools and transfer rewards to `receiver_`.
   function claimAllRewards(uint16 stakePoolId_, address receiver_) external {
-    uint16[] memory allRewardPoolIds_ = new uint16[](rewardPools.length);
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools.length);
     for (uint16 i = 0; i < rewardPools.length; i++) {
-      allRewardPoolIds_[i] = i;
+      claimRewardsPoolData_[i] = ClaimRewardsPoolData({rewardPoolId: i, drip: true});
     }
-    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), allRewardPoolIds_);
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), claimRewardsPoolData_);
   }
 
   /// @notice Claim rewards for a set of stake pools and all reward pools and transfer rewards to `receiver_`.
   function claimAllRewards(uint16[] calldata stakePoolIds_, address receiver_) external {
-    uint16[] memory allRewardPoolIds_ = new uint16[](rewardPools.length);
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools.length);
     for (uint16 i = 0; i < rewardPools.length; i++) {
-      allRewardPoolIds_[i] = i;
+      claimRewardsPoolData_[i] = ClaimRewardsPoolData({rewardPoolId: i, drip: true});
     }
     for (uint256 i = 0; i < stakePoolIds_.length; i++) {
-      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), allRewardPoolIds_);
+      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), claimRewardsPoolData_);
     }
   }
 
@@ -177,7 +184,10 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     rewardPool_.lastDripTime = uint128(block.timestamp);
   }
 
-  function _claimRewards(ClaimRewardsArgs memory args_, uint16[] memory rewardPoolIds_) internal override {
+  function _claimRewards(ClaimRewardsArgs memory args_, ClaimRewardsPoolData[] memory claimRewardsPoolData_)
+    internal
+    override
+  {
     StakePool storage stakePool_ = stakePools[args_.stakePoolId];
     IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[args_.stakePoolId];
@@ -192,16 +202,18 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     });
 
     // When claiming rewards from a given reward pool, we take four steps:
-    // (1) Drip from the reward pool since time may have passed since the last drip.
+    // (1) (Optionally) drip from the reward pool since time may have passed since the last drip.
     // (2) Compute and update the next claimable rewards data for the (stake pool, reward pool) pair.
     // (3) Update the user's accrued rewards data for the (stake pool, reward pool) pair.
     // (4) Transfer the user's accrued rewards from the reward pool to the receiver, while potentially taking a fee (if
     // set) that is sent to the protocol owner
-    for (uint256 i; i < rewardPoolIds_.length; i++) {
+    for (uint256 i; i < claimRewardsPoolData_.length; i++) {
       // Step (1)
-      uint16 rewardPoolId_ = rewardPoolIds_[i];
+      uint16 rewardPoolId_ = claimRewardsPoolData_[i].rewardPoolId;
       RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-      if (rewardsManagerState == RewardsManagerState.ACTIVE) _dripRewardPool(rewardPool_);
+      if (rewardsManagerState == RewardsManagerState.ACTIVE && claimRewardsPoolData_[i].drip) {
+        _dripRewardPool(rewardPool_);
+      }
 
       {
         // Step (2)

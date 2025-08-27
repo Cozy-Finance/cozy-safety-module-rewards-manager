@@ -9,7 +9,11 @@ import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {IStateChangerEvents} from "../src/interfaces/IStateChangerEvents.sol";
 import {RewardPool, StakePool} from "../src/lib/structs/Pools.sol";
 import {
-  ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData, DepositorRewardsData
+  ClaimRewardsArgs,
+  ClaimableRewardsData,
+  UserRewardsData,
+  DepositorRewardsData,
+  ClaimRewardsPoolData
 } from "../src/lib/structs/Rewards.sol";
 import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {StateChanger} from "../src/lib/StateChanger.sol";
@@ -219,7 +223,10 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
 
   // -------- Overridden abstract function placeholders --------
 
-  function _claimRewards(ClaimRewardsArgs memory, /* args_ */ uint16[] memory /* rewardPoolIds_ */ ) internal override {
+  function _claimRewards(
+    ClaimRewardsArgs memory, /* args_ */
+    ClaimRewardsPoolData[] memory /* claimRewardsPoolData_ */
+  ) internal override {
     __writeStub__();
   }
 

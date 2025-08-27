@@ -6,7 +6,7 @@ import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.so
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {AssetPool, StakePool} from "./structs/Pools.sol";
-import {ClaimRewardsArgs, ClaimableRewardsData} from "./structs/Rewards.sol";
+import {ClaimRewardsArgs, ClaimableRewardsData, ClaimRewardsPoolData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 
 abstract contract Staker is RewardsManagerCommon {
@@ -89,6 +89,8 @@ abstract contract Staker is RewardsManagerCommon {
   /// @dev Assumes that user has approved this rewards manager to spend its stkReceiptTokens.
   /// @dev The `owner_` is transferred ALL claimable rewards of the `owner_`, not just those associated with the
   /// input amount, `stkReceiptTokenAmount_`.
+  /// @dev Note that by default all reward pools are dripped and claimed when unstaking. If you want to unstake without
+  /// dripping from specific reward pools, you can use `unstakeAndClaimRewards` instead.
   /// @param stakePoolId_ The ID of the stake pool to unstake from.
   /// @param stkReceiptTokenAmount_ The amount of stkReceiptTokens to unstake.
   /// @param receiver_ The address that will receive the unstaked assets.
@@ -96,26 +98,23 @@ abstract contract Staker is RewardsManagerCommon {
   function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external {
     if (stkReceiptTokenAmount_ == 0) revert AmountIsZero();
 
-    uint16[] memory allRewardPoolIds_ = new uint16[](rewardPools.length);
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools.length);
     for (uint16 i = 0; i < rewardPools.length; i++) {
-      allRewardPoolIds_[i] = i;
+      claimRewardsPoolData_[i] = ClaimRewardsPoolData({rewardPoolId: i, drip: true});
     }
-    _claimRewards(ClaimRewardsArgs(stakePoolId_, owner_, owner_), allRewardPoolIds_);
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, owner_, owner_), claimRewardsPoolData_);
+    _executeUnstake(stakePoolId_, stkReceiptTokenAmount_, receiver_, owner_);
+  }
 
-    StakePool storage stakePool_ = stakePools[stakePoolId_];
-    IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;
-    IERC20 asset_ = stakePool_.asset;
-
-    // Given the 1:1 conversion rate between the underlying asset and stkReceiptTokens, we always have `assetAmount_ ==
-    // stkReceiptTokenAmount_`.
-    stakePool_.amount -= stkReceiptTokenAmount_;
-    assetPools[asset_].amount -= stkReceiptTokenAmount_;
-    // Burn also ensures that the sender has sufficient allowance if they're not the owner.
-    stkReceiptToken_.burn(msg.sender, owner_, stkReceiptTokenAmount_);
-
-    asset_.safeTransfer(receiver_, stkReceiptTokenAmount_);
-
-    emit Unstaked(msg.sender, receiver_, owner_, stakePoolId_, stkReceiptToken_, stkReceiptTokenAmount_);
+  function unstakeAndClaimRewards(
+    uint16 stakePoolId_,
+    uint256 stkReceiptTokenAmount_,
+    address receiver_,
+    address owner_,
+    uint16[] memory rewardPoolIds_
+  ) external {
+    if (stkReceiptTokenAmount_ == 0) revert AmountIsZero();
+    _executeUnstake(stakePoolId_, stkReceiptTokenAmount_, receiver_, owner_);
   }
 
   function _executeStake(
@@ -140,5 +139,24 @@ abstract contract Staker is RewardsManagerCommon {
 
     stkReceiptToken_.mint(receiver_, assetAmount_);
     emit Staked(msg.sender, receiver_, stakePoolId_, stkReceiptToken_, assetAmount_);
+  }
+
+  function _executeUnstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_)
+    internal
+  {
+    StakePool storage stakePool_ = stakePools[stakePoolId_];
+    IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;
+    IERC20 asset_ = stakePool_.asset;
+
+    // Given the 1:1 conversion rate between the underlying asset and stkReceiptTokens, we always have `assetAmount_ ==
+    // stkReceiptTokenAmount_`.
+    stakePool_.amount -= stkReceiptTokenAmount_;
+    assetPools[asset_].amount -= stkReceiptTokenAmount_;
+    // Burn also ensures that the sender has sufficient allowance if they're not the owner.
+    stkReceiptToken_.burn(msg.sender, owner_, stkReceiptTokenAmount_);
+
+    asset_.safeTransfer(receiver_, stkReceiptTokenAmount_);
+
+    emit Unstaked(msg.sender, receiver_, owner_, stakePoolId_, stkReceiptToken_, stkReceiptTokenAmount_);
   }
 }

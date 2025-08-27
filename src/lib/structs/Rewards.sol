@@ -58,3 +58,9 @@ struct DepositorRewardsData {
   // The epoch when this depositor's withdrawable rewards were last updated.
   uint32 epoch;
 }
+
+// Used to track which reward pool to claim from and whether to drip from the reward pool.
+struct ClaimRewardsPoolData {
+  uint16 rewardPoolId;
+  bool drip;
+}
