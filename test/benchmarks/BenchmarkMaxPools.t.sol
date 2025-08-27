@@ -205,7 +205,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
 
     vm.startPrank(receiver_);
     uint256 gasInitial_ = gasleft();
-    rewardsManager.claimRewards(stakePoolId_, receiver_);
+    rewardsManager.claimAllRewards(stakePoolId_, receiver_);
     console2.log("Gas used for claimRewards: %s", gasInitial_ - gasleft());
     vm.stopPrank();
   }

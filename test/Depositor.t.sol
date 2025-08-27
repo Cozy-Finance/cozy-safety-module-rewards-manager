@@ -399,7 +399,7 @@ contract TestableDepositor is Withdrawer, Depositor, RewardsManagerInspector {
 
   // -------- Overridden abstract function placeholders --------
 
-  function _claimRewards(ClaimRewardsArgs memory /* args_ */ ) internal override {
+  function _claimRewards(ClaimRewardsArgs memory, /* args_ */ uint16[] memory /* rewardPoolIds_ */ ) internal override {
     __writeStub__();
   }
 

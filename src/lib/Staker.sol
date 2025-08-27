@@ -96,7 +96,11 @@ abstract contract Staker is RewardsManagerCommon {
   function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external {
     if (stkReceiptTokenAmount_ == 0) revert AmountIsZero();
 
-    _claimRewards(ClaimRewardsArgs(stakePoolId_, owner_, owner_));
+    uint16[] memory allRewardPoolIds_ = new uint16[](rewardPools.length);
+    for (uint16 i = 0; i < rewardPools.length; i++) {
+      allRewardPoolIds_[i] = i;
+    }
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, owner_, owner_), allRewardPoolIds_);
 
     StakePool storage stakePool_ = stakePools[stakePoolId_];
     IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;

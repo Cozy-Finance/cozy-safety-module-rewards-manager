@@ -10,7 +10,7 @@ import {StakePool, RewardPool} from "./structs/Pools.sol";
 
 abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErrors {
   /// @dev Defined in RewardsDistributor.
-  function _claimRewards(ClaimRewardsArgs memory args_) internal virtual;
+  function _claimRewards(ClaimRewardsArgs memory args_, uint16[] memory rewardPoolIds_) internal virtual;
 
   /// @dev Defined in RewardsDistributor.
   function dripRewards() public virtual;

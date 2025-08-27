@@ -296,24 +296,24 @@ contract RewardsManagerHandler is TestBase {
     rewardsManager.updateUserRewardsForStkReceiptTokenTransfer(from_, to_);
   }
 
-  function claimRewards(address receiver_, uint256 seed_)
+  function claimAllRewards(address receiver_, uint256 seed_)
     public
     useActorWithStakes(seed_)
-    countCall("claimRewards")
+    countCall("claimAllRewards")
     advanceTime(seed_)
     returns (address actor_)
   {
     IERC20 stkReceiptToken_ = getStakePool(rewardsManager, currentStakePoolId).stkReceiptToken;
     uint256 actorStkReceiptTokenBalance_ = stkReceiptToken_.balanceOf(currentActor);
     if (actorStkReceiptTokenBalance_ == 0) {
-      invalidCalls["claimRewards"] += 1;
+      invalidCalls["claimAllRewards"] += 1;
       return currentActor;
     }
 
     _incrementGhostRewardsToBeClaimedAndPaidAsFees(currentStakePoolId, currentActor);
 
     vm.startPrank(currentActor);
-    rewardsManager.claimRewards(currentStakePoolId, receiver_);
+    rewardsManager.claimAllRewards(currentStakePoolId, receiver_);
     vm.stopPrank();
 
     return currentActor;

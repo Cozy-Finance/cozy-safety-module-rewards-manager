@@ -21,7 +21,7 @@ interface IRewardsManager {
     view
     returns (ClaimableRewardsData memory);
 
-  function claimRewards(uint16 stakePoolId_, address receiver_) external;
+  function claimAllRewards(uint16 stakePoolId_, address receiver_) external;
 
   function cozyManager() external returns (ICozyManager);
 

@@ -45,7 +45,6 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint256 userStkReceiptTokenBalance;
     uint256 stkReceiptTokenSupply;
     uint256 rewardsWeight;
-    uint256 numRewardAssets;
     uint256 numUserRewardAssets;
   }
 
@@ -75,19 +74,41 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     _dripRewardPool(rewardPools[rewardPoolId_]);
   }
 
-  /// @notice Claim rewards for a specific stake pool and transfer rewards to `receiver_`.
+  /// @notice Claim rewards for a specific stake pool and reward pools and transfer rewards to `receiver_`.
   /// @param stakePoolId_ The ID of the stake pool to claim rewards for.
   /// @param receiver_ The address to transfer the claimed rewards to.
-  function claimRewards(uint16 stakePoolId_, address receiver_) external {
-    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender));
+  /// @param rewardPoolIds_ The IDs of the reward pools to claim rewards for.
+  function claimRewards(uint16 stakePoolId_, uint16[] calldata rewardPoolIds_, address receiver_) external {
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), rewardPoolIds_);
   }
 
-  /// @notice Claim rewards for a set of stake pools and transfer rewards to `receiver_`.
+  /// @notice Claim rewards for a set of stake pools and reward pools and transfer rewards to `receiver_`.
   /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
   /// @param receiver_ The address to transfer the claimed rewards to.
-  function claimRewards(uint16[] calldata stakePoolIds_, address receiver_) external {
+  /// @param rewardPoolIds_ The IDs of the reward pools to claim rewards for.
+  function claimRewards(uint16[] calldata stakePoolIds_, uint16[] calldata rewardPoolIds_, address receiver_) external {
     for (uint256 i = 0; i < stakePoolIds_.length; i++) {
-      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender));
+      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), rewardPoolIds_);
+    }
+  }
+
+  /// @notice Claim rewards for a specific stake pool and all reward pools and transfer rewards to `receiver_`.
+  function claimAllRewards(uint16 stakePoolId_, address receiver_) external {
+    uint16[] memory allRewardPoolIds_ = new uint16[](rewardPools.length);
+    for (uint16 i = 0; i < rewardPools.length; i++) {
+      allRewardPoolIds_[i] = i;
+    }
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), allRewardPoolIds_);
+  }
+
+  /// @notice Claim rewards for a set of stake pools and all reward pools and transfer rewards to `receiver_`.
+  function claimAllRewards(uint16[] calldata stakePoolIds_, address receiver_) external {
+    uint16[] memory allRewardPoolIds_ = new uint16[](rewardPools.length);
+    for (uint16 i = 0; i < rewardPools.length; i++) {
+      allRewardPoolIds_[i] = i;
+    }
+    for (uint256 i = 0; i < stakePoolIds_.length; i++) {
+      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), allRewardPoolIds_);
     }
   }
 
@@ -130,8 +151,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
     // Fully accrue historical rewards for both users given their current stkReceiptToken balances. Moving forward all
     // rewards will accrue based on: (1) the stkReceiptToken balances of the `from_` and `to_` address after the
-    // transfer, (2)
-    // the current claimable reward index snapshots.
+    // transfer, (2) the current claimable reward index snapshots.
     _updateUserRewards(stkReceiptToken_.balanceOf(from_), claimableRewards_, userRewards[stakePoolId_][from_]);
     _updateUserRewards(stkReceiptToken_.balanceOf(to_), claimableRewards_, userRewards[stakePoolId_][to_]);
   }
@@ -157,7 +177,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     rewardPool_.lastDripTime = uint128(block.timestamp);
   }
 
-  function _claimRewards(ClaimRewardsArgs memory args_) internal override {
+  function _claimRewards(ClaimRewardsArgs memory args_, uint16[] memory rewardPoolIds_) internal override {
     StakePool storage stakePool_ = stakePools[args_.stakePoolId];
     IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[args_.stakePoolId];
@@ -168,7 +188,6 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
       userStkReceiptTokenBalance: stkReceiptToken_.balanceOf(args_.owner),
       stkReceiptTokenSupply: stkReceiptToken_.totalSupply(),
       rewardsWeight: stakePool_.rewardsWeight,
-      numRewardAssets: rewardPools.length,
       numUserRewardAssets: userRewards_.length
     });
 
@@ -178,8 +197,9 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     // (3) Update the user's accrued rewards data for the (stake pool, reward pool) pair.
     // (4) Transfer the user's accrued rewards from the reward pool to the receiver, while potentially taking a fee (if
     // set) that is sent to the protocol owner
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < claimRewardsData_.numRewardAssets; rewardPoolId_++) {
+    for (uint256 i; i < rewardPoolIds_.length; i++) {
       // Step (1)
+      uint16 rewardPoolId_ = rewardPoolIds_[i];
       RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
       if (rewardsManagerState == RewardsManagerState.ACTIVE) _dripRewardPool(rewardPool_);
 
