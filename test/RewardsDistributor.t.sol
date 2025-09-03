@@ -1135,8 +1135,9 @@ contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistri
     ClaimableRewardsData[][] memory claimableRewards_ = component.getClaimableRewards();
     RewardPool[] memory rewardPools_ = component.getRewardPools();
     expectedRewardPools_[0].lastDripTime = uint128(block.timestamp);
-    expectedRewardPools_[0].undrippedRewards -=
-      _calculateExpectedDripQuantity(expectedRewardPools_[0].undrippedRewards, 0.1e18);
+    // Reward pool undripped rewards should not change because there are no stakers, so the unclaimed dripped rewards
+    // are recycled back to the pool.
+    expectedRewardPools_[0].undrippedRewards = expectedRewardPools_[0].undrippedRewards;
 
     assertEq(claimableRewards_[0][0], _expectedClaimableRewardsData(initialClaimableRewards_[0][0].indexSnapshot));
     assertEq(expectedRewardPools_, rewardPools_);

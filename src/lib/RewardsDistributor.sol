@@ -185,7 +185,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
       {
         // Step (2)
-        ClaimableRewardsData memory newClaimableRewardsData_ = _previewNextClaimableRewardsData(
+        (ClaimableRewardsData memory newClaimableRewardsData_,) = _previewNextClaimableRewardsData(
           claimableRewards_[rewardPoolId_],
           rewardPool_.cumulativeDrippedRewards,
           claimRewardsData_.stkReceiptTokenSupply,
@@ -232,18 +232,19 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint256 cumulativeDrippedRewards_,
     uint256 stkReceiptTokenSupply_,
     uint256 rewardsWeight_
-  ) internal pure returns (ClaimableRewardsData memory nextClaimableRewardsData_) {
+  ) internal pure returns (ClaimableRewardsData memory nextClaimableRewardsData_, uint256 unclaimedDrippedRewards_) {
     nextClaimableRewardsData_.cumulativeClaimableRewards = claimableRewardsData_.cumulativeClaimableRewards;
     nextClaimableRewardsData_.indexSnapshot = claimableRewardsData_.indexSnapshot;
+
+    // Round down, in favor of leaving assets in the pool.
+    unclaimedDrippedRewards_ = cumulativeDrippedRewards_.mulDivDown(rewardsWeight_, MathConstants.ZOC)
+      - claimableRewardsData_.cumulativeClaimableRewards;
+
     // If `stkReceiptTokenSupply_ == 0`, then we get a divide by zero error if we try to update the index snapshot. To
     // avoid this, we wait until the `stkReceiptTokenSupply_ > 0`, to apply all accumulated unclaimed dripped rewards to
     // the claimable rewards data. We have to update the index snapshot and cumulative claimed rewards at the same time
     // to keep accounting correct.
     if (stkReceiptTokenSupply_ > 0) {
-      // Round down, in favor of leaving assets in the pool.
-      uint256 unclaimedDrippedRewards_ = cumulativeDrippedRewards_.mulDivDown(rewardsWeight_, MathConstants.ZOC)
-        - claimableRewardsData_.cumulativeClaimableRewards;
-
       nextClaimableRewardsData_.cumulativeClaimableRewards += unclaimedDrippedRewards_;
       // Round down, in favor of leaving assets in the claimable reward pool.
       nextClaimableRewardsData_.indexSnapshot +=
@@ -302,7 +303,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
     for (uint16 i = 0; i < nextRewardDrips_.length; i++) {
       RewardPool storage rewardPool_ = rewardPools[i];
-      ClaimableRewardsData memory previewNextClaimableRewardsData_ = _previewNextClaimableRewardsData(
+      (ClaimableRewardsData memory previewNextClaimableRewardsData_,) = _previewNextClaimableRewardsData(
         claimableRewards_[i],
         rewardPool_.cumulativeDrippedRewards + nextRewardDrips_[i].amount,
         stkReceiptTokenSupply_,
@@ -362,7 +363,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
       _dripRewardPool(rewardPool_);
       ClaimableRewardsData storage claimableRewardsData_ = claimableRewards_[i];
 
-      claimableRewards_[i] = _previewNextClaimableRewardsData(
+      (claimableRewards_[i],) = _previewNextClaimableRewardsData(
         claimableRewardsData_, rewardPool_.cumulativeDrippedRewards, stkReceiptTokenSupply_, rewardsWeight_
       );
     }
@@ -384,16 +385,24 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
       uint256 oldCumulativeDrippedRewards_ = rewardPool_.cumulativeDrippedRewards;
       rewardPool_.cumulativeDrippedRewards = 0;
 
+      uint256 totalUnclaimedDrippedRewardsToRecycle_;
       for (uint16 j = 0; j < numStakePools_; j++) {
         StakePool storage stakePool_ = stakePools_[j];
-        ClaimableRewardsData memory claimableRewardsData_ = _previewNextClaimableRewardsData(
-          claimableRewards[j][i],
-          oldCumulativeDrippedRewards_,
-          stakePool_.stkReceiptToken.totalSupply(),
-          stakePool_.rewardsWeight
+        uint256 stakeReceiptTokenSupply_ = stakePool_.stkReceiptToken.totalSupply();
+        (ClaimableRewardsData memory claimableRewardsData_, uint256 unclaimedDrippedRewards_) =
+        _previewNextClaimableRewardsData(
+          claimableRewards[j][i], oldCumulativeDrippedRewards_, stakeReceiptTokenSupply_, stakePool_.rewardsWeight
         );
         claimableRewards[j][i] =
           ClaimableRewardsData({cumulativeClaimableRewards: 0, indexSnapshot: claimableRewardsData_.indexSnapshot});
+
+        // If there were no stakers, we can recycle the unclaimed dripped rewards.
+        if (stakeReceiptTokenSupply_ == 0) totalUnclaimedDrippedRewardsToRecycle_ += unclaimedDrippedRewards_;
+      }
+
+      // Recycle any unclaimed dripped rewards by adding them back to the undripped rewards.
+      if (totalUnclaimedDrippedRewardsToRecycle_ > 0) {
+        rewardPool_.undrippedRewards += totalUnclaimedDrippedRewardsToRecycle_;
       }
     }
   }
