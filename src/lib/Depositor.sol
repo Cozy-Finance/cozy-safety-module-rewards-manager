@@ -30,8 +30,11 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     // Pull in deposited assets. After the transfer we ensure we no longer need any assets. This check is
     // required to support fee on transfer tokens, for example if USDT enables a fee.
     // Also, we need to transfer before minting or ERC777s could reenter.
+    uint256 balanceBefore_ = asset_.balanceOf(address(this));
     asset_.safeTransferFrom(msg.sender, address(this), rewardAssetAmount_);
-    _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, rewardPool_);
+    uint256 amountReceived_ = asset_.balanceOf(address(this)) - balanceBefore_;
+
+    _executeRewardDeposit(rewardPoolId_, asset_, amountReceived_, rewardPool_);
   }
 
   /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool.

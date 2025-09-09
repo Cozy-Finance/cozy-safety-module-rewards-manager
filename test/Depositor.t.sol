@@ -21,6 +21,7 @@ import {MockERC20} from "./utils/MockERC20.sol";
 import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
+import {MockFOTERC20} from "./utils/MockFOTERC20.sol";
 
 contract DepositorUnitTest is TestBase {
   using FixedPointMathLib for uint256;
@@ -343,6 +344,75 @@ contract DepositorUnitTest is TestBase {
     vm.warp(_randomUint64());
     uint256 nextTotalPoolAmount_ = component.previewCurrentUndrippedRewards(0);
     assertEq(nextTotalPoolAmount_, 0);
+  }
+
+  function test_depositRewardAssets_FeeOnTransfer_Supported() external {
+    // Set up a FOT token that charges 1% on transfer/transferFrom.
+    uint16 fotFeeBps_ = 100; // 1%
+    MockFOTERC20 fotAsset = new MockFOTERC20("Mock FOT", "MFOT", 18, fotFeeBps_, address(0));
+
+    // Add a new reward pool using the FOT token with zero initial balances for isolation.
+    RewardPool memory fotRewardPool_ = RewardPool({
+      asset: IERC20(address(fotAsset)),
+      dripModel: IDripModel(address(0)),
+      undrippedRewards: 0,
+      cumulativeDrippedRewards: 0,
+      lastDripTime: uint128(block.timestamp),
+      epoch: 0,
+      logIndexSnapshot: 0
+    });
+    component.mockAddRewardPool(fotRewardPool_);
+    component.mockAddAssetPool(IERC20(address(fotAsset)), AssetPool({amount: 0}));
+
+    // Use the last-added pool ID (index 2 if using the default setUp).
+    uint16 fotPoolId_ = uint16(component.getRewardPools().length - 1);
+
+    address depositor_ = _randomAddress();
+    uint256 amountToDeposit_ = 100e18;
+
+    // Mint to depositor and approve the component.
+    fotAsset.mint(depositor_, amountToDeposit_);
+    vm.prank(depositor_);
+    fotAsset.approve(address(component), amountToDeposit_);
+
+    // Compute the expected amounts:
+    // FOT fee is taken by the token contract on transferFrom, so the manager receives less than requested.
+    uint256 fotFeeAmount_ = (amountToDeposit_ * fotFeeBps_) / MathConstants.ZOC; // floor
+    uint256 amountReceived_ = amountToDeposit_ - fotFeeAmount_;
+
+    // Deposit fee is computed by the manager on the observed amount received.
+    uint256 depositFeeAmount_ = amountReceived_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
+    uint256 depositAmount_ = amountReceived_ - depositFeeAmount_;
+
+    //transfer made from depositor to rewards manager to owner, so the FOT token does 2x transfer fees
+    uint256 ownerNetFee_ = depositFeeAmount_ - (depositFeeAmount_ * fotFeeBps_) / MathConstants.ZOC;
+
+    // Expect the Deposited event to reflect the net deposit and the protocol fee.
+    _expectEmit();
+    emit Deposited(depositor_, fotPoolId_, depositAmount_, depositFeeAmount_);
+
+    // Execute the deposit via transferFrom (path that must support FOT).
+    vm.prank(depositor_);
+    component.depositRewardAssets(fotPoolId_, amountToDeposit_);
+
+    // Verify storage/accounting updates.
+    RewardPool memory finalRewardPool_ = component.getRewardPool(fotPoolId_);
+    AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(fotAsset)));
+
+    // Undripped rewards and asset pool should increase by the net deposit (after manager deposit fee).
+    assertEq(finalRewardPool_.undrippedRewards, depositAmount_);
+    assertEq(finalAssetPool_.amount, depositAmount_);
+
+    // Component should hold exactly the net deposit; the manager fee is sent to the Cozy owner.
+    assertEq(fotAsset.balanceOf(address(component)), depositAmount_);
+    assertEq(fotAsset.balanceOf(cozyManager.owner()), ownerNetFee_);
+
+    uint256 feeOnUserToManager_ = (amountToDeposit_ * fotFeeBps_) / MathConstants.ZOC;
+    uint256 feeOnManagerToOwner_ = (depositFeeAmount_ * fotFeeBps_) / MathConstants.ZOC;
+    assertEq(fotAsset.balanceOf(fotAsset.feeRecipient()), feeOnUserToManager_ + feeOnManagerToOwner_);
+
+    // Depositor’s balance decreases by the full requested amount (including the FOT).
+    assertEq(fotAsset.balanceOf(depositor_), 0);
   }
 }
 
