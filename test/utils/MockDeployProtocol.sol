@@ -50,7 +50,6 @@ contract MockDeployer is TestBase {
         )
       )
     );
-    rewardsManagerLogic.initialize(owner, pauser, new StakePoolConfig[](0), new RewardPoolConfig[](0));
     rewardsManagerFactory = new RewardsManagerFactory(computedAddrCozyManager_, computedAddrRewardsManagerLogic_);
 
     depositReceiptTokenLogic = new ReceiptToken();

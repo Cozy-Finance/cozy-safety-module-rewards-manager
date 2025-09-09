@@ -46,8 +46,6 @@ contract RewardsManagerFactoryTest is TestBase {
     );
 
     rewardsManagerLogic = new RewardsManager(cozyManager, receiptTokenFactory, 30, 25);
-    rewardsManagerLogic.initialize(address(0), address(0), new StakePoolConfig[](0), new RewardPoolConfig[](0));
-
     rewardsManagerFactory = new RewardsManagerFactory(cozyManager, IRewardsManager(address(rewardsManagerLogic)));
   }
 

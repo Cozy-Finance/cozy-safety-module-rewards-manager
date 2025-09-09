@@ -44,6 +44,9 @@ contract RewardsManager is
     receiptTokenFactory = receiptTokenFactory_;
     allowedStakePools = allowedStakePools_;
     allowedRewardPools = allowedRewardPools_;
+
+    // Lock the logic contract so it cannot be initialized directly.
+    initialized = true;
   }
 
   /// @notice Initializes the rewards manager with the provided parameters.
