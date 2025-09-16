@@ -10,6 +10,8 @@ import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../src/lib/structs/Configs.sol";
 import {DepositorRewardsData} from "../src/lib/structs/Rewards.sol";
+import {RewardsMathLib} from "../src/lib/RewardsMathLib.sol";
+import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockDripModelFlexible} from "./utils/MockDripModelFlexible.sol";
@@ -220,6 +222,48 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertEq(pool_.cumulativeDrippedRewards, expectedDrippedRewards_);
     assertEq(pool_.lastDripTime, warpTime_);
     assertGt(pool_.logIndexSnapshot, 0);
+  }
+
+  function test_withdrawZeroAmountStillDrips() public {
+    address depositor_ = _randomAddress();
+    uint256 depositAmount_ = 200e18;
+
+    _depositRewardAssets(depositor_, depositAmount_);
+
+    uint256 warpTime_ = block.timestamp + 1;
+    vm.warp(warpTime_);
+    flexibleDripModel.setNextDripFactor(0.4e18);
+
+    vm.prank(depositor_);
+    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 0, depositor_);
+
+    uint256 expectedWithdrawable_ = depositAmount_.mulWadDown(MathConstants.WAD - 0.4e18);
+    uint256 expectedDrip_ = depositAmount_ - expectedWithdrawable_;
+
+    RewardPool memory pool_ = getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID);
+    assertEq(pool_.lastDripTime, uint128(warpTime_));
+    assertEq(pool_.cumulativeDrippedRewards, expectedDrip_);
+    assertEq(pool_.undrippedRewards, expectedWithdrawable_);
+    assertEq(pool_.epoch, 0);
+    assertEq(pool_.logIndexSnapshot, RewardsMathLib.negLn(MathConstants.WAD - 0.4e18));
+
+    DepositorRewardsData memory depositorData_ =
+      RewardsManager(address(rewardsManager)).getDepositorRewards(DEFAULT_REWARD_POOL_ID, depositor_);
+    assertLe(depositorData_.withdrawableRewards, expectedWithdrawable_);
+    assertApproxEqRel(depositorData_.withdrawableRewards, expectedWithdrawable_, 0.01e18);
+    assertEq(depositorData_.logIndexSnapshot, pool_.logIndexSnapshot);
+    assertEq(depositorData_.epoch, pool_.epoch);
+
+    assertEq(rewardAsset.balanceOf(depositor_), 0);
+    assertLe(
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_), expectedWithdrawable_
+    );
+    assertApproxEqRel(
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
+      expectedWithdrawable_,
+      0.01e18
+    );
+    assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, depositAmount_);
   }
 
   function test_withdrawMultipleDripsCompound() public {
