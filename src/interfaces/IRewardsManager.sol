@@ -24,23 +24,22 @@ interface IRewardsManager {
 
   function claimRewards(uint16 stakePoolId_, address receiver_) external;
 
+  function claimRewards(uint16[] calldata stakePoolIds_, address receiver_) external;
+
+  function claimRewards(uint16 stakePoolId_, ClaimRewardsPoolData[] calldata claimRewardsPoolData_, address receiver_)
+    external;
+
+  function claimRewards(
+    uint16[] calldata stakePoolIds_,
+    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
+    address receiver_
+  ) external;
+
   function cozyManager() external returns (ICozyManager);
 
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
 
   function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
-
-  function dripAndClaimRewards(
-    uint16 stakePoolId_,
-    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
-    address receiver_
-  ) external;
-
-  function dripAndClaimRewards(
-    uint16[] calldata stakePoolIds_,
-    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
-    address receiver_
-  ) external;
 
   function dripRewardPool(uint16 rewardPoolId_) external;
 

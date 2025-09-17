@@ -108,9 +108,9 @@ abstract contract Staker is RewardsManagerCommon {
     _executeUnstake(stakePoolId_, stkReceiptTokenAmount_, receiver_, owner_);
   }
 
-  /// @param dripRewardPool_ Whether to drip and claim rewards for each reward pool.
   /// @dev Rewards from all pools are claimed when unstaking. The `dripRewardPool_` array is used to specify whether to
   /// drip from each reward pool. It must be the same length as the number of reward pools.
+  /// @param dripRewardPool_ Whether to drip and claim rewards for each reward pool.
   function unstake(
     uint16 stakePoolId_,
     uint256 stkReceiptTokenAmount_,
