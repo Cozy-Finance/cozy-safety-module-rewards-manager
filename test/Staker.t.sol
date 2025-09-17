@@ -74,6 +74,7 @@ contract StakerUnitTest is TestBase {
     component.mockAddAssetPool(IERC20(address(mockStakeAsset)), initialAssetPool_);
 
     component.mockAddRewardPool(IERC20(address(mockAsset)), cumulativeDrippedRewards_);
+
     AssetPool memory initialRewardsPool_ = AssetPool({amount: cumulativeDrippedRewards_});
     component.mockAddAssetPool(IERC20(address(mockAsset)), initialRewardsPool_);
     mockAsset.mint(address(component), cumulativeDrippedRewards_);
@@ -646,8 +647,20 @@ contract StakerUnitTest is TestBase {
     vm.prank(receiver_);
     mockStkReceiptToken.approve(address(component), amountStaked_);
 
-    //make a second reward pool
-    component.mockAddRewardPool(IERC20(address(mockAsset)), 1_000_000);
+    MockDripModel mockDripModel_ = new MockDripModel(1e18);
+    mockDripModel_.setIsValidDripModel(false);
+
+    RewardPool memory rewardPoolTwo_ = RewardPool({
+      asset: IERC20(address(mockAsset)),
+      dripModel: IDripModel(address(mockDripModel_)),
+      undrippedRewards: 0,
+      cumulativeDrippedRewards: 1_000_000,
+      lastDripTime: uint128(block.timestamp),
+      epoch: 0,
+      logIndexSnapshot: 0
+    });
+
+    component.mockAddRewardPool(rewardPoolTwo_);
 
     bool[] memory dripRewardPool_ = new bool[](2);
     dripRewardPool_[0] = true;
@@ -686,6 +699,10 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManager
 
   function mockAddAssetPool(IERC20 asset_, AssetPool memory assetPool_) external {
     assetPools[asset_] = assetPool_;
+  }
+
+  function mockAddRewardPool(RewardPool memory rewardPool_) external {
+    rewardPools.push(rewardPool_);
   }
 
   function mockAddRewardPool(IERC20 rewardAsset_, uint256 cumulativeDrippedRewards_) external {
