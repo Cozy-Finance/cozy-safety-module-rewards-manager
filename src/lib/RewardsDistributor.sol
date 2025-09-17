@@ -76,11 +76,11 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   /// @notice Claim rewards for a specific stake pool and all reward pools and transfer rewards to `receiver_`.
-  /// @param stakePoolId_ The ID of the stake pool to claim rewards for.
-  /// @param receiver_ The address to transfer the claimed rewards to.
   /// @dev Note that this function drips all reward pools. If you want to claim without dripping from specific reward
   /// pools, you can use one of the claimRewards functions that accepts `ClaimRewardsPoolData[] calldata
   /// claimRewardsPoolData_` as an arg.
+  /// @param stakePoolId_ The ID of the stake pool to claim rewards for.
+  /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(uint16 stakePoolId_, address receiver_) external {
     ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools.length);
     for (uint16 i = 0; i < rewardPools.length; i++) {
@@ -90,11 +90,11 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   /// @notice Claim rewards for a set of stake pools and all reward pools and transfer rewards to `receiver_`.
-  /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
-  /// @param receiver_ The address to transfer the claimed rewards to.
   /// @dev Note that this function drips all reward pools. If you want to claim without dripping from specific reward
   /// pools, you can use one of the claimRewards functions that accepts `ClaimRewardsPoolData[] calldata
   /// claimRewardsPoolData_` as an arg.
+  /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
+  /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(uint16[] calldata stakePoolIds_, address receiver_) external {
     ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools.length);
     for (uint16 i = 0; i < rewardPools.length; i++) {
@@ -106,7 +106,13 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   /// @notice Claim rewards for a specific stake pool and set of reward pools and transfer rewards to `receiver_`.
+  /// @dev Note that this function only drips and claims rewards for the reward pools specified in
+  /// `claimRewardsPoolData_`. If a reward pool is omitted from `claimRewardsPoolData_`, then no rewards will be dripped
+  /// or claimed for that reward pool. If drip is false, then no rewards will be dripped for that reward pool, but
+  /// rewards will still be claimed.
+  /// @param stakePoolId_ The ID of the stake pool to claim rewards for.
   /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip or not.
+  /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(uint16 stakePoolId_, ClaimRewardsPoolData[] calldata claimRewardsPoolData_, address receiver_)
     external
   {
@@ -115,7 +121,13 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
   /// @notice Claim rewards for a specific set of stake pools and set of reward pools and transfer rewards to
   /// `receiver_`.
+  /// @dev Note that this function only drips and claims rewards for the reward pools specified in
+  /// `claimRewardsPoolData_`. If a reward pool is omitted from `claimRewardsPoolData_`, then no rewards will be dripped
+  /// or claimed for that reward pool. If drip is false, then no rewards will be dripped for that reward pool, but
+  /// rewards will still be claimed.
+  /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
   /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip or not.
+  /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(
     uint16[] calldata stakePoolIds_,
     ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
