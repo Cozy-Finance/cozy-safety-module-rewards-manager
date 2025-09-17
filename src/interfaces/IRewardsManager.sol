@@ -8,6 +8,7 @@ import {RewardsManagerState} from "../lib/RewardsManagerStates.sol";
 import {ClaimableRewardsData, PreviewClaimableRewards} from "../lib/structs/Rewards.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 import {ICozyManager} from "./ICozyManager.sol";
+import {ClaimRewardsPoolData} from "../lib/structs/Rewards.sol";
 
 interface IRewardsManager {
   function allowedRewardPools() external view returns (uint16);
@@ -28,6 +29,18 @@ interface IRewardsManager {
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
 
   function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
+
+  function dripAndClaimRewards(
+    uint16 stakePoolId_,
+    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
+    address receiver_
+  ) external;
+
+  function dripAndClaimRewards(
+    uint16[] calldata stakePoolIds_,
+    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
+    address receiver_
+  ) external;
 
   function dripRewardPool(uint16 rewardPoolId_) external;
 
@@ -53,6 +66,8 @@ interface IRewardsManager {
   function owner() external view returns (address);
 
   function pause() external;
+
+  function pause(bool[] memory dripRewardPool_) external;
 
   function pauser() external view returns (address);
 
@@ -81,10 +96,20 @@ interface IRewardsManager {
 
   function unpause() external;
 
+  function unpause(bool[] memory dripRewardPool_) external;
+
   function updateConfigs(StakePoolConfig[] calldata stakePoolConfigs_, RewardPoolConfig[] calldata rewardPoolConfigs_)
     external;
 
   function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external;
+
+  function unstake(
+    uint16 stakePoolId_,
+    uint256 stkReceiptTokenAmount_,
+    address receiver_,
+    address owner_,
+    bool[] memory dripRewardPool_
+  ) external;
 
   function updateUserRewardsForStkReceiptTokenTransfer(address from_, address to_) external;
 }

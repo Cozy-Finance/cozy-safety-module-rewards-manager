@@ -103,19 +103,18 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     }
   }
 
-  /// @notice Drip and claim rewards for a specific stake pool and transfer rewards to `receiver_`.
+  /// @notice Claim rewards for a specific stake pool and set of reward pools and transfer rewards to `receiver_`.
   /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip or not.
-  function dripAndClaimRewards(
-    uint16 stakePoolId_,
-    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
-    address receiver_
-  ) external {
+  function claimRewards(uint16 stakePoolId_, ClaimRewardsPoolData[] calldata claimRewardsPoolData_, address receiver_)
+    external
+  {
     _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), claimRewardsPoolData_);
   }
 
-  /// @notice Drip and claim rewards for a specific set of stake pools and transfer rewards to `receiver_`.
+  /// @notice Claim rewards for a specific set of stake pools and set of reward pools and transfer rewards to
+  /// `receiver_`.
   /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip or not.
-  function dripAndClaimRewards(
+  function claimRewards(
     uint16[] calldata stakePoolIds_,
     ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
     address receiver_

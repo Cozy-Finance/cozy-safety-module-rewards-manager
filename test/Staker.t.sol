@@ -26,6 +26,7 @@ import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 import "forge-std/console2.sol";
+import {IRewardsDistributorErrors} from "../src/interfaces/IRewardsDistributorErrors.sol";
 
 contract StakerUnitTest is TestBase {
   using FixedPointMathLib for uint256;
@@ -617,6 +618,53 @@ contract StakerUnitTest is TestBase {
       mockAsset.balanceOf(receiver_), addtionalRewards_.mulDivDown(amountStaked_, initialStakeAmount + amountStaked_)
     );
     assertEq(mockAsset.balanceOf(unstakeReceiver_), 0);
+  }
+
+  function test_unstake_revertsWithInvalidDripRewardPoolLength() public {
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
+    address unstakeReceiver_ = _randomAddress();
+
+    vm.prank(receiver_);
+    mockStkReceiptToken.approve(address(component), amountStaked_);
+
+    bool[] memory dripRewardPool_ = new bool[](5);
+    dripRewardPool_[0] = true;
+    dripRewardPool_[1] = false;
+    dripRewardPool_[2] = true;
+    dripRewardPool_[3] = false;
+    dripRewardPool_[4] = true;
+
+    vm.prank(receiver_);
+    vm.expectRevert(IRewardsDistributorErrors.InvalidLength.selector);
+    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_, dripRewardPool_);
+  }
+
+  function test_unstake_doesNotDripSelectedRewardPools() public {
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
+    address unstakeReceiver_ = _randomAddress();
+
+    vm.prank(receiver_);
+    mockStkReceiptToken.approve(address(component), amountStaked_);
+
+    //make a second reward pool
+    component.mockAddRewardPool(IERC20(address(mockAsset)), 1_000_000);
+
+    bool[] memory dripRewardPool_ = new bool[](2);
+    dripRewardPool_[0] = true;
+    dripRewardPool_[1] = false;
+
+    skip(100 days);
+
+    vm.prank(receiver_);
+    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_, dripRewardPool_);
+
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+
+    RewardPool memory firstRewardPool_ = rewardPools_[0];
+    assertEq(firstRewardPool_.lastDripTime, block.timestamp, "First reward pool should have dripped");
+
+    RewardPool memory secondRewardPool_ = rewardPools_[1];
+    assertEq(secondRewardPool_.lastDripTime, block.timestamp - 100 days, "Second reward pool should not have dripped");
   }
 }
 

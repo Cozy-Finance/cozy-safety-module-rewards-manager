@@ -20,6 +20,7 @@ import {StateChanger} from "../src/lib/StateChanger.sol";
 import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
+import {IRewardsDistributorErrors} from "../src/interfaces/IRewardsDistributorErrors.sol";
 
 interface StateChangerTestMockEvents {
   event DripRewardsCalled();
@@ -133,6 +134,97 @@ contract StateChangerPauseTest is StateChangerUnitTest {
       );
     }
   }
+
+  function test_pause_revertsWithInvalidDripRewardPoolLength() public {
+    address owner_ = _randomAddress();
+    TestableStateChanger component_ = _initializeComponent(
+      ComponentParams({owner: owner_, pauser: _randomAddress(), initialState: RewardsManagerState.ACTIVE})
+    );
+
+    component_.mockAddRewardPool(
+      RewardPool({
+        undrippedRewards: 0,
+        cumulativeDrippedRewards: 0,
+        lastDripTime: 0,
+        asset: IERC20(address(0xA1)),
+        dripModel: IDripModel(address(0)),
+        epoch: 0,
+        logIndexSnapshot: 0
+      })
+    );
+
+    // Mismatched length (2 != rewardPools.length=1)
+    bool[] memory selection_ = new bool[](2);
+
+    vm.expectRevert(IRewardsDistributorErrors.InvalidLength.selector);
+    vm.prank(owner_);
+    component_.pause(selection_);
+  }
+
+  function test_pause_dripsSelectedRewardPools() public {
+    address owner_ = _randomAddress();
+    TestableStateChanger component_ = _initializeComponent(
+      ComponentParams({owner: owner_, pauser: _randomAddress(), initialState: RewardsManagerState.ACTIVE})
+    );
+
+    component_.mockAddRewardPool(
+      RewardPool({
+        undrippedRewards: 0,
+        cumulativeDrippedRewards: 0,
+        lastDripTime: 0,
+        asset: IERC20(address(0xA1)),
+        dripModel: IDripModel(address(0)),
+        epoch: 0,
+        logIndexSnapshot: 0
+      })
+    );
+    component_.mockAddRewardPool(
+      RewardPool({
+        undrippedRewards: 0,
+        cumulativeDrippedRewards: 0,
+        lastDripTime: 0,
+        asset: IERC20(address(0xB2)),
+        dripModel: IDripModel(address(0)),
+        epoch: 0,
+        logIndexSnapshot: 0
+      })
+    );
+    component_.mockAddRewardPool(
+      RewardPool({
+        undrippedRewards: 0,
+        cumulativeDrippedRewards: 0,
+        lastDripTime: 0,
+        asset: IERC20(address(0xC3)),
+        dripModel: IDripModel(address(0)),
+        epoch: 0,
+        logIndexSnapshot: 0
+      })
+    );
+
+    // Drip pools 0 and 2 only
+    bool[] memory selection_ = new bool[](3);
+    selection_[0] = true;
+    selection_[1] = false;
+    selection_[2] = true;
+
+    uint256 ts_ = block.timestamp + 4567;
+    vm.warp(ts_);
+
+    vm.prank(owner_);
+    component_.pause(selection_);
+
+    // State should be PAUSED
+    assertEq(component_.rewardsManagerState(), RewardsManagerState.PAUSED);
+
+    // Only selected pools should have updated lastDripTime
+    RewardPool memory p0_ = component_.getRewardPool(0);
+    RewardPool memory p1_ = component_.getRewardPool(1);
+    RewardPool memory p2_ = component_.getRewardPool(2);
+
+    assertEq(p0_.lastDripTime, uint128(ts_), "pool 0 lastDripTime");
+    assertEq(p1_.lastDripTime, 0, "pool 1 lastDripTime should remain 0");
+    assertEq(p2_.lastDripTime, uint128(ts_), "pool 2 lastDripTime");
+  }
 }
 
 contract StateChangerUnpauseTest is StateChangerUnitTest {
@@ -208,6 +300,94 @@ contract StateChangerUnpauseTest is StateChangerUnitTest {
       );
     }
   }
+
+  function test_unpause_revertsWithInvalidDripRewardPoolLength() public {
+    address owner_ = _randomAddress();
+    TestableStateChanger component_ = _initializeComponent(
+      ComponentParams({owner: owner_, pauser: _randomAddress(), initialState: RewardsManagerState.PAUSED})
+    );
+
+    component_.mockAddRewardPool(
+      RewardPool({
+        asset: IERC20(address(0xA1)),
+        dripModel: IDripModel(address(0)),
+        undrippedRewards: 0,
+        cumulativeDrippedRewards: 0,
+        lastDripTime: 0,
+        epoch: 0,
+        logIndexSnapshot: 0
+      })
+    );
+
+    bool[] memory selection_ = new bool[](2);
+
+    vm.expectRevert(IRewardsDistributorErrors.InvalidLength.selector);
+    vm.prank(owner_);
+    component_.unpause(selection_);
+  }
+
+  function test_unpause_dripsSelectedRewardPools() public {
+    address owner_ = _randomAddress();
+    TestableStateChanger component_ = _initializeComponent(
+      ComponentParams({owner: owner_, pauser: _randomAddress(), initialState: RewardsManagerState.PAUSED})
+    );
+
+    component_.mockAddRewardPool(
+      RewardPool({
+        undrippedRewards: 0,
+        cumulativeDrippedRewards: 0,
+        lastDripTime: 0,
+        asset: IERC20(address(0xA1)),
+        dripModel: IDripModel(address(0)),
+        epoch: 0,
+        logIndexSnapshot: 0
+      })
+    );
+    component_.mockAddRewardPool(
+      RewardPool({
+        undrippedRewards: 0,
+        cumulativeDrippedRewards: 0,
+        lastDripTime: 0,
+        asset: IERC20(address(0xB2)),
+        dripModel: IDripModel(address(0)),
+        epoch: 0,
+        logIndexSnapshot: 0
+      })
+    );
+    component_.mockAddRewardPool(
+      RewardPool({
+        undrippedRewards: 0,
+        cumulativeDrippedRewards: 0,
+        lastDripTime: 0,
+        asset: IERC20(address(0xC3)),
+        dripModel: IDripModel(address(0)),
+        epoch: 0,
+        logIndexSnapshot: 0
+      })
+    );
+
+    bool[] memory selection_ = new bool[](3);
+    selection_[0] = true;
+    selection_[1] = false;
+    selection_[2] = true;
+
+    uint256 ts_ = block.timestamp + 1234;
+    vm.warp(ts_);
+
+    vm.prank(owner_);
+    component_.unpause(selection_);
+
+    assertEq(component_.rewardsManagerState(), RewardsManagerState.ACTIVE);
+
+    // Only selected pools should have updated lastDripTime
+    RewardPool memory p0_ = component_.getRewardPool(0);
+    RewardPool memory p1_ = component_.getRewardPool(1);
+    RewardPool memory p2_ = component_.getRewardPool(2);
+
+    assertEq(p0_.lastDripTime, uint128(ts_), "pool 0 lastDripTime");
+    assertEq(p1_.lastDripTime, 0, "pool 1 lastDripTime should remain 0");
+    assertEq(p2_.lastDripTime, uint128(ts_), "pool 2 lastDripTime");
+  }
 }
 
 contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
@@ -219,6 +399,14 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
   // -------- Mock setters --------
   function mockSetRewardsManagerState(RewardsManagerState state_) external {
     rewardsManagerState = state_;
+  }
+
+  function mockAddRewardPool(RewardPool memory rewardPool_) external {
+    rewardPools.push(rewardPool_);
+  }
+
+  function getRewardPool(uint256 index_) external view returns (RewardPool memory) {
+    return rewardPools[index_];
   }
 
   // -------- Overridden abstract function placeholders --------
@@ -251,8 +439,8 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
     __readStub__();
   }
 
-  function _dripRewardPool(RewardPool storage /* rewardPool_ */ ) internal view override {
-    __readStub__();
+  function _dripRewardPool(RewardPool storage rewardPool_) internal override {
+    rewardPool_.lastDripTime = uint128(block.timestamp);
   }
 
   function _dripAndApplyPendingDrippedRewards(
