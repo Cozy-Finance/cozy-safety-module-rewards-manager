@@ -11,6 +11,8 @@ import {RewardPool} from "./structs/Pools.sol";
 abstract contract StateChanger is RewardsManagerCommon, Governable, IStateChangerEvents {
   /// @notice Pause the rewards manager.
   /// @dev Only the owner, pauser, or Cozy manager can pause the rewards manager.
+  /// @dev Note that by default all reward pools are dripped when pausing. If you want to pause without dripping from
+  /// specific reward pools, you can use the other pause function which accepts bool[] memory dripRewardPool_ instead.
   function pause() external {
     if (msg.sender != owner && msg.sender != pauser && msg.sender != address(cozyManager)) revert Unauthorized();
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidStateTransition();
@@ -43,6 +45,9 @@ abstract contract StateChanger is RewardsManagerCommon, Governable, IStateChange
 
   /// @notice Unpause the rewards manager.
   /// @dev Only the owner or Cozy manager can unpause the rewards manager.
+  /// @dev Note that by default all reward pools are dripped when unpausing. If you want to unpause without dripping
+  /// from specific reward pools, you can use the other unpause function which accepts bool[] memory dripRewardPool_
+  /// instead.
   function unpause() external {
     if (msg.sender != owner && msg.sender != address(cozyManager)) revert Unauthorized();
     if (rewardsManagerState == RewardsManagerState.ACTIVE) revert InvalidStateTransition();
