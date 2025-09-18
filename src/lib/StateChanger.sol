@@ -72,7 +72,7 @@ abstract contract StateChanger is RewardsManagerCommon, Governable, IStateChange
     for (uint256 i = 0; i < rewardPools.length; i++) {
       if (dripRewardPool_[i]) {
         RewardPool storage rewardPool_ = rewardPools[i];
-        _dripRewardPool(rewardPool_);
+        _dripRewardPool(rewardPools[i]);
       }
     }
 
