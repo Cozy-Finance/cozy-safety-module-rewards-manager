@@ -42,5 +42,5 @@ jobs:
 
       - name: Run Forge tests (skip invariants)
         run: |
-          forge test -vvv --no-match-test "invariant_"
+          forge test -vvv --skip invariants
         id: test
