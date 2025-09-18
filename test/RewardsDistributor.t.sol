@@ -635,9 +635,9 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     }
   }
 
-  //This test is similar to the above but we are calling the claimRewards function with specified reward pools and drip
-  // bools, which will change how much reward / fee amounts available & claimed after each period.
   function test_claimRewardsForSpecificRewardPools() public {
+    //This test is similar to the above but we are calling the claimRewards function with specified reward pools and
+    // drip bools, which will change how much reward / fee amounts available & claimed after each period.
     _setUpConcrete();
 
     RewardPool[] memory rewardPools_ = component.getRewardPools();
