@@ -918,8 +918,8 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     skip(ONE_YEAR);
 
     ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](2);
-    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 0, drip: true});
-    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 0, drip: false});
+    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 2, drip: true});
+    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 2, drip: false});
 
     vm.prank(user_);
     vm.expectRevert(IRewardsDistributorErrors.InvalidClaimRewardsPoolData.selector);

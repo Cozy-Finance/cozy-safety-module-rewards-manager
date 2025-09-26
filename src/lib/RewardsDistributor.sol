@@ -514,13 +514,17 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     returns (bool)
   {
     uint256 numRewardPools_ = rewardPools.length;
-    bool[65_536] memory seen_; // Since reward pool ids are a uint16, we are guaranteed to have rewardPoolId < 2^16 =
-      // 65536.
+    uint256[256] memory bitmap_; // Since reward pool ids are a uint16, we are guaranteed to have rewardPoolId < 2^16 =
+    // 65536. We use a 256 * 256 = 65536 bit bitmap to check for duplicates.
 
-    for (uint256 i = 0; i < claimRewardsPoolData_.length; i++) {
+    uint256 numClaimRewardsPoolData_ = claimRewardsPoolData_.length;
+    for (uint256 i = 0; i < numClaimRewardsPoolData_; i++) {
       if (claimRewardsPoolData_[i].rewardPoolId >= numRewardPools_) return false;
-      if (seen_[claimRewardsPoolData_[i].rewardPoolId]) return false;
-      seen_[claimRewardsPoolData_[i].rewardPoolId] = true;
+
+      uint256 word_ = claimRewardsPoolData_[i].rewardPoolId >> 8; // rewardPoolId / 256
+      uint256 bit_ = 1 << (claimRewardsPoolData_[i].rewardPoolId & 0xff); // rewardPoolId % 256
+      if (bitmap_[word_] & bit_ != 0) return false;
+      bitmap_[word_] |= bit_;
     }
 
     return true;
