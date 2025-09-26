@@ -519,10 +519,12 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
     uint256 numClaimRewardsPoolData_ = claimRewardsPoolData_.length;
     for (uint256 i = 0; i < numClaimRewardsPoolData_; i++) {
-      if (claimRewardsPoolData_[i].rewardPoolId >= numRewardPools_) return false;
+      uint16 rewardPoolId_ = claimRewardsPoolData_[i].rewardPoolId;
 
-      uint256 word_ = claimRewardsPoolData_[i].rewardPoolId >> 8; // rewardPoolId / 256
-      uint256 bit_ = 1 << (claimRewardsPoolData_[i].rewardPoolId & 0xff); // rewardPoolId % 256
+      if (rewardPoolId_ >= numRewardPools_) return false;
+
+      uint256 word_ = rewardPoolId_ >> 8; // rewardPoolId / 256
+      uint256 bit_ = 1 << (rewardPoolId_ & 0xff); // rewardPoolId % 256
       if (bitmap_[word_] & bit_ != 0) return false;
       bitmap_[word_] |= bit_;
     }
