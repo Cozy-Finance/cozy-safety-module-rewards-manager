@@ -24,6 +24,7 @@ import {
 } from "../src/lib/structs/Rewards.sol";
 import {IdLookup} from "../src/lib/structs/Pools.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
+import {IRewardsDistributorErrors} from "../src/interfaces/IRewardsDistributorErrors.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockDripModel} from "./utils/MockDripModel.sol";
 import {MockStkReceiptToken} from "./utils/MockStkReceiptToken.sol";
@@ -905,8 +906,65 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     claimRewardsPoolData_[2] = ClaimRewardsPoolData({rewardPoolId: 100, drip: true});
 
     vm.prank(user_);
-    vm.expectRevert();
+    vm.expectRevert(IRewardsDistributorErrors.InvalidClaimRewardsPoolData.selector);
     component.claimRewards(0, claimRewardsPoolData_, _randomAddress());
+  }
+
+  function test_claimRewardsDuplicateRewardPoolSpecifiedReverts() public {
+    _setUpConcrete();
+
+    address user_ = _randomAddress();
+    _stake(0, 100e6, user_);
+    skip(ONE_YEAR);
+
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](2);
+    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 0, drip: true});
+    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 0, drip: false});
+
+    vm.prank(user_);
+    vm.expectRevert(IRewardsDistributorErrors.InvalidClaimRewardsPoolData.selector);
+    component.claimRewards(0, claimRewardsPoolData_, _randomAddress());
+  }
+
+  function test_claimRewardsWithStakePoolIds_InvalidRewardPoolSpecifiedReverts() public {
+    _setUpConcrete();
+
+    address user_ = _randomAddress();
+    _stake(0, 100e6, user_);
+    skip(ONE_YEAR);
+
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](3);
+    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 0, drip: true});
+    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 99, drip: false});
+    claimRewardsPoolData_[2] = ClaimRewardsPoolData({rewardPoolId: 100, drip: true});
+
+    uint16[] memory stakePoolIds_ = new uint16[](2);
+    stakePoolIds_[0] = 0;
+    stakePoolIds_[1] = 1;
+
+    vm.prank(user_);
+    vm.expectRevert(IRewardsDistributorErrors.InvalidClaimRewardsPoolData.selector);
+    component.claimRewards(stakePoolIds_, claimRewardsPoolData_, _randomAddress());
+  }
+
+  function test_claimRewardsWithStakePoolIds_DuplicateRewardPoolSpecifiedReverts() public {
+    _setUpConcrete();
+
+    address user_ = _randomAddress();
+    _stake(0, 100e6, user_);
+    skip(ONE_YEAR);
+
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](2);
+    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 0, drip: true});
+    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 0, drip: false});
+
+    uint16[] memory stakePoolIds_ = new uint16[](2);
+    stakePoolIds_[0] = 0;
+    stakePoolIds_[1] = 1;
+
+    vm.prank(user_);
+    vm.expectRevert(IRewardsDistributorErrors.InvalidClaimRewardsPoolData.selector);
+    component.claimRewards(stakePoolIds_, claimRewardsPoolData_, _randomAddress());
   }
 
   function testFuzz_previewClaimableRewards(uint64 timeElapsed_) public {

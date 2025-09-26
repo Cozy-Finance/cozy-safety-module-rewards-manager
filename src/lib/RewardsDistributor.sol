@@ -9,6 +9,7 @@ import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
+import {IRewardsDistributorErrors} from "../interfaces/IRewardsDistributorErrors.sol";
 import {StakePool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {RewardsMathLib} from "./RewardsMathLib.sol";
@@ -110,12 +111,16 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// `claimRewardsPoolData_`. If a reward pool is omitted from `claimRewardsPoolData_`, then no rewards will be dripped
   /// or claimed for that reward pool. If drip is false, then no rewards will be dripped for that reward pool, but
   /// rewards will still be claimed.
+  /// @dev The `claimRewardsPoolData_` must contain only valid reward pool IDs and no duplicates.
   /// @param stakePoolId_ The ID of the stake pool to claim rewards for.
   /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip or not.
   /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(uint16 stakePoolId_, ClaimRewardsPoolData[] calldata claimRewardsPoolData_, address receiver_)
     external
   {
+    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) {
+      revert IRewardsDistributorErrors.InvalidClaimRewardsPoolData();
+    }
     _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), claimRewardsPoolData_);
   }
 
@@ -125,6 +130,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// `claimRewardsPoolData_`. If a reward pool is omitted from `claimRewardsPoolData_`, then no rewards will be dripped
   /// or claimed for that reward pool. If drip is false, then no rewards will be dripped for that reward pool, but
   /// rewards will still be claimed.
+  /// @dev The `claimRewardsPoolData_` must contain only valid reward pool IDs and no duplicates.
   /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
   /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip or not.
   /// @param receiver_ The address to transfer the claimed rewards to.
@@ -133,6 +139,9 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
     address receiver_
   ) external {
+    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) {
+      revert IRewardsDistributorErrors.InvalidClaimRewardsPoolData();
+    }
     for (uint256 i = 0; i < stakePoolIds_.length; i++) {
       _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), claimRewardsPoolData_);
     }
@@ -497,5 +506,23 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
   function _computeClaimFeeAmount(uint256 claimAmount_, uint16 claimFee_) internal pure returns (uint256) {
     return claimAmount_.mulDivUp(claimFee_, MathConstants.ZOC);
+  }
+
+  function _checkValidClaimRewardsPoolData(ClaimRewardsPoolData[] calldata claimRewardsPoolData_)
+    internal
+    view
+    returns (bool)
+  {
+    uint256 numRewardPools_ = rewardPools.length;
+    bool[65_536] memory seen_; // Since reward pool ids are a uint16, we are guaranteed to have rewardPoolId < 2^16 =
+      // 65536.
+
+    for (uint256 i = 0; i < claimRewardsPoolData_.length; i++) {
+      if (claimRewardsPoolData_[i].rewardPoolId >= numRewardPools_) return false;
+      if (seen_[claimRewardsPoolData_[i].rewardPoolId]) return false;
+      seen_[claimRewardsPoolData_[i].rewardPoolId] = true;
+    }
+
+    return true;
   }
 }
