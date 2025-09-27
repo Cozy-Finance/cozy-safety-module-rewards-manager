@@ -24,24 +24,28 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
   /// @param rewardPoolId_ The ID of the reward pool.
   /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external {
+    _depositRewardAssets(rewardPoolId_, rewardAssetAmount_, msg.sender);
+  }
+
+  /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool on behalf of `from_`.
+  /// @dev Assumes that `depositor_` has approved the rewards manager to spend `rewardAssetAmount_` of the reward pool's
+  /// asset.
+  /// @param rewardPoolId_ The ID of the reward pool.
+  /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
+  /// @param depositor_ The address of the user depositing the assets.
+  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address depositor_) external {
+    _depositRewardAssets(rewardPoolId_, rewardAssetAmount_, depositor_);
+  }
+
+  function _depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address depositor_) internal {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
     IERC20 asset_ = rewardPool_.asset;
 
     // Pull in deposited assets. After the transfer we ensure we no longer need any assets. This check is
     // required to support fee on transfer tokens, for example if USDT enables a fee.
     // Also, we need to transfer before minting or ERC777s could reenter.
-    asset_.safeTransferFrom(msg.sender, address(this), rewardAssetAmount_);
-    _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, rewardPool_);
-  }
-
-  /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool.
-  /// @dev Assumes that the user has already transferred `rewardAssetAmount_` of the reward pool's asset to the rewards
-  /// manager.
-  /// @param rewardPoolId_ The ID of the reward pool.
-  /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
-  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external {
-    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    _executeRewardDeposit(rewardPoolId_, rewardPool_.asset, rewardAssetAmount_, rewardPool_);
+    asset_.safeTransferFrom(depositor_, address(this), rewardAssetAmount_);
+    _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, rewardPool_, depositor_);
   }
 
   /// @notice Preview the current amount of undripped rewards in the `rewardPoolId_` reward pool with unrealized drip
@@ -62,7 +66,8 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     uint16 rewardPoolId_,
     IERC20 token_,
     uint256 rewardAssetAmount_,
-    RewardPool storage rewardPool_
+    RewardPool storage rewardPool_,
+    address depositor_
   ) internal {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
@@ -74,8 +79,8 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     uint256 depositAmount_ = rewardAssetAmount_ - depositFeeAmount_;
 
     uint256 currentWithdrawableRewards_ =
-      _previewCurrentWithdrawableRewards(rewardPool_, depositorRewards[rewardPoolId_][msg.sender]);
-    depositorRewards[rewardPoolId_][msg.sender] = DepositorRewardsData({
+      _previewCurrentWithdrawableRewards(rewardPool_, depositorRewards[rewardPoolId_][depositor_]);
+    depositorRewards[rewardPoolId_][depositor_] = DepositorRewardsData({
       withdrawableRewards: currentWithdrawableRewards_ + depositAmount_,
       logIndexSnapshot: rewardPool_.logIndexSnapshot,
       epoch: rewardPool_.epoch
@@ -84,7 +89,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     assetPools[token_].amount += depositAmount_;
     token_.safeTransfer(cozyManager.owner(), depositFeeAmount_);
 
-    emit Deposited(msg.sender, rewardPoolId_, depositAmount_, depositFeeAmount_);
+    emit Deposited(depositor_, rewardPoolId_, depositAmount_, depositFeeAmount_);
   }
 
   function _assertValidDepositBalance(IERC20 token_, uint256 assetPoolBalance_, uint256 depositAmount_)
