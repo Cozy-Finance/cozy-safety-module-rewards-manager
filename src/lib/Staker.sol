@@ -72,9 +72,6 @@ abstract contract Staker is RewardsManagerCommon {
     IERC20 asset_ = stakePool_.asset;
     AssetPool storage assetPool_ = assetPools[asset_];
 
-    // Pull in stake assets. After the transfer we ensure we no longer need any assets. This check is
-    // required to support fee on transfer tokens, for example if USDT enables a fee.
-    // Also, we need to transfer before minting or ERC777s could reenter.
     asset_.safeTransferFrom(owner_, address(this), assetAmount_);
     _assertValidDepositBalance(asset_, assetPool_.amount, assetAmount_);
 
