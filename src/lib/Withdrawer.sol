@@ -41,10 +41,10 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdr
 
   /// @notice Preview the current withdrawable rewards for the depositor.
   /// @param rewardPoolId_ The ID of the reward pool.
-  /// @param depositor_ The address of the depositor.
-  /// @return The depositor's current withdrawable rewards.
-  function previewCurrentWithdrawableRewards(uint16 rewardPoolId_, address depositor_) external view returns (uint256) {
-    return _previewCurrentWithdrawableRewards(rewardPools[rewardPoolId_], depositorRewards[rewardPoolId_][depositor_]);
+  /// @param owner_ The owner of the rewards deposit.
+  /// @return The owner's current withdrawable rewards.
+  function previewCurrentWithdrawableRewards(uint16 rewardPoolId_, address owner_) external view returns (uint256) {
+    return _previewCurrentWithdrawableRewards(rewardPools[rewardPoolId_], depositorRewards[rewardPoolId_][owner_]);
   }
 
   function _previewCurrentWithdrawableRewards(

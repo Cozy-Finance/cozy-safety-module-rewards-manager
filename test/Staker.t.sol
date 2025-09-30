@@ -42,8 +42,9 @@ contract StakerUnitTest is TestBase {
 
   event Staked(
     address indexed caller_,
+    address indexed owner_,
     address indexed receiver_,
-    uint16 indexed stakePoolId_,
+    uint16 stakePoolId_,
     IReceiptToken stkReceiptToken_,
     uint256 assetAmount_
   );
@@ -102,7 +103,7 @@ contract StakerUnitTest is TestBase {
       component.stake(stakePoolId_, assetAmount_, receiver_);
     } else {
       vm.prank(caller_);
-      component.stake(stakePoolId_, assetAmount_, receiver_, staker_);
+      component.stakeOnBehalf(stakePoolId_, assetAmount_, staker_);
     }
   }
 
@@ -117,7 +118,7 @@ contract StakerUnitTest is TestBase {
   function _test_stake_StkReceiptTokensAndStorageUpdates_NonZeroSupply(bool isSelfStake_) internal {
     address staker_ = _randomAddress();
     address caller_ = isSelfStake_ ? staker_ : _randomAddress();
-    address receiver_ = _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
     uint128 amountToStake_ = 20e18;
 
     // Mint initial safety module receipt token balance for staker.
@@ -127,7 +128,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(caller_, staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     _stake(isSelfStake_, 0, amountToStake_, receiver_, staker_, caller_);
 
@@ -169,7 +170,7 @@ contract StakerUnitTest is TestBase {
 
     address staker_ = _randomAddress();
     address caller_ = isSelfStake_ ? staker_ : _randomAddress();
-    address receiver_ = _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
     uint128 amountToStake_ = 20e18;
 
     // Mint initial safety module receipt token balance for staker.
@@ -179,7 +180,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(caller_, staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     _stake(isSelfStake_, 0, amountToStake_, receiver_, staker_, caller_);
 
@@ -211,7 +212,7 @@ contract StakerUnitTest is TestBase {
   function _test_stake_RevertWhenPaused(bool isSelfStake_) internal {
     address staker_ = _randomAddress();
     address caller_ = isSelfStake_ ? staker_ : _randomAddress();
-    address receiver_ = _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
 
     uint256 amountToStake_ = 20e18;
     // Mint initial safety module receipt token balance for staker.
@@ -238,7 +239,7 @@ contract StakerUnitTest is TestBase {
   function _test_stake_RevertOutOfBoundsStakePoolId(bool isSelfStake_) internal {
     address staker_ = _randomAddress();
     address caller_ = isSelfStake_ ? staker_ : _randomAddress();
-    address receiver_ = _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
 
     _expectPanic(INDEX_OUT_OF_BOUNDS);
     _stake(isSelfStake_, 1, 10e18, receiver_, staker_, caller_);
@@ -257,7 +258,7 @@ contract StakerUnitTest is TestBase {
 
     address staker_ = _randomAddress();
     address caller_ = isSelfStake_ ? staker_ : _randomAddress();
-    address receiver_ = _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
 
     // Mint insufficient safety module receipt tokens for staker.
     mockStakeAsset.mint(staker_, amountToStake_ - 1);
@@ -280,7 +281,7 @@ contract StakerUnitTest is TestBase {
   function _test_stake_RevertZeroShares(bool isSelfStake_) internal {
     address staker_ = _randomAddress();
     address caller_ = isSelfStake_ ? staker_ : _randomAddress();
-    address receiver_ = _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
     uint256 amountToStake_ = 0;
 
     // 0 assets should give 0 shares.
@@ -303,7 +304,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountStaked_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
+    emit Staked(staker_, staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
 
     vm.prank(staker_);
     component.stake(0, amountStaked_, receiver_);

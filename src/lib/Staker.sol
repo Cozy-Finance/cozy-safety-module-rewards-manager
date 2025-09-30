@@ -14,14 +14,16 @@ abstract contract Staker is RewardsManagerCommon {
 
   /// @notice Emitted when a user stakes.
   /// @param caller_ The address that called the stake function.
+  /// @param owner_ The owner of the staked assets.
   /// @param receiver_ The address that received the stkReceiptTokens.
   /// @param stakePoolId_ The stake pool ID that the user staked in.
   /// @param stkReceiptToken_ The stkReceiptToken that was minted.
   /// @param assetAmount_ The amount of the underlying asset staked.
   event Staked(
     address indexed caller_,
+    address indexed owner_,
     address indexed receiver_,
-    uint16 indexed stakePoolId_,
+    uint16 stakePoolId_,
     IReceiptToken stkReceiptToken_,
     uint256 assetAmount_
   );
@@ -42,10 +44,10 @@ abstract contract Staker is RewardsManagerCommon {
     uint256 stkReceiptTokenAmount_
   );
 
-  /// @notice Stake by minting `assetAmount_` stkReceiptTokens to `receiver_` after depositing exactly `assetAmount_` of
-  /// `stakePoolId_` stake pool asset.
-  /// @dev Assumes that `msg.sender` has already approved this contract to transfer `assetAmount_` of the `stakePoolId_`
-  /// stake pool asset.
+  /// @notice Stake by transferring `assetAmount_` of the `stakePoolId_` asset from `msg.sender` and minting
+  /// `assetAmount_` stkReceiptTokens to `receiver_`.
+  /// @dev `msg.sender` must be the owner of the staked assets and approve this contract to pull `assetAmount_` via
+  /// `transferFrom` before minting occurs.
   /// @param stakePoolId_ The ID of the stake pool to stake in.
   /// @param assetAmount_ The amount of the underlying asset to stake.
   /// @param receiver_ The address that will receive the stkReceiptTokens.
@@ -53,19 +55,17 @@ abstract contract Staker is RewardsManagerCommon {
     _stake(stakePoolId_, assetAmount_, receiver_, msg.sender);
   }
 
-  /// @notice Stake by minting `assetAmount_` stkReceiptTokens to `receiver_` after depositing exactly `assetAmount_` of
-  /// `stakePoolId_` stake pool asset.
-  /// @dev Assumes that `depositor_` has already approved this contract to transfer `assetAmount_` of the `stakePoolId_`
-  /// stake pool asset.
+  /// @notice Stake on behalf of `owner_` by moving `assetAmount_` of the `stakePoolId_` asset from `owner_` and minting
+  /// the corresponding stkReceiptTokens directly to `owner_`.
+  /// @dev `owner_` must approve this contract to pull `assetAmount_` of the stake asset via `transferFrom`.
   /// @param stakePoolId_ The ID of the stake pool to stake in.
   /// @param assetAmount_ The amount of the underlying asset to stake.
-  /// @param receiver_ The address that will receive the stkReceiptTokens.
-  /// @param depositor_ The address of the user depositing the assets.
-  function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_, address depositor_) external {
-    _stake(stakePoolId_, assetAmount_, receiver_, depositor_);
+  /// @param owner_ The address from which the assets will be pulled and that will receive the stkReceiptTokens.
+  function stakeOnBehalf(uint16 stakePoolId_, uint256 assetAmount_, address owner_) external {
+    _stake(stakePoolId_, assetAmount_, owner_, owner_);
   }
 
-  function _stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_, address depositor_) internal {
+  function _stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_, address owner_) internal {
     if (assetAmount_ == 0) revert AmountIsZero();
 
     StakePool storage stakePool_ = stakePools[stakePoolId_];
@@ -75,10 +75,10 @@ abstract contract Staker is RewardsManagerCommon {
     // Pull in stake assets. After the transfer we ensure we no longer need any assets. This check is
     // required to support fee on transfer tokens, for example if USDT enables a fee.
     // Also, we need to transfer before minting or ERC777s could reenter.
-    asset_.safeTransferFrom(depositor_, address(this), assetAmount_);
+    asset_.safeTransferFrom(owner_, address(this), assetAmount_);
     _assertValidDepositBalance(asset_, assetPool_.amount, assetAmount_);
 
-    _executeStake(stakePoolId_, assetAmount_, receiver_, assetPool_, stakePool_, depositor_);
+    _executeStake(stakePoolId_, assetAmount_, receiver_, assetPool_, stakePool_, owner_);
   }
 
   /// @notice Unstakes by burning `stkReceiptTokenAmount_` of `stakePoolId_` stake pool stake receipt tokens and
@@ -118,7 +118,7 @@ abstract contract Staker is RewardsManagerCommon {
     address receiver_,
     AssetPool storage assetPool_,
     StakePool storage stakePool_,
-    address depositor_
+    address owner_
   ) internal {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
 
@@ -134,6 +134,6 @@ abstract contract Staker is RewardsManagerCommon {
     _updateUserRewards(stkReceiptToken_.balanceOf(receiver_), claimableRewards_, userRewards[stakePoolId_][receiver_]);
 
     stkReceiptToken_.mint(receiver_, assetAmount_);
-    emit Staked(depositor_, receiver_, stakePoolId_, stkReceiptToken_, assetAmount_);
+    emit Staked(msg.sender, owner_, receiver_, stakePoolId_, stkReceiptToken_, assetAmount_);
   }
 }

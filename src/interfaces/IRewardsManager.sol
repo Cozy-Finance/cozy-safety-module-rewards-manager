@@ -25,9 +25,9 @@ interface IRewardsManager {
 
   function cozyManager() external returns (ICozyManager);
 
-  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
+  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) external;
 
-  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address depositor_) external;
+  function depositRewardAssetsOnBehalf(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address owner_) external;
 
   function dripRewardPool(uint16 rewardPoolId_) external;
 
@@ -63,7 +63,7 @@ interface IRewardsManager {
     view
     returns (PreviewClaimableRewards[] memory);
 
-  function previewCurrentWithdrawableRewards(uint16 rewardPoolId_, address depositor_) external view returns (uint256);
+  function previewCurrentWithdrawableRewards(uint16 rewardPoolId_, address owner_) external view returns (uint256);
 
   function receiptTokenFactory() external view returns (address);
 
@@ -75,7 +75,7 @@ interface IRewardsManager {
 
   function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external;
 
-  function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_, address depositor_) external;
+  function stakeOnBehalf(uint16 stakePoolId_, uint256 assetAmount_, address owner_) external;
 
   function stakePools(uint256 id_) external view returns (StakePool memory);
 

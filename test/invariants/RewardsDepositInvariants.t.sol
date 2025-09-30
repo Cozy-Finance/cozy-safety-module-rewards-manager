@@ -145,7 +145,7 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
 
     vm.prank(actor_);
     vm.expectRevert(IDepositorErrors.InvalidDeposit.selector);
-    rewardsManager.depositRewardAssets(rewardPoolId_, assetAmount_);
+    rewardsManager.depositRewardAssets(rewardPoolId_, assetAmount_, actor_);
   }
 }
 

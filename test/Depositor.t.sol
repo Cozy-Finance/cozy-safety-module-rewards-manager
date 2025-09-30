@@ -31,7 +31,12 @@ contract DepositorUnitTest is TestBase {
 
   /// @dev Emitted when a user deposits rewards.
   event Deposited(
-    address indexed caller_, uint16 indexed rewardPoolId_, uint256 depositAmount_, uint256 depositFeeAmount_
+    address indexed caller_,
+    address indexed owner_,
+    address indexed receiver_,
+    uint16 rewardPoolId_,
+    uint256 depositAmount_,
+    uint256 depositFeeAmount_
   );
 
   event Transfer(address indexed from, address indexed to, uint256 amount);
@@ -58,15 +63,15 @@ contract DepositorUnitTest is TestBase {
     deal(address(mockAsset), address(component), initialUndrippedRewards);
   }
 
-  function _deposit(bool isSelfDeposit_, uint16 poolId_, uint256 amountToDeposit_, address depositor_, address caller_)
+  function _deposit(bool isSelfDeposit_, uint16 poolId_, uint256 amountToDeposit_, address owner_, address caller_)
     internal
   {
     if (isSelfDeposit_) {
       vm.prank(caller_);
-      component.depositRewardAssets(poolId_, amountToDeposit_);
+      component.depositRewardAssets(poolId_, amountToDeposit_, owner_);
     } else {
       vm.prank(caller_);
-      component.depositRewardAssets(poolId_, amountToDeposit_, depositor_);
+      component.depositRewardAssetsOnBehalf(poolId_, amountToDeposit_, owner_);
     }
   }
 
@@ -79,21 +84,21 @@ contract DepositorUnitTest is TestBase {
   }
 
   function _test_depositReward_DepositAndStorageUpdates(bool isSelfDeposit_) internal {
-    address depositor_ = _randomAddress();
-    address caller_ = isSelfDeposit_ ? depositor_ : _randomAddress();
+    address owner_ = _randomAddress();
+    address caller_ = isSelfDeposit_ ? owner_ : _randomAddress();
     uint256 amountToDeposit_ = 10e18;
     uint256 depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
 
     // Mint initial balance for depositor.
-    mockAsset.mint(depositor_, amountToDeposit_);
+    mockAsset.mint(owner_, amountToDeposit_);
     // Approve rewards manager to spend asset.
-    vm.prank(depositor_);
+    vm.prank(owner_);
     mockAsset.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit Deposited(caller_, owner_, owner_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
-    _deposit(isSelfDeposit_, 0, amountToDeposit_, depositor_, caller_);
+    _deposit(isSelfDeposit_, 0, amountToDeposit_, owner_, caller_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
@@ -103,7 +108,7 @@ contract DepositorUnitTest is TestBase {
     assertEq(finalAssetPool_.amount, 60e18 - 5e16);
     assertEq(mockAsset.balanceOf(address(component)), 60e18 - 5e16);
 
-    assertEq(mockAsset.balanceOf(depositor_), 0);
+    assertEq(mockAsset.balanceOf(owner_), 0);
     assertEq(mockAsset.balanceOf(cozyManager.owner()), 5e16);
   }
 
@@ -116,22 +121,22 @@ contract DepositorUnitTest is TestBase {
   }
 
   function _test_depositReward_DepositAndStorageUpdatesWithDrip(bool isSelfDeposit_) internal {
-    address depositor_ = _randomAddress();
-    address caller_ = isSelfDeposit_ ? depositor_ : _randomAddress();
+    address owner_ = _randomAddress();
+    address caller_ = isSelfDeposit_ ? owner_ : _randomAddress();
     uint256 amountToDeposit_ = 20e18;
     uint256 depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
 
     // Mint initial balance for depositor.
-    mockAsset.mint(depositor_, amountToDeposit_);
+    mockAsset.mint(owner_, amountToDeposit_);
     // Approve rewards manager to spend asset.
-    vm.prank(depositor_);
+    vm.prank(owner_);
     mockAsset.approve(address(component), amountToDeposit_);
 
     component.mockSetNextRewardsDripAmount(45e18);
 
     _expectEmit();
-    emit Deposited(depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
-    _deposit(isSelfDeposit_, 0, amountToDeposit_, depositor_, caller_);
+    emit Deposited(caller_, owner_, owner_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    _deposit(isSelfDeposit_, 0, amountToDeposit_, owner_, caller_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
@@ -141,7 +146,7 @@ contract DepositorUnitTest is TestBase {
     // 50e18 + 20e18
     assertEq(finalAssetPool_.amount, 70e18 - 10e16);
     assertEq(mockAsset.balanceOf(address(component)), 70e18 - 10e16);
-    assertEq(mockAsset.balanceOf(depositor_), 0);
+    assertEq(mockAsset.balanceOf(owner_), 0);
     assertEq(mockAsset.balanceOf(cozyManager.owner()), 10e16);
   }
 
@@ -154,21 +159,21 @@ contract DepositorUnitTest is TestBase {
   }
 
   function _test_depositRewardAssets_RevertWhenPaused(bool isSelfDeposit_) internal {
-    address depositor_ = _randomAddress();
-    address caller_ = isSelfDeposit_ ? depositor_ : _randomAddress();
+    address owner_ = _randomAddress();
+    address caller_ = isSelfDeposit_ ? owner_ : _randomAddress();
     uint128 amountToDeposit_ = 10e18;
 
     // Mint initial balance for depositor.
-    mockAsset.mint(depositor_, amountToDeposit_);
+    mockAsset.mint(owner_, amountToDeposit_);
 
     // Approve rewards manager to spend asset.
-    vm.prank(depositor_);
+    vm.prank(owner_);
     mockAsset.approve(address(component), amountToDeposit_);
 
     component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
 
     vm.expectRevert(ICommonErrors.InvalidState.selector);
-    _deposit(isSelfDeposit_, 0, amountToDeposit_, depositor_, caller_);
+    _deposit(isSelfDeposit_, 0, amountToDeposit_, owner_, caller_);
   }
 
   function test_depositRewards_RevertOutOfBoundsRewardPoolId_selfDeposit() external {
@@ -180,11 +185,11 @@ contract DepositorUnitTest is TestBase {
   }
 
   function _test_depositRewards_RevertOutOfBoundsRewardPoolId(bool isSelfDeposit_) internal {
-    address depositor_ = _randomAddress();
-    address caller_ = isSelfDeposit_ ? depositor_ : _randomAddress();
+    address owner_ = _randomAddress();
+    address caller_ = isSelfDeposit_ ? owner_ : _randomAddress();
 
     _expectPanic(INDEX_OUT_OF_BOUNDS);
-    _deposit(isSelfDeposit_, 1, 10e18, depositor_, caller_);
+    _deposit(isSelfDeposit_, 1, 10e18, owner_, caller_);
   }
 
   function testFuzz_depositRewards_RevertInsufficientAssetsAvailable_selfDeposit(uint256 amountToDeposit_) external {
@@ -202,17 +207,17 @@ contract DepositorUnitTest is TestBase {
   {
     amountToDeposit_ = bound(amountToDeposit_, 1, type(uint216).max);
 
-    address depositor_ = _randomAddress();
-    address caller_ = isSelfDeposit_ ? depositor_ : _randomAddress();
+    address owner_ = _randomAddress();
+    address caller_ = isSelfDeposit_ ? owner_ : _randomAddress();
 
     // Mint insufficient assets for depositor.
-    mockAsset.mint(depositor_, amountToDeposit_ - 1);
+    mockAsset.mint(owner_, amountToDeposit_ - 1);
     // Approve rewards manager to spend asset.
-    vm.prank(depositor_);
+    vm.prank(owner_);
     mockAsset.approve(address(component), amountToDeposit_);
 
     _expectPanic(PANIC_MATH_UNDEROVERFLOW);
-    _deposit(isSelfDeposit_, 0, amountToDeposit_, depositor_, caller_);
+    _deposit(isSelfDeposit_, 0, amountToDeposit_, owner_, caller_);
   }
 
   function test_depositReward_MultipleLargeDeposits_selfDeposit() external {
@@ -240,21 +245,21 @@ contract DepositorUnitTest is TestBase {
     component.mockAddAssetPool(IERC20(address(mockAsset_)), initialAssetPool_);
     deal(address(mockAsset_), address(component), initialUndrippedRewards_);
 
-    address depositor_ = _randomAddress();
-    address caller_ = isSelfDeposit_ ? depositor_ : _randomAddress();
+    address owner_ = _randomAddress();
+    address caller_ = isSelfDeposit_ ? owner_ : _randomAddress();
     uint256 amountToDeposit_ = 1_000_000e30;
     uint256 depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
 
     // Mint initial balance for depositor.
-    mockAsset_.mint(depositor_, amountToDeposit_);
+    mockAsset_.mint(owner_, amountToDeposit_);
     // Approve rewards manager to spend asset.
-    vm.prank(depositor_);
+    vm.prank(owner_);
     mockAsset_.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit Deposited(caller_, owner_, owner_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
-    _deposit(isSelfDeposit_, 1, amountToDeposit_, depositor_, caller_);
+    _deposit(isSelfDeposit_, 1, amountToDeposit_, owner_, caller_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(1);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset_)));
@@ -268,15 +273,15 @@ contract DepositorUnitTest is TestBase {
     // Mint some more balance for depositor.
     amountToDeposit_ = 100_000e30;
     depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
-    mockAsset_.mint(depositor_, amountToDeposit_);
+    mockAsset_.mint(owner_, amountToDeposit_);
     // Approve rewards manager to spend asset.
-    vm.prank(depositor_);
+    vm.prank(owner_);
     mockAsset_.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit Deposited(caller_, owner_, owner_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
-    _deposit(isSelfDeposit_, 1, amountToDeposit_, depositor_, caller_);
+    _deposit(isSelfDeposit_, 1, amountToDeposit_, owner_, caller_);
 
     finalRewardPool_ = component.getRewardPool(1);
     finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset_)));

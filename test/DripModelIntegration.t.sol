@@ -27,7 +27,7 @@ abstract contract DripModelIntegrationTestSetup is MockDeployProtocol {
     deal(address(rewardAsset), self, rewardAsset.balanceOf(self) + rewardAssetAmount_);
     rewardAsset.approve(address(rewardsManager_), rewardAssetAmount_);
 
-    rewardsManager_.depositRewardAssets(0, rewardAssetAmount_);
+    rewardsManager_.depositRewardAssets(0, rewardAssetAmount_, self);
   }
 
   function stake(RewardsManager rewardsManager_, uint256 stakeAssetAmount_, address receiver_) internal {
