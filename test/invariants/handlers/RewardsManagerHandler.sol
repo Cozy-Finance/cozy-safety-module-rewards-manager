@@ -404,7 +404,7 @@ contract RewardsManagerHandler is TestBase {
 
     vm.startPrank(currentActor);
     asset_.approve(address(rewardsManager), assetAmount_);
-    rewardsManager.depositRewardAssets(currentRewardPoolId, assetAmount_, currentActor);
+    rewardsManager.depositRewardAssets(currentRewardPoolId, assetAmount_);
     vm.stopPrank();
 
     ghost_rewardPoolCumulative[currentRewardPoolId].totalAssetAmount += assetAmount_;

@@ -20,6 +20,7 @@ import {
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
+import {IDepositorEvents} from "../src/interfaces/IDepositorEvents.sol";
 import "./utils/Stub.sol";
 
 contract DepositorUnitTest is TestBase {
@@ -28,16 +29,6 @@ contract DepositorUnitTest is TestBase {
   MockERC20 mockAsset = new MockERC20("Mock Asset", "MOCK", 6);
   MockManager cozyManager = new MockManager();
   TestableDepositor component = new TestableDepositor(cozyManager);
-
-  /// @dev Emitted when a user deposits rewards.
-  event Deposited(
-    address indexed caller_,
-    address indexed owner_,
-    address indexed receiver_,
-    uint16 rewardPoolId_,
-    uint256 depositAmount_,
-    uint256 depositFeeAmount_
-  );
 
   event Transfer(address indexed from, address indexed to, uint256 amount);
 
@@ -68,7 +59,7 @@ contract DepositorUnitTest is TestBase {
   {
     if (isSelfDeposit_) {
       vm.prank(caller_);
-      component.depositRewardAssets(poolId_, amountToDeposit_, owner_);
+      component.depositRewardAssets(poolId_, amountToDeposit_);
     } else {
       vm.prank(caller_);
       component.depositRewardAssetsOnBehalf(poolId_, amountToDeposit_, owner_);
@@ -96,7 +87,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(caller_, owner_, owner_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit IDepositorEvents.Deposited(caller_, owner_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
     _deposit(isSelfDeposit_, 0, amountToDeposit_, owner_, caller_);
 
@@ -135,7 +126,7 @@ contract DepositorUnitTest is TestBase {
     component.mockSetNextRewardsDripAmount(45e18);
 
     _expectEmit();
-    emit Deposited(caller_, owner_, owner_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit IDepositorEvents.Deposited(caller_, owner_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
     _deposit(isSelfDeposit_, 0, amountToDeposit_, owner_, caller_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
@@ -257,7 +248,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset_.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(caller_, owner_, owner_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit IDepositorEvents.Deposited(caller_, owner_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
     _deposit(isSelfDeposit_, 1, amountToDeposit_, owner_, caller_);
 
@@ -279,7 +270,7 @@ contract DepositorUnitTest is TestBase {
     mockAsset_.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(caller_, owner_, owner_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit IDepositorEvents.Deposited(caller_, owner_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
     _deposit(isSelfDeposit_, 1, amountToDeposit_, owner_, caller_);
 

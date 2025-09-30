@@ -25,7 +25,7 @@ interface IRewardsManager {
 
   function cozyManager() external returns (ICozyManager);
 
-  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) external;
+  function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
 
   function depositRewardAssetsOnBehalf(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address owner_) external;
 

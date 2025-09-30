@@ -66,7 +66,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     vm.startPrank(owner_);
     rewardAsset.approve(address(rewardsManager), amount_);
-    rewardsManager.depositRewardAssets(DEFAULT_REWARD_POOL_ID, amount_, owner_);
+    rewardsManager.depositRewardAssets(DEFAULT_REWARD_POOL_ID, amount_);
     vm.stopPrank();
   }
 
