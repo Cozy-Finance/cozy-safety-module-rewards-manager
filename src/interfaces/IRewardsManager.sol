@@ -5,7 +5,6 @@ import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {StakePool, RewardPool, AssetPool} from "../lib/structs/Pools.sol";
 import {ClaimableRewardsData, PreviewClaimableRewards, UserRewardsData} from "../lib/structs/Rewards.sol";
 import {RewardsManagerState} from "../lib/RewardsManagerStates.sol";
-import {ClaimableRewardsData, PreviewClaimableRewards} from "../lib/structs/Rewards.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 import {ICozyManager} from "./ICozyManager.sol";
 
@@ -33,6 +32,12 @@ interface IRewardsManager {
 
   function dripRewards() external;
 
+  function eip712DomainName() external view returns (string memory);
+
+  function eip712DomainNonce() external view returns (uint256);
+
+  function eip712DomainVersion() external view returns (uint64);
+
   function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory);
 
   function getClaimableRewards(uint16 stakePoolId_) external view returns (ClaimableRewardsData[] memory);
@@ -42,6 +47,10 @@ interface IRewardsManager {
   function getStakePools() external view returns (StakePool[] memory);
 
   function getUserRewards(uint16 stakePoolId_, address user) external view returns (UserRewardsData[] memory);
+
+  function incrementEIP712Version() external;
+
+  function setEIP712DomainName(string calldata name_) external;
 
   function initialize(
     address owner_,
