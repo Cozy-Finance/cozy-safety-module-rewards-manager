@@ -22,14 +22,13 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
   function _buildDomainSeparator() internal view returns (bytes32) {
     return keccak256(
       abi.encode(
-        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,uint256 nonce)"), //EIP712
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"), //EIP712
           // Domain
           // typehash
         keccak256(bytes(eip712DomainName)), // name
         keccak256(bytes(Strings.toString(eip712DomainVersion))), // version
         block.chainid, // chainId
-        address(this), // verifyingContract
-        eip712DomainNonce // nonce
+        address(this) // verifyingContract
       )
     );
   }
@@ -45,12 +44,6 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
   function setEIP712DomainName(string calldata name_) external onlyOwner {
     eip712DomainName = name_;
     emit EIP712DomainNameUpdated(eip712DomainName);
-  }
-
-  /// @notice Increment the EIP-712 domain nonce after a signature is consumed.
-  function _incrementeip712DomainNonce() internal {
-    eip712DomainNonce++;
-    emit EIP712DomainNonceUpdated(eip712DomainNonce);
   }
 
   /// @dev Defined in RewardsDistributor.
