@@ -42,18 +42,6 @@ contract RewardsManagerCommonUnitTest is TestBase {
     assertEq(updatedVersion_, initialVersion_ + 1, "EIP-712 version should increment by 1");
   }
 
-  function test_incrementeip712DomainNonce_updatesNonce() external {
-    uint256 initialNonce_ = component.eip712DomainNonce();
-
-    vm.expectEmit();
-    emit ICommonEvents.EIP712DomainNonceUpdated(initialNonce_ + 1);
-
-    component.incrementeip712DomainNonce();
-
-    uint256 updatedNonce_ = component.eip712DomainNonce();
-    assertEq(updatedNonce_, initialNonce_ + 1, "EIP-712 nonce should increment by 1");
-  }
-
   function test_setEIP712DomainName_revertIfNotAuthorized() external {
     address unauthorizedCaller_ = _randomAddress();
     vm.prank(unauthorizedCaller_);
@@ -82,10 +70,6 @@ contract RewardsManagerCommonUnitTest is TestBase {
 contract TestableRewardsManagerCommon is RewardsManagerCommon {
   constructor(MockManager manager_) {
     cozyManager = ICozyManager(address(manager_));
-  }
-
-  function incrementeip712DomainNonce() external {
-    _incrementeip712DomainNonce();
   }
 
   function _claimRewards(ClaimRewardsArgs memory) internal override {}

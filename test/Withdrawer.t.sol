@@ -12,10 +12,13 @@ import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../src/lib/structs/Configs.sol";
 import {DepositorRewardsData} from "../src/lib/structs/Rewards.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
+import {RewardsManagerCommon} from "../src/lib/RewardsManagerCommon.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockDripModelFlexible} from "./utils/MockDripModelFlexible.sol";
 import {MockDeployProtocol} from "./utils/MockDeployProtocol.sol";
 import {TestBase} from "./utils/TestBase.sol";
+import {MockERC1271Signer} from "./utils/MockERC1271Signer.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract WithdrawerTest is TestBase, MockDeployProtocol {
   using FixedPointMathLib for uint256;
@@ -27,6 +30,9 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
   uint256 constant WAD = 1e18;
   uint16 constant DEFAULT_REWARD_POOL_ID = 0;
   uint16 constant DEFAULT_STAKE_POOL_ID = 0;
+
+  bytes32 internal constant EIP712_DOMAIN_TYPEHASH =
+    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,uint256 nonce)");
 
   function setUp() public override {
     super.setUp();
@@ -74,6 +80,36 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     flexibleDripModel.setNextDripFactor(dripFactor_);
     vm.warp(block.timestamp + 1);
     rewardsManager.dripRewardPool(DEFAULT_REWARD_POOL_ID);
+  }
+
+  function _buildWithdrawDigest(
+    address owner_,
+    uint16 rewardPoolId_,
+    uint256 rewardAssetAmount_,
+    address caller_,
+    address receiver_,
+    uint256 deadline_,
+    uint256 nonce_
+  ) internal view returns (bytes32) {
+    bytes32 typeHash_ = RewardsManager(address(rewardsManager)).WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH();
+    bytes32 structHash_ =
+      keccak256(abi.encode(typeHash_, owner_, rewardPoolId_, rewardAssetAmount_, caller_, receiver_, deadline_));
+
+    string memory domainName_ = rewardsManager.eip712DomainName();
+    string memory domainVersion_ = Strings.toString(uint256(rewardsManager.eip712DomainVersion()));
+
+    bytes32 domainSeparator_ = keccak256(
+      abi.encode(
+        EIP712_DOMAIN_TYPEHASH,
+        keccak256(bytes(domainName_)),
+        keccak256(bytes(domainVersion_)),
+        block.chainid,
+        address(rewardsManager),
+        nonce_
+      )
+    );
+
+    return keccak256(abi.encodePacked("\x19\x01", domainSeparator_, structHash_));
   }
 
   function test_depositNoWithdraw() public {
@@ -465,5 +501,154 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     RewardPool memory finalPool = getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID);
     assertEq(finalPool.epoch, 1, "Should still be in epoch 1");
     assertGt(finalPool.logIndexSnapshot, 0, "Log index should have accumulated");
+  }
+
+  function test_withdrawRewardAssetsBySig_validEOASignature() external {
+    (address ownerEOA, uint256 ownerPK) = makeAddrAndKey("owner");
+    address receiver_ = _randomAddress();
+    uint16 rewardPoolId_ = DEFAULT_REWARD_POOL_ID;
+    uint256 rewardAssetAmount_ = 1e18;
+
+    _depositRewardAssets(ownerEOA, rewardAssetAmount_);
+
+    uint256 nonceBefore_ = rewardsManager.eip712DomainNonce();
+    uint256 deadline_ = block.timestamp + 1 hours;
+    bytes32 digest_ = _buildWithdrawDigest(
+      ownerEOA, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_, nonceBefore_
+    );
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPK, digest_);
+    bytes memory signature_ = abi.encodePacked(r, s, v);
+
+    _expectEmit();
+    emit IWithdrawerEvents.Withdrawn(ownerEOA, rewardPoolId_, rewardAssetAmount_, receiver_);
+
+    rewardsManager.withdrawRewardAssetsBySig(
+      rewardPoolId_, rewardAssetAmount_, ownerEOA, receiver_, deadline_, signature_
+    );
+
+    assertEq(rewardAsset.balanceOf(receiver_), rewardAssetAmount_, "receiver should receive reward assets");
+    assertEq(
+      rewardsManager.previewCurrentWithdrawableRewards(rewardPoolId_, ownerEOA),
+      0,
+      "owner should have no withdrawable rewards"
+    );
+    assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 0, "asset pool should be empty");
+    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_ + 1, "domain nonce should increment");
+  }
+
+  function test_withdrawRewardAssetsBySig_validContractSignature() external {
+    MockERC1271Signer mockSigner_ = new MockERC1271Signer(_randomAddress());
+    address owner_ = address(mockSigner_);
+    address receiver_ = _randomAddress();
+    uint16 rewardPoolId_ = DEFAULT_REWARD_POOL_ID;
+    uint256 rewardAssetAmount_ = 5e17;
+
+    _depositRewardAssets(owner_, rewardAssetAmount_);
+
+    uint256 nonceBefore_ = rewardsManager.eip712DomainNonce();
+    uint256 deadline_ = block.timestamp + 1 hours;
+    bytes32 digest_ =
+      _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_, nonceBefore_);
+    bytes memory signature_ = mockSigner_.signMessage(digest_);
+
+    _expectEmit();
+    emit IWithdrawerEvents.Withdrawn(owner_, rewardPoolId_, rewardAssetAmount_, receiver_);
+
+    rewardsManager.withdrawRewardAssetsBySig(
+      rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, signature_
+    );
+
+    assertEq(rewardAsset.balanceOf(receiver_), rewardAssetAmount_, "receiver should receive reward assets");
+    assertEq(
+      rewardsManager.previewCurrentWithdrawableRewards(rewardPoolId_, owner_),
+      0,
+      "owner should have no withdrawable rewards"
+    );
+    assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 0, "asset pool should be empty");
+    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_ + 1, "domain nonce should increment");
+  }
+
+  function test_withdrawRewardAssetsBySig_invalidSignature() external {
+    (address owner_,) = makeAddrAndKey("owner");
+    address receiver_ = _randomAddress();
+    uint16 rewardPoolId_ = DEFAULT_REWARD_POOL_ID;
+    uint256 rewardAssetAmount_ = 1e18;
+
+    _depositRewardAssets(owner_, rewardAssetAmount_);
+
+    uint256 nonceBefore_ = rewardsManager.eip712DomainNonce();
+    uint256 deadline_ = block.timestamp + 1 hours;
+    bytes memory invalidSignature_ = "0xdeadbeef";
+
+    vm.expectRevert(RewardsManagerCommon.InvalidSignature.selector);
+    rewardsManager.withdrawRewardAssetsBySig(
+      rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, invalidSignature_
+    );
+
+    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_, "domain nonce should not increment");
+  }
+
+  function test_withdrawRewardAssetsBySig_expiredSignature() external {
+    (address owner_, uint256 ownerPK) = makeAddrAndKey("owner");
+    address receiver_ = _randomAddress();
+    uint16 rewardPoolId_ = DEFAULT_REWARD_POOL_ID;
+    uint256 rewardAssetAmount_ = 1e18;
+
+    _depositRewardAssets(owner_, rewardAssetAmount_);
+
+    uint256 nonceBefore_ = rewardsManager.eip712DomainNonce();
+    uint256 deadline_ = block.timestamp - 1; // already expired
+    bytes32 digest_ =
+      _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_, nonceBefore_);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPK, digest_);
+    bytes memory signature_ = abi.encodePacked(r, s, v);
+
+    vm.expectRevert(RewardsManagerCommon.SignatureExpired.selector);
+    rewardsManager.withdrawRewardAssetsBySig(
+      rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, signature_
+    );
+
+    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_, "domain nonce should not increment");
+  }
+
+  function test_withdrawRewardAssetsBySig_unauthorizedCaller() external {
+    (address owner_, uint256 ownerPK) = makeAddrAndKey("owner");
+    address receiver_ = _randomAddress();
+    uint16 rewardPoolId_ = DEFAULT_REWARD_POOL_ID;
+    uint256 rewardAssetAmount_ = 1e18;
+    address authorizedCaller_ = _randomAddress();
+
+    _depositRewardAssets(owner_, rewardAssetAmount_);
+
+    uint256 nonceBefore_ = rewardsManager.eip712DomainNonce();
+    uint256 deadline_ = block.timestamp + 1 hours;
+    bytes32 digest_ = _buildWithdrawDigest(
+      owner_, rewardPoolId_, rewardAssetAmount_, authorizedCaller_, receiver_, deadline_, nonceBefore_
+    );
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPK, digest_);
+    bytes memory signature_ = abi.encodePacked(r, s, v);
+
+    vm.expectRevert(RewardsManagerCommon.InvalidSignature.selector);
+    rewardsManager.withdrawRewardAssetsBySig(
+      rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, signature_
+    );
+
+    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_, "domain nonce should not increment after failure");
+
+    _expectEmit();
+    emit IWithdrawerEvents.Withdrawn(owner_, rewardPoolId_, rewardAssetAmount_, receiver_);
+
+    vm.prank(authorizedCaller_);
+    rewardsManager.withdrawRewardAssetsBySig(
+      rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, signature_
+    );
+
+    assertEq(rewardAsset.balanceOf(receiver_), rewardAssetAmount_, "receiver should receive reward assets");
+    assertEq(
+      rewardsManager.previewCurrentWithdrawableRewards(rewardPoolId_, owner_),
+      0,
+      "owner should have no withdrawable rewards"
+    );
+    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_ + 1, "domain nonce should increment after success");
   }
 }

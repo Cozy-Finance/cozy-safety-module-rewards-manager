@@ -8,6 +8,6 @@ interface ICommonEvents {
   /// @notice Emitted when the EIP-712 domain name is updated.
   event EIP712DomainNameUpdated(string newName_);
 
-  /// @notice Emitted when the EIP-712 nonce is updated.
+  /// @notice Emitted when the EIP-712 domain nonce is updated.
   event EIP712DomainNonceUpdated(uint256 newNonce_);
 }

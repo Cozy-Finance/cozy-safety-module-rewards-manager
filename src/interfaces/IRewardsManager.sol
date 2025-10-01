@@ -82,6 +82,15 @@ interface IRewardsManager {
 
   function withdrawRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) external;
 
+  function withdrawRewardAssetsBySig(
+    uint16 rewardPoolId_,
+    uint256 rewardAssetAmount_,
+    address owner_,
+    address receiver_,
+    uint256 deadline_,
+    bytes calldata signature_
+  ) external;
+
   function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external;
 
   function stakePools(uint256 id_) external view returns (StakePool memory);

@@ -48,7 +48,7 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
   }
 
   /// @notice Increment the EIP-712 domain nonce after a signature is consumed.
-  function _incrementeip712DomainNonce() internal {
+  function _useEIP712DomainNonce() internal {
     eip712DomainNonce++;
     emit EIP712DomainNonceUpdated(eip712DomainNonce);
   }
