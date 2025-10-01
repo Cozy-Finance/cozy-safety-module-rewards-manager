@@ -34,8 +34,6 @@ interface IRewardsManager {
 
   function eip712DomainName() external view returns (string memory);
 
-  function eip712DomainNonce() external view returns (uint256);
-
   function eip712DomainVersion() external view returns (uint64);
 
   function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory);

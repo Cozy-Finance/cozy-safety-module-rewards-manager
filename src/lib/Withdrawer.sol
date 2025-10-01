@@ -70,7 +70,6 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdr
 
     if (!SignatureChecker.isValidSignatureNow(owner_, digest_, signature_)) revert InvalidSignature();
 
-    _useEIP712DomainNonce();
     _withdrawRewardAssetsInternal(rewardPool_, rewardPoolId_, owner_, receiver_, rewardAssetAmount_);
   }
 
