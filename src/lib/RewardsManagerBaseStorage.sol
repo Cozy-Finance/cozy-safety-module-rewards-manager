@@ -54,7 +54,7 @@ abstract contract RewardsManagerBaseStorage {
 
   /// @notice EIP-712 domain separator name.
   string public eip712DomainName;
-  
+
   /// @notice The state of this rewards manager.
   RewardsManagerState public rewardsManagerState;
 
