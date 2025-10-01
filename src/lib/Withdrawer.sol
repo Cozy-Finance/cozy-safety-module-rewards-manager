@@ -27,7 +27,7 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdr
   /// @param receiver_ The address that will receive the withdrawn assets.
   function withdrawRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) external {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    _withdrawRewardAssetsInternal(rewardPool_, rewardPoolId_, msg.sender, receiver_, rewardAssetAmount_);
+    _withdrawRewardAssets(rewardPool_, rewardPoolId_, msg.sender, receiver_, rewardAssetAmount_);
   }
 
   /// @notice Withdraw undripped reward assets on behalf of the owner via permit-style authorization.
@@ -70,10 +70,10 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdr
 
     if (!SignatureChecker.isValidSignatureNow(owner_, digest_, signature_)) revert InvalidSignature();
 
-    _withdrawRewardAssetsInternal(rewardPool_, rewardPoolId_, owner_, receiver_, rewardAssetAmount_);
+    _withdrawRewardAssets(rewardPool_, rewardPoolId_, owner_, receiver_, rewardAssetAmount_);
   }
 
-  function _withdrawRewardAssetsInternal(
+  function _withdrawRewardAssets(
     RewardPool storage rewardPool_,
     uint16 rewardPoolId_,
     address owner_,
