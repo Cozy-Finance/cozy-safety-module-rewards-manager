@@ -32,7 +32,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
   uint16 constant DEFAULT_STAKE_POOL_ID = 0;
 
   bytes32 internal constant EIP712_DOMAIN_TYPEHASH =
-    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,uint256 nonce)");
+    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
   function setUp() public override {
     super.setUp();
@@ -88,8 +88,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     uint256 rewardAssetAmount_,
     address caller_,
     address receiver_,
-    uint256 deadline_,
-    uint256 nonce_
+    uint256 deadline_
   ) internal view returns (bytes32) {
     bytes32 typeHash_ = RewardsManager(address(rewardsManager)).WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH();
     bytes32 structHash_ =
@@ -104,8 +103,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
         keccak256(bytes(domainName_)),
         keccak256(bytes(domainVersion_)),
         block.chainid,
-        address(rewardsManager),
-        nonce_
+        address(rewardsManager)
       )
     );
 
@@ -511,11 +509,9 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     _depositRewardAssets(ownerEOA, rewardAssetAmount_);
 
-    uint256 nonceBefore_ = rewardsManager.eip712DomainNonce();
     uint256 deadline_ = block.timestamp + 1 hours;
-    bytes32 digest_ = _buildWithdrawDigest(
-      ownerEOA, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_, nonceBefore_
-    );
+    bytes32 digest_ =
+      _buildWithdrawDigest(ownerEOA, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_);
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPK, digest_);
     bytes memory signature_ = abi.encodePacked(r, s, v);
 
@@ -533,7 +529,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
       "owner should have no withdrawable rewards"
     );
     assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 0, "asset pool should be empty");
-    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_ + 1, "domain nonce should increment");
   }
 
   function test_withdrawRewardAssetsBySig_validContractSignature() external {
@@ -545,10 +540,9 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
 
-    uint256 nonceBefore_ = rewardsManager.eip712DomainNonce();
     uint256 deadline_ = block.timestamp + 1 hours;
     bytes32 digest_ =
-      _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_, nonceBefore_);
+      _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_);
     bytes memory signature_ = mockSigner_.signMessage(digest_);
 
     _expectEmit();
@@ -565,7 +559,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
       "owner should have no withdrawable rewards"
     );
     assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 0, "asset pool should be empty");
-    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_ + 1, "domain nonce should increment");
   }
 
   function test_withdrawRewardAssetsBySig_invalidSignature() external {
@@ -576,7 +569,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
 
-    uint256 nonceBefore_ = rewardsManager.eip712DomainNonce();
     uint256 deadline_ = block.timestamp + 1 hours;
     bytes memory invalidSignature_ = "0xdeadbeef";
 
@@ -584,8 +576,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     rewardsManager.withdrawRewardAssetsBySig(
       rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, invalidSignature_
     );
-
-    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_, "domain nonce should not increment");
   }
 
   function test_withdrawRewardAssetsBySig_expiredSignature() external {
@@ -596,10 +586,9 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
 
-    uint256 nonceBefore_ = rewardsManager.eip712DomainNonce();
     uint256 deadline_ = block.timestamp - 1; // already expired
     bytes32 digest_ =
-      _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_, nonceBefore_);
+      _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_);
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPK, digest_);
     bytes memory signature_ = abi.encodePacked(r, s, v);
 
@@ -607,8 +596,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     rewardsManager.withdrawRewardAssetsBySig(
       rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, signature_
     );
-
-    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_, "domain nonce should not increment");
   }
 
   function test_withdrawRewardAssetsBySig_unauthorizedCaller() external {
@@ -620,11 +607,9 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
 
-    uint256 nonceBefore_ = rewardsManager.eip712DomainNonce();
     uint256 deadline_ = block.timestamp + 1 hours;
-    bytes32 digest_ = _buildWithdrawDigest(
-      owner_, rewardPoolId_, rewardAssetAmount_, authorizedCaller_, receiver_, deadline_, nonceBefore_
-    );
+    bytes32 digest_ =
+      _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, authorizedCaller_, receiver_, deadline_);
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPK, digest_);
     bytes memory signature_ = abi.encodePacked(r, s, v);
 
@@ -632,8 +617,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     rewardsManager.withdrawRewardAssetsBySig(
       rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, signature_
     );
-
-    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_, "domain nonce should not increment after failure");
 
     _expectEmit();
     emit IWithdrawerEvents.Withdrawn(owner_, rewardPoolId_, rewardAssetAmount_, receiver_);
@@ -649,6 +632,5 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
       0,
       "owner should have no withdrawable rewards"
     );
-    assertEq(rewardsManager.eip712DomainNonce(), nonceBefore_ + 1, "domain nonce should increment after success");
   }
 }
