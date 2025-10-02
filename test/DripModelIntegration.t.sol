@@ -24,19 +24,16 @@ abstract contract DripModelIntegrationTestSetup is MockDeployProtocol {
   address alice = _randomAddress();
 
   function depositRewards(RewardsManager rewardsManager_, uint256 rewardAssetAmount_) internal {
-    deal(
-      address(rewardAsset),
-      address(rewardsManager_),
-      rewardAsset.balanceOf(address(rewardsManager_)) + rewardAssetAmount_
-    );
-    rewardsManager_.depositRewardAssetsWithoutTransfer(0, rewardAssetAmount_);
+    deal(address(rewardAsset), self, rewardAsset.balanceOf(self) + rewardAssetAmount_);
+    rewardAsset.approve(address(rewardsManager_), rewardAssetAmount_);
+
+    rewardsManager_.depositRewardAssets(0, rewardAssetAmount_);
   }
 
   function stake(RewardsManager rewardsManager_, uint256 stakeAssetAmount_, address receiver_) internal {
-    deal(
-      address(stakeAsset), address(rewardsManager_), stakeAsset.balanceOf(address(rewardsManager_)) + stakeAssetAmount_
-    );
-    rewardsManager_.stakeWithoutTransfer(0, stakeAssetAmount_, receiver_);
+    deal(address(stakeAsset), self, stakeAsset.balanceOf(self) + stakeAssetAmount_);
+    stakeAsset.approve(address(rewardsManager_), stakeAssetAmount_);
+    rewardsManager_.stake(0, stakeAssetAmount_, receiver_);
   }
 
   function _assertRewardDripAmountAndReset(uint256 skipTime_, uint256 expectedClaimedRewards_) internal {
