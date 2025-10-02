@@ -1135,11 +1135,90 @@ contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistri
     ClaimableRewardsData[][] memory claimableRewards_ = component.getClaimableRewards();
     RewardPool[] memory rewardPools_ = component.getRewardPools();
     expectedRewardPools_[0].lastDripTime = uint128(block.timestamp);
-    expectedRewardPools_[0].undrippedRewards -=
-      _calculateExpectedDripQuantity(expectedRewardPools_[0].undrippedRewards, 0.1e18);
+    // Reward pool undripped rewards should not change because there are no stakers, so the unclaimed dripped rewards
+    // are recycled back to the pool.
+    expectedRewardPools_[0].undrippedRewards = expectedRewardPools_[0].undrippedRewards;
 
     assertEq(claimableRewards_[0][0], _expectedClaimableRewardsData(initialClaimableRewards_[0][0].indexSnapshot));
     assertEq(expectedRewardPools_, rewardPools_);
+  }
+
+  function test_dripAndResetCumulativeRewardsValues_recyclesOnlyZeroSupplyShare() public {
+    uint16 zeroWeight_ = 4000;
+    uint16 nonZeroWeight_ = uint16(MathConstants.ZOC - zeroWeight_);
+    uint256 mintedSupply_ = 1e18;
+    uint256 wadSquared_ = MathConstants.WAD * MathConstants.WAD;
+
+    MockERC20 zeroStakeAsset_ = new MockERC20("Mock Stake Asset", "MockStakeAsset", 6);
+    MockStkReceiptToken zeroStkReceiptToken_ =
+      new MockStkReceiptToken(address(component), "Mock Stake Receipt Token", "MockStakeReceiptToken", 6);
+    StakePool memory zeroStakePool_ = StakePool({
+      amount: 0,
+      asset: IERC20(address(zeroStakeAsset_)),
+      stkReceiptToken: IReceiptToken(address(zeroStkReceiptToken_)),
+      rewardsWeight: zeroWeight_
+    });
+    component.mockAddStakePool(zeroStakePool_);
+
+    MockERC20 nonZeroStakeAsset_ = new MockERC20("Mock Stake Asset", "MockStakeAsset", 6);
+    MockStkReceiptToken nonZeroStkReceiptToken_ =
+      new MockStkReceiptToken(address(component), "Mock Stake Receipt Token", "MockStakeReceiptToken", 6);
+    nonZeroStkReceiptToken_.mint(address(this), mintedSupply_);
+    StakePool memory nonZeroStakePool_ = StakePool({
+      amount: mintedSupply_,
+      asset: IERC20(address(nonZeroStakeAsset_)),
+      stkReceiptToken: IReceiptToken(address(nonZeroStkReceiptToken_)),
+      rewardsWeight: nonZeroWeight_
+    });
+    component.mockAddStakePool(nonZeroStakePool_);
+
+    MockERC20 rewardAsset_ = new MockERC20("Mock Reward Asset", "MockRewardAsset", 6);
+    RewardPool memory rewardPool_ = RewardPool({
+      undrippedRewards: 10_000,
+      cumulativeDrippedRewards: 1200,
+      lastDripTime: uint128(block.timestamp),
+      asset: IERC20(address(rewardAsset_)),
+      dripModel: IDripModel(address(new MockDripModel(0))),
+      epoch: 5,
+      logIndexSnapshot: 11
+    });
+    component.mockAddRewardPool(rewardPool_);
+
+    ClaimableRewardsData memory zeroClaimable_ =
+      ClaimableRewardsData({cumulativeClaimableRewards: 90, indexSnapshot: 33});
+    component.mockSetClaimableRewardsData(
+      0, 0, uint128(zeroClaimable_.indexSnapshot), uint128(zeroClaimable_.cumulativeClaimableRewards)
+    );
+
+    ClaimableRewardsData memory nonZeroClaimable_ =
+      ClaimableRewardsData({cumulativeClaimableRewards: 200, indexSnapshot: 44});
+    component.mockSetClaimableRewardsData(
+      1, 0, uint128(nonZeroClaimable_.indexSnapshot), uint128(nonZeroClaimable_.cumulativeClaimableRewards)
+    );
+
+    component.dripAndResetCumulativeRewardsValues();
+
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    ClaimableRewardsData[] memory zeroClaimableAfter_ = component.getClaimableRewards(0);
+    ClaimableRewardsData[] memory nonZeroClaimableAfter_ = component.getClaimableRewards(1);
+
+    uint256 zeroShare_ = (rewardPool_.cumulativeDrippedRewards * zeroStakePool_.rewardsWeight) / MathConstants.ZOC;
+    uint256 expectedRecycled_ = zeroShare_ - zeroClaimable_.cumulativeClaimableRewards;
+    assertEq(rewardPools_[0].undrippedRewards, rewardPool_.undrippedRewards + expectedRecycled_);
+    assertEq(rewardPools_[0].cumulativeDrippedRewards, 0);
+
+    assertEq(zeroClaimableAfter_[0].cumulativeClaimableRewards, 0);
+    assertEq(zeroClaimableAfter_[0].indexSnapshot, zeroClaimable_.indexSnapshot);
+
+    uint256 nonZeroShare_ = (rewardPool_.cumulativeDrippedRewards * nonZeroStakePool_.rewardsWeight) / MathConstants.ZOC;
+    uint256 expectedNonZeroUnclaimed_ = nonZeroShare_ - nonZeroClaimable_.cumulativeClaimableRewards;
+    uint256 expectedNonZeroIndex_ =
+      nonZeroClaimable_.indexSnapshot + (expectedNonZeroUnclaimed_ * wadSquared_) / mintedSupply_;
+
+    assertEq(nonZeroClaimableAfter_[0].cumulativeClaimableRewards, 0);
+    assertEq(nonZeroClaimableAfter_[0].indexSnapshot, expectedNonZeroIndex_);
+    assertEq(rewardPools_[0].epoch, rewardPool_.epoch);
+    assertEq(rewardPools_[0].logIndexSnapshot, rewardPool_.logIndexSnapshot);
   }
 
   function test_dripAndResetCumulativeRewardsValuesConcrete() public {
