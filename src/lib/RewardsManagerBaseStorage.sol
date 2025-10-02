@@ -49,6 +49,15 @@ abstract contract RewardsManagerBaseStorage {
   /// @dev True if the rewards manager has been initialized.
   bool public initialized;
 
+  /// @notice EIP-712 domain separator version.
+  uint64 public eip712DomainVersion;
+
+  /// @notice EIP-712 domain separator name.
+  string public eip712DomainName;
+
+  /// @notice Tracks per-owner nonces for EIP-712 signed operations.
+  mapping(address owner_ => mapping(bytes32 actionKey_ => uint256 nonce_)) public eip712Nonces;
+
   /// @notice The state of this rewards manager.
   RewardsManagerState public rewardsManagerState;
 

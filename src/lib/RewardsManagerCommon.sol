@@ -13,8 +13,44 @@ import {
   ClaimRewardsPoolData
 } from "./structs/Rewards.sol";
 import {StakePool, RewardPool} from "./structs/Pools.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {ICommonEvents} from "../interfaces/ICommonEvents.sol";
+import {Governable} from "cozy-safety-module-libs/lib/Governable.sol";
 
-abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErrors {
+abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErrors, ICommonEvents, Governable {
+  /// @dev Thrown when a signature's deadline has passed.
+  error SignatureExpired();
+
+  /// @dev Thrown when a signature is invalid.
+  error InvalidSignature();
+
+  /// @notice Builds the EIP-712 domain separator.
+  function _buildDomainSeparator() internal view returns (bytes32) {
+    return keccak256(
+      abi.encode(
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"), //EIP712
+          // Domain typehash
+        keccak256(bytes(eip712DomainName)), // name
+        keccak256(bytes(Strings.toString(eip712DomainVersion))), // version
+        block.chainid, // chainId
+        address(this) // verifyingContract
+      )
+    );
+  }
+
+  /// @notice Set a new version; invalidates all outstanding signatures immediately.
+  function incrementEIP712Version() external onlyOwner {
+    eip712DomainVersion++;
+    emit EIP712DomainVersionUpdated(eip712DomainVersion);
+  }
+
+  /// @notice Set a new name for the EIP-712 domain; invalidates all outstanding signatures immediately.
+  /// @param name_ The new name.
+  function setEIP712DomainName(string calldata name_) external onlyOwner {
+    eip712DomainName = name_;
+    emit EIP712DomainNameUpdated(eip712DomainName);
+  }
+
   /// @dev Defined in RewardsDistributor.
   function _claimRewards(ClaimRewardsArgs memory args_, ClaimRewardsPoolData[] memory claimRewardsPoolData_)
     internal

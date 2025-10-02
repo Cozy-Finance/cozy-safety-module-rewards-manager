@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {Governable} from "cozy-safety-module-libs/lib/Governable.sol";
 import {IStateChangerEvents} from "../interfaces/IStateChangerEvents.sol";
 import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {IRewardsDistributorErrors} from "../interfaces/IRewardsDistributorErrors.sol";
 import {RewardPool} from "./structs/Pools.sol";
 
-abstract contract StateChanger is RewardsManagerCommon, Governable, IStateChangerEvents {
+abstract contract StateChanger is RewardsManagerCommon, IStateChangerEvents {
   /// @notice Pause the rewards manager.
   /// @dev Only the owner, pauser, or Cozy manager can pause the rewards manager.
   /// @dev Note that by default all reward pools are dripped when pausing. If you want to pause without dripping from
