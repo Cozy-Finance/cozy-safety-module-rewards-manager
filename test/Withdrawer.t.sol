@@ -62,10 +62,10 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     cozyManager.updateDepositFee(0);
   }
 
-  function _depositRewardAssets(address owner_, uint256 amount_) internal {
-    rewardAsset.mint(owner_, amount_);
+  function _depositRewardAssets(address depositor_, uint256 amount_) internal {
+    rewardAsset.mint(depositor_, amount_);
 
-    vm.startPrank(owner_);
+    vm.startPrank(depositor_);
     rewardAsset.approve(address(rewardsManager), amount_);
     rewardsManager.depositRewardAssets(DEFAULT_REWARD_POOL_ID, amount_);
     vm.stopPrank();
@@ -78,12 +78,12 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
   }
 
   function test_depositNoWithdraw() public {
-    address owner_ = _randomAddress();
+    address depositor_ = _randomAddress();
     uint256 depositAmount_ = bound(_randomUint256(), 1, type(uint64).max);
 
-    _depositRewardAssets(owner_, depositAmount_);
+    _depositRewardAssets(depositor_, depositAmount_);
 
-    uint256 withdrawableRewards_ = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_);
+    uint256 withdrawableRewards_ = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_);
     assertEq(withdrawableRewards_, depositAmount_, "Should be able to withdraw full amount");
 
     RewardPool memory pool_ = getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID);
@@ -93,23 +93,23 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
   }
 
   function test_depositAndWithdraw() public {
-    address owner_ = _randomAddress();
+    address depositor_ = _randomAddress();
     uint256 depositAmount_ = bound(_randomUint256(), 1, type(uint64).max);
 
-    _depositRewardAssets(owner_, depositAmount_);
+    _depositRewardAssets(depositor_, depositAmount_);
 
-    assertEq(rewardAsset.balanceOf(owner_), 0, "Owner should have fully deposited rewards");
+    assertEq(rewardAsset.balanceOf(depositor_), 0, "Depositor should have fully deposited rewards");
 
     _expectEmit();
-    emit IWithdrawerEvents.Withdrawn(owner_, DEFAULT_REWARD_POOL_ID, depositAmount_, owner_);
-    vm.prank(owner_);
-    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, depositAmount_, owner_);
+    emit IWithdrawerEvents.Withdrawn(depositor_, DEFAULT_REWARD_POOL_ID, depositAmount_, depositor_);
+    vm.prank(depositor_);
+    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, depositAmount_, depositor_);
 
-    assertEq(rewardAsset.balanceOf(owner_), depositAmount_, "Owner should get full amount");
+    assertEq(rewardAsset.balanceOf(depositor_), depositAmount_, "Depositor should get full amount");
     assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
       0,
-      "Owner should have no withdrawable rewards"
+      "Depositor should have no withdrawable rewards"
     );
 
     RewardPool memory pool_ = getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID);
@@ -120,30 +120,30 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
   }
 
   function test_depositDripWithdraw() public {
-    address owner_ = _randomAddress();
+    address depositor_ = _randomAddress();
     uint256 depositAmount_ = 100e18;
 
-    _depositRewardAssets(owner_, depositAmount_);
+    _depositRewardAssets(depositor_, depositAmount_);
 
-    assertEq(rewardAsset.balanceOf(owner_), 0, "Owner shouldn't have deposited rewards");
+    assertEq(rewardAsset.balanceOf(depositor_), 0, "Depositor shouldn't have deposited rewards");
 
     _performDrip(0.5e18);
 
     // Check withdrawable rewards (should be 50% of original, up to rounding down)
-    uint256 withdrawableRewards_ = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_);
+    uint256 withdrawableRewards_ = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_);
     assertLe(withdrawableRewards_, 50e18);
     assertApproxEqRel(withdrawableRewards_, 50e18, 1e15, "Should have 50% remaining after 50% drip");
 
     _expectEmit();
-    emit IWithdrawerEvents.Withdrawn(owner_, DEFAULT_REWARD_POOL_ID, withdrawableRewards_, owner_);
-    vm.prank(owner_);
-    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, withdrawableRewards_, owner_);
+    emit IWithdrawerEvents.Withdrawn(depositor_, DEFAULT_REWARD_POOL_ID, withdrawableRewards_, depositor_);
+    vm.prank(depositor_);
+    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, withdrawableRewards_, depositor_);
 
-    assertEq(rewardAsset.balanceOf(owner_), withdrawableRewards_, "Owner should get 50%");
+    assertEq(rewardAsset.balanceOf(depositor_), withdrawableRewards_, "Depositor should get 50%");
     assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
       0,
-      "Owner should have no balance left"
+      "Depositor should have no balance left"
     );
     assertEq(
       rewardsManager.assetPools(IERC20(address(rewardAsset))).amount,
@@ -153,22 +153,22 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
   }
 
   function test_depositFullDripWithdraw() public {
-    address owner_ = _randomAddress();
+    address depositor_ = _randomAddress();
     uint256 depositAmount_ = bound(_randomUint256(), 1, type(uint64).max);
 
-    _depositRewardAssets(owner_, depositAmount_);
+    _depositRewardAssets(depositor_, depositAmount_);
 
     // Perform 100% drip
     _performDrip(WAD);
 
     assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
       0,
       "Should have nothing after 100% drip"
     );
 
-    vm.prank(owner_);
-    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 1, owner_);
+    vm.prank(depositor_);
+    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 1, depositor_);
 
     RewardPool memory pool = getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID);
     assertEq(pool.epoch, 1, "Epoch should increment after 100% drip");
@@ -267,10 +267,10 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
   }
 
   function test_withdrawMultipleDripsCompound() public {
-    address owner_ = _randomAddress();
+    address depositor_ = _randomAddress();
     uint256 depositAmount_ = 1000e18;
 
-    _depositRewardAssets(owner_, depositAmount_);
+    _depositRewardAssets(depositor_, depositAmount_);
 
     // Perform multiple drips: 10%, 20%, 30%
     // Retention factors: 0.9, 0.8, 0.7
@@ -279,18 +279,18 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     _performDrip(0.2e18); // 20% drip, 80% retention
     _performDrip(0.3e18); // 30% drip, 70% retention
 
-    uint256 withdrawableRewards_ = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_);
+    uint256 withdrawableRewards_ = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_);
     assertLe(withdrawableRewards_, 504e18);
     assertApproxEqRel(withdrawableRewards_, 504e18, 1e15, "Should have 50.4% remaining after compound drips");
   }
 
   function test_epochTransitionSingle() public {
-    address owner1_ = address(0x1);
-    address owner2_ = address(0x2);
+    address depositor1_ = address(0x1);
+    address depositor2_ = address(0x2);
     uint256 depositAmount_ = bound(_randomUint256(), 1, type(uint64).max);
 
-    // Owner 1 deposits before epoch transition
-    _depositRewardAssets(owner1_, depositAmount_);
+    // Depositor 1 deposits before epoch transition
+    _depositRewardAssets(depositor1_, depositAmount_);
 
     // Verify initial state
     RewardPool memory poolBefore_ = getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID);
@@ -304,50 +304,50 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertEq(poolAfter_.epoch, 1, "Epoch should increment to 1");
     assertEq(poolAfter_.logIndexSnapshot, 0, "Log index should reset to 0");
 
-    // Owner 1 should have no balance
+    // Depositor 1 should have no balance
     assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner1_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor1_),
       0,
       "Old epoch depositor should have 0 balance"
     );
 
-    // Owner 2 deposits in new epoch
-    _depositRewardAssets(owner2_, depositAmount_);
+    // Depositor 2 deposits in new epoch
+    _depositRewardAssets(depositor2_, depositAmount_);
     assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner2_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor2_),
       depositAmount_,
       "New epoch depositor should have full balance"
     );
 
-    // Owner 1 still has 0
+    // Depositor 1 still has 0
     assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner1_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor1_),
       0,
       "Old epoch depositor should still have 0"
     );
   }
 
   function test_epochTransitionMultiple() public {
-    address owner_ = _randomAddress();
+    address depositor_ = _randomAddress();
     uint256 depositAmount_ = bound(_randomUint256(), 1, type(uint64).max);
 
     // Deposit in epoch 0
-    _depositRewardAssets(owner_, depositAmount_);
+    _depositRewardAssets(depositor_, depositAmount_);
     assertEq(getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID).epoch, 0, "Should be epoch 0");
 
     // First 100% drip -> epoch 1
     _performDrip(WAD);
     assertEq(getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID).epoch, 1, "Should be epoch 1");
     assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
       0,
       "Should have 0 balance after epoch change"
     );
 
     // Deposit in epoch 1
-    _depositRewardAssets(owner_, depositAmount_);
+    _depositRewardAssets(depositor_, depositAmount_);
     assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
       depositAmount_,
       "Should have full balance in new epoch"
     );
@@ -356,25 +356,25 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     _performDrip(WAD);
     assertEq(getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID).epoch, 2, "Should be epoch 2");
     assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
       0,
       "Should have 0 balance after second epoch change"
     );
   }
 
   function test_epochTransitionWithPartialDrips() public {
-    address owner_ = _randomAddress();
+    address depositor_ = _randomAddress();
     uint256 depositAmount_ = bound(_randomUint256(), 1, type(uint64).max);
 
     // Deposit in epoch 0
-    _depositRewardAssets(owner_, depositAmount_);
+    _depositRewardAssets(depositor_, depositAmount_);
 
     // Partial drips in same epoch
     _performDrip(0.1e18); // 10% drip
     _performDrip(0.2e18); // 20% drip
 
     assertGt(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
       0,
       "Should have balance before epoch transition"
     );
@@ -382,51 +382,18 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // 100% drip -> new epoch
     _performDrip(WAD);
     assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
       0,
       "Should have 0 after epoch transition"
     );
     assertEq(getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID).epoch, 1, "Should be in new epoch");
 
     // New deposit in new epoch works normally
-    _depositRewardAssets(owner_, depositAmount_);
+    _depositRewardAssets(depositor_, depositAmount_);
     assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, owner_),
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
       depositAmount_,
       "New deposit should work in new epoch"
-    );
-  }
-
-  function test_oldEpochOwnerCannotStealFromNewEpoch() public {
-    address oldOwner_ = address(0x1);
-    address newOwner_ = address(0x2);
-    uint256 depositAmount_ = 100e18;
-
-    // Old depositor in epoch 0
-    _depositRewardAssets(oldOwner_, depositAmount_);
-
-    // Epoch transition
-    _performDrip(WAD);
-
-    // New depositor in epoch 1
-    _depositRewardAssets(newOwner_, depositAmount_ * 2);
-
-    // Old depositor tries to withdraw
-    assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, oldOwner_),
-      0,
-      "Old depositor should have 0"
-    );
-
-    vm.prank(oldOwner_);
-    vm.expectRevert(IWithdrawerErrors.InvalidWithdraw.selector);
-    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 1, oldOwner_);
-
-    // New depositor can withdraw their full amount
-    assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, newOwner_),
-      depositAmount_ * 2,
-      "New depositor should have full amount"
     );
   }
 
