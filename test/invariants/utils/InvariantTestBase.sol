@@ -45,22 +45,18 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
   }
 
   function _fuzzedSelectors() internal pure virtual returns (bytes4[] memory) {
-    bytes4[] memory selectors = new bytes4[](14);
+    bytes4[] memory selectors = new bytes4[](10);
     selectors[0] = RewardsManagerHandler.depositRewardAssets.selector;
     selectors[1] = RewardsManagerHandler.depositRewardAssetsWithExistingActor.selector;
-    selectors[2] = RewardsManagerHandler.depositRewardAssetsWithoutTransfer.selector;
-    selectors[3] = RewardsManagerHandler.depositRewardAssetsWithoutTransferWithExistingActor.selector;
-    selectors[4] = RewardsManagerHandler.stake.selector;
-    selectors[5] = RewardsManagerHandler.stakeWithExistingActor.selector;
-    selectors[6] = RewardsManagerHandler.stakeWithoutTransfer.selector;
-    selectors[7] = RewardsManagerHandler.stakeWithoutTransferWithExistingActor.selector;
-    selectors[8] = RewardsManagerHandler.unstake.selector;
+    selectors[2] = RewardsManagerHandler.stake.selector;
+    selectors[3] = RewardsManagerHandler.stakeWithExistingActor.selector;
+    selectors[4] = RewardsManagerHandler.unstake.selector;
     // RewardsDistributor selectors
-    selectors[9] = RewardsManagerHandler.dripRewards.selector;
-    selectors[10] = RewardsManagerHandler.dripRewardPool.selector;
-    selectors[11] = RewardsManagerHandler.claimRewards.selector;
-    selectors[12] = RewardsManagerHandler.stkReceiptTokenTransfer.selector;
-    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer.selector;
+    selectors[5] = RewardsManagerHandler.dripRewards.selector;
+    selectors[6] = RewardsManagerHandler.dripRewardPool.selector;
+    selectors[7] = RewardsManagerHandler.claimRewards.selector;
+    selectors[8] = RewardsManagerHandler.stkReceiptTokenTransfer.selector;
+    selectors[9] = RewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer.selector;
     return selectors;
   }
 
@@ -90,25 +86,21 @@ abstract contract InvariantTestBase is InvariantBaseDeploy {
 
 abstract contract InvariantTestBaseWithStateTransitions is InvariantTestBase {
   function _fuzzedSelectors() internal pure override returns (bytes4[] memory) {
-    bytes4[] memory selectors = new bytes4[](16);
+    bytes4[] memory selectors = new bytes4[](12);
     selectors[0] = RewardsManagerHandler.depositRewardAssets.selector;
     selectors[1] = RewardsManagerHandler.depositRewardAssetsWithExistingActor.selector;
-    selectors[2] = RewardsManagerHandler.depositRewardAssetsWithoutTransfer.selector;
-    selectors[3] = RewardsManagerHandler.depositRewardAssetsWithoutTransferWithExistingActor.selector;
-    selectors[4] = RewardsManagerHandler.stake.selector;
-    selectors[5] = RewardsManagerHandler.stakeWithExistingActor.selector;
-    selectors[6] = RewardsManagerHandler.stakeWithoutTransfer.selector;
-    selectors[7] = RewardsManagerHandler.stakeWithoutTransferWithExistingActor.selector;
-    selectors[8] = RewardsManagerHandler.unstake.selector;
+    selectors[2] = RewardsManagerHandler.stake.selector;
+    selectors[3] = RewardsManagerHandler.stakeWithExistingActor.selector;
+    selectors[4] = RewardsManagerHandler.unstake.selector;
     // RewardsDistributor selectors
-    selectors[9] = RewardsManagerHandler.dripRewards.selector;
-    selectors[10] = RewardsManagerHandler.dripRewardPool.selector;
-    selectors[11] = RewardsManagerHandler.claimRewards.selector;
-    selectors[12] = RewardsManagerHandler.stkReceiptTokenTransfer.selector;
-    selectors[13] = RewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer.selector;
+    selectors[5] = RewardsManagerHandler.dripRewards.selector;
+    selectors[6] = RewardsManagerHandler.dripRewardPool.selector;
+    selectors[7] = RewardsManagerHandler.claimRewards.selector;
+    selectors[8] = RewardsManagerHandler.stkReceiptTokenTransfer.selector;
+    selectors[9] = RewardsManagerHandler.updateUserRewardsForStkReceiptTokenTransfer.selector;
     // State transition selectors
-    selectors[14] = RewardsManagerHandler.pause.selector;
-    selectors[15] = RewardsManagerHandler.unpause.selector;
+    selectors[10] = RewardsManagerHandler.pause.selector;
+    selectors[11] = RewardsManagerHandler.unpause.selector;
     return selectors;
   }
 }

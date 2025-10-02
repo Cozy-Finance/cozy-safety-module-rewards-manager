@@ -43,8 +43,9 @@ contract StakerUnitTest is TestBase {
 
   event Staked(
     address indexed caller_,
+    address indexed owner_,
     address indexed receiver_,
-    uint16 indexed stakePoolId_,
+    uint16 stakePoolId_,
     IReceiptToken stkReceiptToken_,
     uint256 assetAmount_
   );
@@ -91,9 +92,35 @@ contract StakerUnitTest is TestBase {
     vm.mockCall(address(mockStkReceiptToken), abi.encodeWithSelector(IERC20.totalSupply.selector), abi.encode(0));
   }
 
-  function test_stake_StkReceiptTokensAndStorageUpdates_NonZeroSupply() external {
+  function _stake(
+    bool isSelfStake_,
+    uint16 stakePoolId_,
+    uint256 assetAmount_,
+    address receiver_,
+    address staker_,
+    address caller_
+  ) internal {
+    if (isSelfStake_) {
+      vm.prank(caller_);
+      component.stake(stakePoolId_, assetAmount_, receiver_);
+    } else {
+      vm.prank(caller_);
+      component.stakeOnBehalf(stakePoolId_, assetAmount_, staker_);
+    }
+  }
+
+  function test_stake_StkReceiptTokensAndStorageUpdates_NonZeroSupply_selfStake() external {
+    _test_stake_StkReceiptTokensAndStorageUpdates_NonZeroSupply(true);
+  }
+
+  function test_stake_StkReceiptTokensAndStorageUpdates_NonZeroSupply_onBehalfOfStake() external {
+    _test_stake_StkReceiptTokensAndStorageUpdates_NonZeroSupply(false);
+  }
+
+  function _test_stake_StkReceiptTokensAndStorageUpdates_NonZeroSupply(bool isSelfStake_) internal {
     address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
+    address caller_ = isSelfStake_ ? staker_ : _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
     uint128 amountToStake_ = 20e18;
 
     // Mint initial safety module receipt token balance for staker.
@@ -103,10 +130,9 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(caller_, staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
-    vm.prank(staker_);
-    component.stake(0, amountToStake_, receiver_);
+    _stake(isSelfStake_, 0, amountToStake_, receiver_, staker_, caller_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockStakeAsset)));
@@ -133,11 +159,20 @@ contract StakerUnitTest is TestBase {
     assertEq(mockStkReceiptToken.balanceOf(receiver_), amountToStake_);
   }
 
-  function test_stake_StkReceiptTokensAndStorageUpdates_ZeroSupply() external {
+  function test_stake_StkReceiptTokensAndStorageUpdates_ZeroSupply_selfStake() external {
+    _test_stake_StkReceiptTokensAndStorageUpdates_ZeroSupply(true);
+  }
+
+  function test_stake_StkReceiptTokensAndStorageUpdates_ZeroSupply_onBehalfOfStake() external {
+    _test_stake_StkReceiptTokensAndStorageUpdates_ZeroSupply(false);
+  }
+
+  function _test_stake_StkReceiptTokensAndStorageUpdates_ZeroSupply(bool isSelfStake_) internal {
     _overrideSetUpToZeroStkReceiptTokenSupply();
 
     address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
+    address caller_ = isSelfStake_ ? staker_ : _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
     uint128 amountToStake_ = 20e18;
 
     // Mint initial safety module receipt token balance for staker.
@@ -147,10 +182,9 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(caller_, staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
-    vm.prank(staker_);
-    component.stake(0, amountToStake_, receiver_);
+    _stake(isSelfStake_, 0, amountToStake_, receiver_, staker_, caller_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockStakeAsset)));
@@ -169,9 +203,18 @@ contract StakerUnitTest is TestBase {
     assertEq(mockStkReceiptToken.balanceOf(receiver_), amountToStake_);
   }
 
-  function test_stake_RevertWhenPaused() external {
+  function test_stake_RevertWhenPaused_selfStake() external {
+    _test_stake_RevertWhenPaused(true);
+  }
+
+  function test_stake_RevertWhenPaused_onBehalfOfStake() external {
+    _test_stake_RevertWhenPaused(false);
+  }
+
+  function _test_stake_RevertWhenPaused(bool isSelfStake_) internal {
     address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
+    address caller_ = isSelfStake_ ? staker_ : _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
 
     uint256 amountToStake_ = 20e18;
     // Mint initial safety module receipt token balance for staker.
@@ -184,24 +227,40 @@ contract StakerUnitTest is TestBase {
     component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
 
     vm.expectRevert(ICommonErrors.InvalidState.selector);
-    vm.prank(staker_);
-    component.stake(0, amountToStake_, receiver_);
+    _stake(isSelfStake_, 0, amountToStake_, receiver_, staker_, caller_);
   }
 
-  function test_stake_RevertOutOfBoundsStakePoolId() external {
+  function test_stake_RevertOutOfBoundsStakePoolId_selfStake() external {
+    _test_stake_RevertOutOfBoundsStakePoolId(true);
+  }
+
+  function test_stake_RevertOutOfBoundsStakePoolId_onBehalfOfStake() external {
+    _test_stake_RevertOutOfBoundsStakePoolId(false);
+  }
+
+  function _test_stake_RevertOutOfBoundsStakePoolId(bool isSelfStake_) internal {
     address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
+    address caller_ = isSelfStake_ ? staker_ : _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
 
     _expectPanic(INDEX_OUT_OF_BOUNDS);
-    vm.prank(staker_);
-    component.stake(1, 10e18, receiver_);
+    _stake(isSelfStake_, 1, 10e18, receiver_, staker_, caller_);
   }
 
-  function testFuzz_stake_RevertInsufficientAssetsAvailable(uint256 amountToStake_) external {
+  function testFuzz_stake_RevertInsufficientAssetsAvailable_selfStake(uint256 amountToStake_) external {
+    _testFuzz_stake_RevertInsufficientAssetsAvailable(true, amountToStake_);
+  }
+
+  function testFuzz_stake_RevertInsufficientAssetsAvailable_onBehalfOfStake(uint256 amountToStake_) external {
+    _testFuzz_stake_RevertInsufficientAssetsAvailable(false, amountToStake_);
+  }
+
+  function _testFuzz_stake_RevertInsufficientAssetsAvailable(bool isSelfStake_, uint256 amountToStake_) internal {
     amountToStake_ = bound(amountToStake_, 1, type(uint216).max);
 
     address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
+    address caller_ = isSelfStake_ ? staker_ : _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
 
     // Mint insufficient safety module receipt tokens for staker.
     mockStakeAsset.mint(staker_, amountToStake_ - 1);
@@ -210,140 +269,26 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountToStake_);
 
     _expectPanic(PANIC_MATH_UNDEROVERFLOW);
-    vm.prank(staker_);
-    component.stake(0, amountToStake_, receiver_);
+    _stake(isSelfStake_, 0, amountToStake_, receiver_, staker_, caller_);
   }
 
-  function test_stakeWithoutTransfer_StkReceiptTokensAndStorageUpdates_NonZeroSupply() external {
+  function test_stake_RevertZeroShares_selfStake() external {
+    _test_stake_RevertZeroShares(true);
+  }
+
+  function test_stake_RevertZeroShares_onBehalfOfStake() external {
+    _test_stake_RevertZeroShares(false);
+  }
+
+  function _test_stake_RevertZeroShares(bool isSelfStake_) internal {
     address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
-    uint128 amountToStake_ = 20e18;
-
-    // Mint initial balance for staker.
-    mockStakeAsset.mint(staker_, amountToStake_);
-    // Transfer to rewards manager.
-    vm.prank(staker_);
-    mockStakeAsset.transfer(address(component), amountToStake_);
-
-    _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
-
-    vm.prank(staker_);
-    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
-
-    StakePool memory finalStakePool_ = component.getStakePool(0);
-    AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockStakeAsset)));
-    // 100e18 + 20e18
-    assertEq(finalStakePool_.amount, amountToStake_ + initialStakeAmount);
-    assertEq(finalAssetPool_.amount, amountToStake_ + initialStakeAmount);
-    assertEq(mockStakeAsset.balanceOf(address(component)), amountToStake_ + initialStakeAmount);
-
-    assertEq(mockStakeAsset.balanceOf(staker_), 0);
-    assertEq(mockStkReceiptToken.balanceOf(receiver_), amountToStake_);
-  }
-
-  function test_stakeWithoutTransfer_StkReceiptTokensAndStorageUpdates_ZeroSupply() external {
-    _overrideSetUpToZeroStkReceiptTokenSupply();
-
-    address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
-    uint128 amountToStake_ = 20e18;
-
-    // Mint initial safety module receipt token balance for staker.
-    mockStakeAsset.mint(staker_, amountToStake_);
-    // Transfer to rewards manager.
-    vm.prank(staker_);
-    mockStakeAsset.transfer(address(component), amountToStake_);
-
-    _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
-
-    vm.prank(staker_);
-    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
-
-    StakePool memory finalStakePool_ = component.getStakePool(0);
-    AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockStakeAsset)));
-    ClaimableRewardsData memory finalClaimableRewardsData_ = component.getClaimableRewardsData(0, 0);
-
-    assertEq(finalStakePool_.amount, amountToStake_);
-    assertEq(finalAssetPool_.amount, amountToStake_);
-    assertEq(mockStakeAsset.balanceOf(address(component)), amountToStake_);
-
-    // Because `stkReceiptToken.totalSupply() == 0` when the user stakes, the index snapshot and cumulative claimed
-    // rewards
-    // should not change.
-    assertEq(finalClaimableRewardsData_.indexSnapshot, initialIndexSnapshot_);
-    assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeClaimableRewards_);
-    assertEq(mockStakeAsset.balanceOf(staker_), 0);
-    assertEq(mockStkReceiptToken.balanceOf(receiver_), amountToStake_);
-  }
-
-  function test_stakeWithoutTransfer_RevertWhenPaused() external {
-    address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
-
-    // Mint initial safety module receipt token balance for rewards manager.
-    mockStakeAsset.mint(address(component), 150e18);
-
-    uint256 amountToStake_ = 20e18;
-    // Mint initial safety module receipt token balance for staker.
-    mockStakeAsset.mint(staker_, amountToStake_);
-
-    // Transfer to rewards manager.
-    vm.prank(staker_);
-    mockStakeAsset.transfer(address(component), amountToStake_);
-
-    component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
-
-    vm.expectRevert(ICommonErrors.InvalidState.selector);
-    vm.prank(staker_);
-    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
-  }
-
-  function test_stakeWithoutTransfer_RevertOutOfBoundsStakePoolId() external {
-    address receiver_ = _randomAddress();
-
-    _expectPanic(INDEX_OUT_OF_BOUNDS);
-    component.stakeWithoutTransfer(1, 10e18, receiver_);
-  }
-
-  function testFuzz_stakeWithoutTransfer_RevertInsufficientAssetsAvailable(uint256 amountToStake_) external {
-    amountToStake_ = bound(amountToStake_, 1, type(uint216).max);
-
-    address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
-
-    // Mint safety module receipt tokens for staker.
-    mockStakeAsset.mint(staker_, amountToStake_);
-    // Transfer insufficient safety module receipt tokens to safety module.
-    vm.prank(staker_);
-    mockStakeAsset.transfer(address(component), amountToStake_ - 1);
-
-    vm.expectRevert(IDepositorErrors.InvalidDeposit.selector);
-    vm.prank(staker_);
-    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
-  }
-
-  function test_stake_RevertZeroShares() external {
-    address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
+    address caller_ = isSelfStake_ ? staker_ : _randomAddress();
+    address receiver_ = isSelfStake_ ? _randomAddress() : staker_;
     uint256 amountToStake_ = 0;
 
     // 0 assets should give 0 shares.
     vm.expectRevert(ICommonErrors.AmountIsZero.selector);
-    vm.prank(staker_);
-    component.stake(0, amountToStake_, receiver_);
-  }
-
-  function test_stakeWithoutTransfer_RevertZeroShares() external {
-    address staker_ = _randomAddress();
-    address receiver_ = _randomAddress();
-    uint256 amountToStake_ = 0;
-
-    // 0 assets should give 0 shares.
-    vm.expectRevert(ICommonErrors.AmountIsZero.selector);
-    vm.prank(staker_);
-    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
+    _stake(isSelfStake_, 0, amountToStake_, receiver_, staker_, caller_);
   }
 
   function _setupDefaultSingleUserFixture()
@@ -361,7 +306,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountStaked_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
+    emit Staked(staker_, staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
 
     vm.prank(staker_);
     component.stake(0, amountStaked_, receiver_);

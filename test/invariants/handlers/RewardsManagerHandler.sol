@@ -127,35 +127,6 @@ contract RewardsManagerHandler is TestBase {
     return currentActor;
   }
 
-  function depositRewardAssetsWithoutTransfer(uint256 assetAmount_, uint256 seed_)
-    public
-    virtual
-    createActor
-    createActorWithRewardDeposits
-    useValidRewardPoolId(seed_)
-    countCall("depositRewardAssetsWithoutTransfer")
-    advanceTime(seed_)
-    returns (address actor_)
-  {
-    _depositRewardAssetsWithoutTransfer(assetAmount_);
-
-    return currentActor;
-  }
-
-  function depositRewardAssetsWithoutTransferWithExistingActor(uint256 assetAmount_, uint256 seed_)
-    public
-    virtual
-    useActor(seed_)
-    useValidRewardPoolId(seed_)
-    countCall("depositRewardAssetsWithoutTransferWithExistingActor")
-    advanceTime(seed_)
-    returns (address actor_)
-  {
-    _depositRewardAssetsWithoutTransfer(assetAmount_);
-
-    return currentActor;
-  }
-
   function stake(uint256 assetAmount_, uint256 seed_)
     public
     virtual
@@ -185,33 +156,15 @@ contract RewardsManagerHandler is TestBase {
     return currentActor;
   }
 
-  function stakeWithoutTransfer(uint256 assetAmount_, uint256 seed_)
-    public
-    virtual
-    createActor
-    createActorWithStakes
-    useValidStakePoolId(seed_)
-    countCall("stakeWithoutTransfer")
-    advanceTime(seed_)
-    returns (address actor_)
-  {
-    _stakeWithoutTransfer(assetAmount_);
+  function stakeWithExistingActorWithoutCountingCall(uint256 assets_) external returns (address) {
+    uint256 invalidCallsBefore_ = invalidCalls["stakeWithExistingActor"];
 
-    return currentActor;
-  }
+    address actor_ = stakeWithExistingActor(assets_, _randomUint256());
 
-  function stakeWithoutTransferWithExistingActor(uint256 assetAmount_, uint256 seed_)
-    public
-    virtual
-    useActor(seed_)
-    useValidStakePoolId(seed_)
-    countCall("stakeWithoutTransferWithExistingActor")
-    advanceTime(seed_)
-    returns (address actor_)
-  {
-    _stakeWithoutTransfer(assetAmount_);
+    calls["stakeWithExistingActor"] -= 1; // stakeWithExistingActor increments by 1.
+    if (invalidCallsBefore_ < invalidCalls["stakeWithExistingActor"]) invalidCalls["stakeWithExistingActor"] -= 1;
 
-    return currentActor;
+    return actor_;
   }
 
   function unstake(address receiver_, uint256 seed_)
@@ -365,15 +318,8 @@ contract RewardsManagerHandler is TestBase {
     console2.log("");
     console2.log("depositRewardAssets", calls["depositRewardAssets"]);
     console2.log("depositRewardAssetsWithExistingActor", calls["depositRewardAssetsWithExistingActor"]);
-    console2.log("depositRewardAssetsWithoutTransfer", calls["depositRewardAssetsWithoutTransfer"]);
-    console2.log(
-      "depositRewardAssetsWithoutTransferWithExistingActor",
-      calls["depositRewardAssetsWithoutTransferWithExistingActor"]
-    );
     console2.log("stake", calls["stake"]);
     console2.log("stakeWithExistingActor", calls["stakeWithExistingActor"]);
-    console2.log("stakeWithoutTransfer", calls["stakeWithoutTransfer"]);
-    console2.log("stakeWithoutTransferWithExistingActor", calls["stakeWithoutTransferWithExistingActor"]);
     console2.log("unstake", calls["unstake"]);
     console2.log("dripRewards", calls["dripRewards"]);
     console2.log("dripRewardPool", calls["dripRewardPool"]);
@@ -387,15 +333,8 @@ contract RewardsManagerHandler is TestBase {
     console2.log("");
     console2.log("depositRewardAssets", invalidCalls["depositRewardAssets"]);
     console2.log("depositRewardAssetsWithExistingActor", invalidCalls["depositRewardAssetsWithExistingActor"]);
-    console2.log("depositRewardAssetsWithoutTransfer", invalidCalls["depositRewardAssetsWithoutTransfer"]);
-    console2.log(
-      "depositRewardAssetsWithoutTransferWithExistingActor",
-      invalidCalls["depositRewardAssetsWithoutTransferWithExistingActor"]
-    );
     console2.log("stake", invalidCalls["stake"]);
     console2.log("stakeWithExistingActor", invalidCalls["stakeWithExistingActor"]);
-    console2.log("stakeWithoutTransfer", invalidCalls["stakeWithoutTransfer"]);
-    console2.log("stakeWithoutTransferWithExistingActor", invalidCalls["stakeWithoutTransferWithExistingActor"]);
     console2.log("unstake", invalidCalls["unstake"]);
     console2.log("dripRewards", invalidCalls["dripRewards"]);
     console2.log("dripRewardPool", invalidCalls["dripRewardPool"]);
@@ -406,17 +345,6 @@ contract RewardsManagerHandler is TestBase {
     );
     console2.log("pause", invalidCalls["pause"]);
     console2.log("unpause", invalidCalls["unpause"]);
-  }
-
-  function stakeWithoutTransferWithExistingActorWithoutCountingCall(uint256 assets_) external returns (address) {
-    uint256 invalidCallsBefore_ = invalidCalls["stakeWithExistingActor"];
-
-    address actor_ = stakeWithExistingActor(assets_, _randomUint256());
-
-    calls["stakeWithExistingActor"] -= 1; // stakeWithExistingActor increments by 1.
-    if (invalidCallsBefore_ < invalidCalls["stakeWithExistingActor"]) invalidCalls["stakeWithExistingActor"] -= 1;
-
-    return actor_;
   }
 
   function depositRewardAssetsWithExistingActorWithoutCountingCall(uint256 assets_) external returns (address) {
@@ -484,20 +412,6 @@ contract RewardsManagerHandler is TestBase {
     ghost_actorRewardDepositCount[currentActor][currentRewardPoolId] += 1;
   }
 
-  function _depositRewardAssetsWithoutTransfer(uint256 assetAmount_) internal {
-    assetAmount_ = boundDepositAssetAmount(assetAmount_);
-    IERC20 asset_ = getRewardPool(rewardsManager, currentRewardPoolId).asset;
-    _simulateTransferToRewardsManager(asset_, assetAmount_);
-
-    vm.startPrank(currentActor);
-    rewardsManager.depositRewardAssetsWithoutTransfer(currentRewardPoolId, assetAmount_);
-    vm.stopPrank();
-
-    ghost_rewardPoolCumulative[currentRewardPoolId].totalAssetAmount += assetAmount_;
-
-    ghost_actorRewardDepositCount[currentActor][currentRewardPoolId] += 1;
-  }
-
   function _stake(uint256 assetAmount_) internal {
     assetAmount_ = boundDepositAssetAmount(assetAmount_);
     IERC20 asset_ = getStakePool(rewardsManager, currentStakePoolId).asset;
@@ -506,21 +420,6 @@ contract RewardsManagerHandler is TestBase {
     vm.startPrank(currentActor);
     asset_.approve(address(rewardsManager), assetAmount_);
     rewardsManager.stake(currentStakePoolId, assetAmount_, currentActor);
-    vm.stopPrank();
-
-    ghost_stakePoolCumulative[currentStakePoolId].stakeAssetAmount += assetAmount_;
-    ghost_stakePoolCumulative[currentStakePoolId].totalAssetAmount += assetAmount_;
-
-    ghost_actorStakeCount[currentActor][currentStakePoolId] += 1;
-  }
-
-  function _stakeWithoutTransfer(uint256 assetAmount_) internal {
-    assetAmount_ = boundDepositAssetAmount(assetAmount_);
-    IERC20 asset_ = getStakePool(rewardsManager, currentStakePoolId).asset;
-    _simulateTransferToRewardsManager(asset_, assetAmount_);
-
-    vm.startPrank(currentActor);
-    rewardsManager.stakeWithoutTransfer(currentStakePoolId, assetAmount_, currentActor);
     vm.stopPrank();
 
     ghost_stakePoolCumulative[currentStakePoolId].stakeAssetAmount += assetAmount_;

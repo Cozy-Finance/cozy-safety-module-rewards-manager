@@ -18,27 +18,31 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
   using SafeERC20 for IERC20;
   using FixedPointMathLib for uint256;
 
-  /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool on behalf of `from_`.
-  /// @dev Assumes that `msg.sender` has approved the rewards manager to spend `rewardAssetAmount_` of the reward pool's
-  /// asset.
+  /// @notice Deposit `rewardAssetAmount_` reward assets held by `msg.sender` into `rewardPoolId_`, crediting
+  /// `msg.sender`.
+  /// @dev `msg.sender` is treated as the owner of the funds and must approve this contract to pull
+  /// `rewardAssetAmount_` of the pool's underlying asset via `transferFrom`.
   /// @param rewardPoolId_ The ID of the reward pool.
   /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external {
-    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    IERC20 asset_ = rewardPool_.asset;
-
-    asset_.safeTransferFrom(msg.sender, address(this), rewardAssetAmount_);
-    _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, rewardPool_);
+    _depositRewardAssets(rewardPoolId_, rewardAssetAmount_, msg.sender);
   }
 
-  /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool.
-  /// @dev Assumes that the user has already transferred `rewardAssetAmount_` of the reward pool's asset to the rewards
-  /// manager.
+  /// @notice Deposit `rewardAssetAmount_` reward assets into `rewardPoolId_` by pulling funds from `owner_`.
+  /// @dev `owner_` must approve this contract to pull `rewardAssetAmount_` of the pool's underlying asset via
+  /// `transferFrom`.
   /// @param rewardPoolId_ The ID of the reward pool.
   /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
-  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external {
+  /// @param owner_ The address from which the reward assets will be pulled and credited.
+  function depositRewardAssetsOnBehalf(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address owner_) external {
+    _depositRewardAssets(rewardPoolId_, rewardAssetAmount_, owner_);
+  }
+
+  function _depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address owner_) internal {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    _executeRewardDeposit(rewardPoolId_, rewardPool_.asset, rewardAssetAmount_, rewardPool_);
+    IERC20 asset_ = rewardPool_.asset;
+    asset_.safeTransferFrom(owner_, address(this), rewardAssetAmount_);
+    _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, rewardPool_, owner_);
   }
 
   /// @notice Preview the current amount of undripped rewards in the `rewardPoolId_` reward pool with unrealized drip
@@ -59,7 +63,8 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     uint16 rewardPoolId_,
     IERC20 token_,
     uint256 rewardAssetAmount_,
-    RewardPool storage rewardPool_
+    RewardPool storage rewardPool_,
+    address owner_
   ) internal {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
     _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
@@ -71,8 +76,8 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     uint256 depositAmount_ = rewardAssetAmount_ - depositFeeAmount_;
 
     uint256 currentWithdrawableRewards_ =
-      _previewCurrentWithdrawableRewards(rewardPool_, depositorRewards[rewardPoolId_][msg.sender]);
-    depositorRewards[rewardPoolId_][msg.sender] = DepositorRewardsData({
+      _previewCurrentWithdrawableRewards(rewardPool_, depositorRewards[rewardPoolId_][owner_]);
+    depositorRewards[rewardPoolId_][owner_] = DepositorRewardsData({
       withdrawableRewards: currentWithdrawableRewards_ + depositAmount_,
       logIndexSnapshot: rewardPool_.logIndexSnapshot,
       epoch: rewardPool_.epoch
@@ -81,7 +86,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     assetPools[token_].amount += depositAmount_;
     token_.safeTransfer(cozyManager.owner(), depositFeeAmount_);
 
-    emit Deposited(msg.sender, rewardPoolId_, depositAmount_, depositFeeAmount_);
+    emit Deposited(msg.sender, owner_, rewardPoolId_, depositAmount_, depositFeeAmount_);
   }
 
   function _assertValidDepositBalance(IERC20 token_, uint256 assetPoolBalance_, uint256 depositAmount_)
