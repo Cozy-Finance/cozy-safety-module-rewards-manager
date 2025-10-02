@@ -50,8 +50,6 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerEvents {
   ) external {
     if (block.timestamp > deadline_) revert SignatureExpired();
 
-    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-
     uint256 nonce_ = eip712Nonces[owner_][WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH];
 
     bytes32 digest_ = keccak256(
@@ -77,7 +75,7 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerEvents {
 
     eip712Nonces[owner_][WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH] = nonce_ + 1;
 
-    _withdrawRewardAssets(rewardPool_, rewardPoolId_, owner_, receiver_, rewardAssetAmount_);
+    _withdrawRewardAssets(rewardPools[rewardPoolId_], rewardPoolId_, owner_, receiver_, rewardAssetAmount_);
   }
 
   function _withdrawRewardAssets(
