@@ -37,6 +37,14 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
     virtual
     returns (uint256);
 
+  /// @notice Returns the next drip factor given a base amount, drip model and last drip time.
+  /// @dev Defined in RewardsDistributor.
+  function _getNextDripFactor(uint256 totalBaseAmount_, IDripModel dripModel_, uint256 lastDripTime_)
+    internal
+    view
+    virtual
+    returns (uint256);
+
   /// @dev Defined in RewardsDistributor.
   function _updateUserRewards(
     uint256 userStkReceiptTokenBalance_,

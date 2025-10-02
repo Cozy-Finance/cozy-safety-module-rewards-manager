@@ -340,6 +340,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   function _getNextDripFactor(uint256 totalBaseAmount_, IDripModel dripModel_, uint256 lastDripTime_)
     internal
     view
+    override
     returns (uint256)
   {
     if (rewardsManagerState == RewardsManagerState.PAUSED) return 0;

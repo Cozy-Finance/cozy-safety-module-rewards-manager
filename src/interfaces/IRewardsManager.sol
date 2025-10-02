@@ -3,9 +3,13 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {StakePool, RewardPool, AssetPool} from "../lib/structs/Pools.sol";
-import {ClaimableRewardsData, PreviewClaimableRewards, UserRewardsData} from "../lib/structs/Rewards.sol";
+import {
+  ClaimableRewardsData,
+  PreviewClaimableRewards,
+  UserRewardsData,
+  DepositorRewardsData
+} from "../lib/structs/Rewards.sol";
 import {RewardsManagerState} from "../lib/RewardsManagerStates.sol";
-import {ClaimableRewardsData, PreviewClaimableRewards} from "../lib/structs/Rewards.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 import {ICozyManager} from "./ICozyManager.sol";
 
@@ -36,6 +40,11 @@ interface IRewardsManager {
   function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory);
 
   function getClaimableRewards(uint16 stakePoolId_) external view returns (ClaimableRewardsData[] memory);
+
+  function getDepositorRewards(uint16 rewardPoolId_, address depositor_)
+    external
+    view
+    returns (DepositorRewardsData memory);
 
   function getRewardPools() external view returns (RewardPool[] memory);
 

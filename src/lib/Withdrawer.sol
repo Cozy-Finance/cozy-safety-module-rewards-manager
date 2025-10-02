@@ -3,28 +3,33 @@ pragma solidity 0.8.22;
 
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
+import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {RewardPool} from "./structs/Pools.sol";
 import {DepositorRewardsData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {RewardsMathLib} from "./RewardsMathLib.sol";
-import {IWithdrawerErrors} from "../interfaces/IWithdrawerErrors.sol";
+import {RewardsManagerState} from "./RewardsManagerStates.sol";
 import {IWithdrawerEvents} from "../interfaces/IWithdrawerEvents.sol";
 
-abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdrawerEvents {
+abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerEvents {
   using SafeERC20 for IERC20;
   using FixedPointMathLib for uint256;
 
   /// @notice Withdraw undripped reward assets.
   /// @param rewardPoolId_ The ID of the reward pool to withdraw from.
-  /// @param rewardAssetAmount_ The amount of reward assets to withdraw.
+  /// @param rewardAssetAmount_ The maximum amount of reward assets to withdraw. If type(uint256).max, all withdrawable
+  /// rewards will be withdrawn. Else, up to `rewardAssetAmount_` of withdrawable rewards will be withdrawn.
   /// @param receiver_ The address that will receive the withdrawn assets.
   function withdrawRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) external {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
+    if (rewardsManagerState != RewardsManagerState.PAUSED) _dripRewardPool(rewardPool_);
 
     uint256 currentWithdrawableRewards_ =
       _previewCurrentWithdrawableRewards(rewardPool_, depositorRewards[rewardPoolId_][msg.sender]);
-    if (rewardAssetAmount_ > currentWithdrawableRewards_) revert InvalidWithdraw();
+    rewardAssetAmount_ = rewardAssetAmount_ == type(uint256).max
+      ? currentWithdrawableRewards_
+      : (rewardAssetAmount_ < currentWithdrawableRewards_ ? rewardAssetAmount_ : currentWithdrawableRewards_);
 
     depositorRewards[rewardPoolId_][msg.sender] = DepositorRewardsData({
       withdrawableRewards: currentWithdrawableRewards_ - rewardAssetAmount_,
@@ -51,19 +56,44 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerErrors, IWithdr
     RewardPool storage rewardPool_,
     DepositorRewardsData storage depositorRewardsData_
   ) internal view override returns (uint256) {
-    if (depositorRewardsData_.epoch < rewardPool_.epoch || depositorRewardsData_.withdrawableRewards == 0) {
+    (uint256 nextRewardPoolEpoch_, uint256 nextRewardPoolLogIndexSnapshot_) =
+      _getNextRewardPoolEpochAndLogIndexSnapshot(rewardPool_);
+
+    if (depositorRewardsData_.epoch < nextRewardPoolEpoch_ || depositorRewardsData_.withdrawableRewards == 0) {
       // Rewards have fully dripped or the depositor previously had no withdrawable rewards, so the depositor has no
       // withdrawable rewards.
       return 0;
-    } else if (depositorRewardsData_.logIndexSnapshot == rewardPool_.logIndexSnapshot) {
+    } else if (depositorRewardsData_.logIndexSnapshot == nextRewardPoolLogIndexSnapshot_) {
       // Rewards have not dripped since the last update, so no update to the depositor's withdrawable rewards.
       return depositorRewardsData_.withdrawableRewards;
     } else {
       // Rewards have dripped since the last update, so scale down the depositor's withdrawable rewards by the amount of
       // drip.
       return depositorRewardsData_.withdrawableRewards.mulWadDown(
-        RewardsMathLib.expNeg(rewardPool_.logIndexSnapshot - depositorRewardsData_.logIndexSnapshot)
+        RewardsMathLib.expNeg(nextRewardPoolLogIndexSnapshot_ - depositorRewardsData_.logIndexSnapshot)
       );
+    }
+  }
+
+  function _getNextRewardPoolEpochAndLogIndexSnapshot(RewardPool storage rewardPool_)
+    internal
+    view
+    returns (uint256 nextRewardPoolEpoch_, uint256 nextRewardPoolLogIndexSnapshot_)
+  {
+    nextRewardPoolEpoch_ = rewardPool_.epoch;
+    nextRewardPoolLogIndexSnapshot_ = rewardPool_.logIndexSnapshot;
+
+    if (rewardPool_.lastDripTime != block.timestamp) {
+      uint256 nextDripFactor_ =
+        _getNextDripFactor(rewardPool_.undrippedRewards, rewardPool_.dripModel, rewardPool_.lastDripTime);
+
+      if (nextDripFactor_ == MathConstants.WAD) {
+        // Full drip, so increment epoch and reset log index
+        nextRewardPoolEpoch_ += 1;
+        nextRewardPoolLogIndexSnapshot_ = 0;
+      } else {
+        nextRewardPoolLogIndexSnapshot_ += RewardsMathLib.negLn(MathConstants.WAD - nextDripFactor_);
+      }
     }
   }
 }

@@ -779,6 +779,15 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     __readStub__();
   }
 
+  function _getNextDripFactor(uint256, /* totalBaseAmount_ */ IDripModel, /* dripModel_ */ uint256 /*lastDripTime_*/ )
+    internal
+    view
+    override
+    returns (uint256)
+  {
+    __readStub__();
+  }
+
   function _updateUserRewards(
     uint256, /*userStkReceiptTokenBalance_*/
     mapping(uint16 => ClaimableRewardsData) storage, /*claimableRewards_*/
