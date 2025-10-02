@@ -23,12 +23,6 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
   /// @dev Defined in RewardsDistributor.
   function dripRewards() public virtual;
 
-  /// @notice The pool amount for the purposes of performing conversions. We set a floor once reward
-  /// deposit receipt tokens have been initialized to avoid divide-by-zero errors that would occur when the supply
-  /// of reward deposit receipt tokens > 0, but the `poolAmount` = 0, which can occur due to drip.
-  /// @dev Defined in RewardsManagerInspector.
-  function _poolAmountWithFloor(uint256 poolAmount_) internal pure virtual returns (uint256);
-
   /// @notice Helper to assert that the rewards manager has a balance of tokens that matches the required amount for a
   /// deposit/stake.
   /// @dev Defined in Depositor.

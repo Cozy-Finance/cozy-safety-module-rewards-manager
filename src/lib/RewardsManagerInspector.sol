@@ -72,11 +72,4 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
 
     return claimableRewards_;
   }
-
-  /// @notice The pool amount for the purposes of performing conversions. We set a floor once reward
-  /// deposit receipt tokens have been initialized to avoid divide-by-zero errors that would occur when the supply
-  /// of reward deposit receipt tokens > 0, but the `poolAmount` = 0, which can occur due to drip.
-  function _poolAmountWithFloor(uint256 poolAmount_) internal pure override returns (uint256) {
-    return poolAmount_ > POOL_AMOUNT_FLOOR ? poolAmount_ : POOL_AMOUNT_FLOOR;
-  }
 }

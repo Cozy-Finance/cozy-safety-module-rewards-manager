@@ -480,8 +480,4 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
   ) internal view override returns (uint256) {
     __readStub__();
   }
-
-  function _poolAmountWithFloor(uint256 /* poolAmount_ */ ) internal pure override returns (uint256) {
-    return 0;
-  }
 }
