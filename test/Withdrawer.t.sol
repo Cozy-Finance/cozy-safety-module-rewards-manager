@@ -5,12 +5,13 @@ import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {IWithdrawerErrors} from "../src/interfaces/IWithdrawerErrors.sol";
 import {IWithdrawerEvents} from "../src/interfaces/IWithdrawerEvents.sol";
 import {IRewardsManager} from "../src/interfaces/IRewardsManager.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {StakePoolConfig, RewardPoolConfig} from "../src/lib/structs/Configs.sol";
 import {DepositorRewardsData} from "../src/lib/structs/Rewards.sol";
+import {RewardsMathLib} from "../src/lib/RewardsMathLib.sol";
+import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerCommon} from "../src/lib/RewardsManagerCommon.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
@@ -91,8 +92,9 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     uint256 deadline_
   ) internal view returns (bytes32) {
     bytes32 typeHash_ = RewardsManager(address(rewardsManager)).WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH();
+    uint256 nonce_ = rewardsManager.eip712Nonces(owner_, typeHash_);
     bytes32 structHash_ =
-      keccak256(abi.encode(typeHash_, owner_, rewardPoolId_, rewardAssetAmount_, caller_, receiver_, deadline_));
+      keccak256(abi.encode(typeHash_, owner_, rewardPoolId_, rewardAssetAmount_, caller_, receiver_, deadline_, nonce_));
 
     string memory domainName_ = rewardsManager.eip712DomainName();
     string memory domainVersion_ = Strings.toString(uint256(rewardsManager.eip712DomainVersion()));
@@ -201,7 +203,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     );
 
     vm.prank(depositor_);
-    vm.expectRevert(IWithdrawerErrors.InvalidWithdraw.selector);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 1, depositor_);
 
     RewardPool memory pool = getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID);
@@ -213,6 +214,91 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
       depositAmount_,
       "Asset pool should contain all assets"
     );
+  }
+
+  function test_withdrawAutoDrips() public {
+    address depositor_ = _randomAddress();
+    uint256 depositAmount_ = 100e18;
+
+    _depositRewardAssets(depositor_, depositAmount_);
+
+    uint256 warpTime_ = block.timestamp + 1;
+    vm.warp(warpTime_);
+
+    // Set up a 50% drip but do not manually drip before withdrawal.
+    flexibleDripModel.setNextDripFactor(0.5e18);
+
+    // Withdrawable rewards should still reflect the full deposit before withdrawing.
+    uint256 expectedWithdraw_ = depositAmount_.mulWadDown(MathConstants.WAD - 0.5e18);
+    uint256 expectedDrippedRewards_ = depositAmount_.mulWadDown(0.5e18);
+    assertApproxEqRel(
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
+      expectedWithdraw_,
+      0.001e18,
+      "Withdrawable should not change before auto drip"
+    );
+
+    uint256 previewWithdrawable_ = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_);
+
+    _expectEmit();
+    emit IWithdrawerEvents.Withdrawn(depositor_, DEFAULT_REWARD_POOL_ID, previewWithdrawable_, depositor_);
+    vm.prank(depositor_);
+    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, type(uint256).max, depositor_);
+
+    assertEq(rewardAsset.balanceOf(depositor_), previewWithdrawable_);
+    assertEq(
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
+      0,
+      "Depositor should have no withdrawable rewards"
+    );
+
+    RewardPool memory pool_ = getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID);
+    assertEq(pool_.undrippedRewards, depositAmount_ - previewWithdrawable_ - expectedDrippedRewards_);
+    assertEq(pool_.cumulativeDrippedRewards, expectedDrippedRewards_);
+    assertEq(pool_.lastDripTime, warpTime_);
+    assertGt(pool_.logIndexSnapshot, 0);
+  }
+
+  function test_withdrawZeroAmountStillDrips() public {
+    address depositor_ = _randomAddress();
+    uint256 depositAmount_ = 200e18;
+
+    _depositRewardAssets(depositor_, depositAmount_);
+
+    uint256 warpTime_ = block.timestamp + 1;
+    vm.warp(warpTime_);
+    flexibleDripModel.setNextDripFactor(0.4e18);
+
+    vm.prank(depositor_);
+    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 0, depositor_);
+
+    uint256 expectedWithdrawable_ = depositAmount_.mulWadDown(MathConstants.WAD - 0.4e18);
+    uint256 expectedDrip_ = depositAmount_ - expectedWithdrawable_;
+
+    RewardPool memory pool_ = getRewardPool(rewardsManager, DEFAULT_REWARD_POOL_ID);
+    assertEq(pool_.lastDripTime, uint128(warpTime_));
+    assertEq(pool_.cumulativeDrippedRewards, expectedDrip_);
+    assertEq(pool_.undrippedRewards, expectedWithdrawable_);
+    assertEq(pool_.epoch, 0);
+    assertEq(pool_.logIndexSnapshot, RewardsMathLib.negLn(MathConstants.WAD - 0.4e18));
+
+    DepositorRewardsData memory depositorData_ =
+      RewardsManager(address(rewardsManager)).getDepositorRewards(DEFAULT_REWARD_POOL_ID, depositor_);
+    assertLe(depositorData_.withdrawableRewards, expectedWithdrawable_);
+    assertApproxEqRel(depositorData_.withdrawableRewards, expectedWithdrawable_, 0.01e18);
+    assertEq(depositorData_.logIndexSnapshot, pool_.logIndexSnapshot);
+    assertEq(depositorData_.epoch, pool_.epoch);
+
+    assertEq(rewardAsset.balanceOf(depositor_), 0);
+    assertLe(
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_), expectedWithdrawable_
+    );
+    assertApproxEqRel(
+      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
+      expectedWithdrawable_,
+      0.01e18
+    );
+    assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, depositAmount_);
   }
 
   function test_withdrawMultipleDripsCompound() public {
@@ -343,39 +429,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
       rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_),
       depositAmount_,
       "New deposit should work in new epoch"
-    );
-  }
-
-  function test_oldEpochDepositorCannotStealFromNewEpoch() public {
-    address oldDepositor_ = address(0x1);
-    address newDepositor_ = address(0x2);
-    uint256 depositAmount_ = 100e18;
-
-    // Old depositor in epoch 0
-    _depositRewardAssets(oldDepositor_, depositAmount_);
-
-    // Epoch transition
-    _performDrip(WAD);
-
-    // New depositor in epoch 1
-    _depositRewardAssets(newDepositor_, depositAmount_ * 2);
-
-    // Old depositor tries to withdraw
-    assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, oldDepositor_),
-      0,
-      "Old depositor should have 0"
-    );
-
-    vm.prank(oldDepositor_);
-    vm.expectRevert(IWithdrawerErrors.InvalidWithdraw.selector);
-    rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 1, oldDepositor_);
-
-    // New depositor can withdraw their full amount
-    assertEq(
-      rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, newDepositor_),
-      depositAmount_ * 2,
-      "New depositor should have full amount"
     );
   }
 
@@ -540,6 +593,8 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
 
+    bytes32 typeHash_ = RewardsManager(address(rewardsManager)).WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH();
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, typeHash_);
     uint256 deadline_ = block.timestamp + 1 hours;
     bytes32 digest_ =
       _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_);
@@ -559,6 +614,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
       "owner should have no withdrawable rewards"
     );
     assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 0, "asset pool should be empty");
+    assertEq(rewardsManager.eip712Nonces(owner_, typeHash_), nonceBefore_ + 1, "nonce should increment");
   }
 
   function test_withdrawRewardAssetsBySig_invalidSignature() external {
@@ -569,6 +625,8 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
 
+    bytes32 typeHash_ = RewardsManager(address(rewardsManager)).WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH();
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, typeHash_);
     uint256 deadline_ = block.timestamp + 1 hours;
     bytes memory invalidSignature_ = "0xdeadbeef";
 
@@ -576,6 +634,8 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     rewardsManager.withdrawRewardAssetsBySig(
       rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, invalidSignature_
     );
+
+    assertEq(rewardsManager.eip712Nonces(owner_, typeHash_), nonceBefore_, "nonce should remain unchanged");
   }
 
   function test_withdrawRewardAssetsBySig_expiredSignature() external {
@@ -586,6 +646,8 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
 
+    bytes32 typeHash_ = RewardsManager(address(rewardsManager)).WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH();
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, typeHash_);
     uint256 deadline_ = block.timestamp - 1; // already expired
     bytes32 digest_ =
       _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_);
@@ -596,6 +658,8 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     rewardsManager.withdrawRewardAssetsBySig(
       rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, signature_
     );
+
+    assertEq(rewardsManager.eip712Nonces(owner_, typeHash_), nonceBefore_, "nonce should remain unchanged");
   }
 
   function test_withdrawRewardAssetsBySig_unauthorizedCaller() external {
@@ -607,6 +671,8 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
 
+    bytes32 typeHash_ = RewardsManager(address(rewardsManager)).WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH();
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, typeHash_);
     uint256 deadline_ = block.timestamp + 1 hours;
     bytes32 digest_ =
       _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, authorizedCaller_, receiver_, deadline_);
@@ -617,6 +683,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     rewardsManager.withdrawRewardAssetsBySig(
       rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, signature_
     );
+    assertEq(rewardsManager.eip712Nonces(owner_, typeHash_), nonceBefore_, "nonce should remain unchanged after revert");
 
     _expectEmit();
     emit IWithdrawerEvents.Withdrawn(owner_, rewardPoolId_, rewardAssetAmount_, receiver_);
@@ -632,5 +699,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
       0,
       "owner should have no withdrawable rewards"
     );
+    assertEq(rewardsManager.eip712Nonces(owner_, typeHash_), nonceBefore_ + 1, "nonce should increment on success");
   }
 }

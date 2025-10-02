@@ -24,12 +24,14 @@ import {
 } from "../src/lib/structs/Rewards.sol";
 import {IdLookup} from "../src/lib/structs/Pools.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
+import {IRewardsDistributorErrors} from "../src/interfaces/IRewardsDistributorErrors.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockDripModel} from "./utils/MockDripModel.sol";
 import {MockStkReceiptToken} from "./utils/MockStkReceiptToken.sol";
 import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
+import {ClaimRewardsPoolData} from "../src/lib/structs/Rewards.sol";
 
 contract RewardsDistributorUnitTest is TestBase {
   using FixedPointMathLib for uint256;
@@ -634,6 +636,337 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     }
   }
 
+  function test_claimRewardsForSpecificRewardPools() public {
+    //This test is similar to the above but we are calling the claimRewards function with specified reward pools and
+    // drip bools, which will change how much reward / fee amounts available & claimed after each period.
+    _setUpConcrete();
+
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    uint256 numRewardAssets_ = rewardPools_.length;
+    IERC20 rewardAssetA_ = rewardPools_[0].asset;
+    IERC20 rewardAssetB_ = rewardPools_[1].asset;
+    IERC20 rewardAssetC_ = rewardPools_[2].asset;
+
+    // UserA stakes 100e6 in stakePoolA, increasing stkReceiptTokenSupply to 200e6.
+    // UserA owns 50% of total stake, 200e6.
+    address userA_ = _randomAddress();
+    _stake(0, 100e6, userA_);
+
+    // UserB stakes 800e6 in stakePoolB, increasing stkReceiptTokenSupply to 1000e6.
+    // UserB owns 80% of total stake, 1000e6.
+    address userB_ = _randomAddress();
+    _stake(1, 800e6, userB_);
+
+    skip(ONE_YEAR);
+
+    // UserA claims rewards from stakePoolA and sends to a receiver.
+    // Reward Pool B doesnt drip, Reward Pool C doesnt claim
+
+    // fee, reward
+
+    // Earned this period:
+    // A: 1, 49
+    // B: 250K, 12.25M
+    // C: 10,484
+
+    // Dripped this period:
+    // A: 1, 49
+    // B: 0,0
+    // C: 0,0
+
+    // Claimable this period:
+    // A: 1, 49
+    // B: 0,0
+    // C: 0,0
+
+    // Claimed this period:
+    // A: 1, 49
+    // B: 0,0
+    // C: 0,0
+    {
+      ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](2);
+      claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 0, drip: true});
+      claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 1, drip: false});
+
+      address rewardsReceiver_ = _randomAddress();
+      uint16 stakePoolId_ = 0;
+
+      // Rewards received by userA are calculated as:
+      //    drippedRewards * rewardsWeight * (userStkReceiptTokenBalance / totalStkReceiptTokenSupply)
+      // rounded down.
+      uint256 rewardsReceivedPoolA_ = 49;
+      uint256 rewardsReceivedPoolB_ = 0;
+      uint256 rewardsReceivedPoolC_ = 0;
+      uint256 claimFeeAmountA_ = 1;
+      uint256 claimFeeAmountB_ = 0;
+      uint256 claimFeeAmountC_ = 0;
+
+      _expectEmit();
+      emit ClaimedRewards(
+        stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_, userA_, rewardsReceiver_
+      );
+
+      vm.prank(userA_);
+      component.claimRewards(stakePoolId_, claimRewardsPoolData_, rewardsReceiver_);
+
+      // Check that the rewards receiver received the assets.
+      assertEq(rewardAssetA_.balanceOf(rewardsReceiver_), rewardsReceivedPoolA_);
+      assertEq(rewardAssetB_.balanceOf(rewardsReceiver_), rewardsReceivedPoolB_);
+      assertEq(rewardAssetC_.balanceOf(rewardsReceiver_), rewardsReceivedPoolC_);
+
+      // Check that owner received the claim fees.
+      assertEq(rewardAssetA_.balanceOf(cozyManager.owner()), claimFeeAmountA_);
+      assertEq(rewardAssetB_.balanceOf(cozyManager.owner()), claimFeeAmountB_);
+      assertEq(rewardAssetC_.balanceOf(cozyManager.owner()), claimFeeAmountC_);
+
+      // Since user claimed rewards, accrued rewards should be 0 and index snapshot should be updated.
+      UserRewardsData[] memory userRewardsData_ = component.getUserRewards(stakePoolId_, userA_);
+      UserRewardsData[] memory expectedUserRewardsData_ = new UserRewardsData[](3);
+      for (uint16 i = 0; i < numRewardAssets_; i++) {
+        expectedUserRewardsData_[i] = UserRewardsData({
+          accruedRewards: 0,
+          indexSnapshot: component.getClaimableRewardsData(stakePoolId_, i).indexSnapshot
+        });
+      }
+      assertEq(userRewardsData_, expectedUserRewardsData_);
+
+      // Claimable reward indices should be updated as:
+      //    oldIndex + [(drippedRewards * rewardsWeight) / stkReceiptTokenSupply] * WAD
+      ClaimableRewardsData[] memory claimableRewards_ = component.getClaimableRewards(stakePoolId_);
+      assertEq(claimableRewards_[0].indexSnapshot, 500_000_000_000 * MathConstants.WAD); // ~= 0 + [(drippedRewardsA_ *
+        // 0.1) / 200e6] * WAD^2
+      assertEq(claimableRewards_[1].indexSnapshot, 0);
+      assertEq(claimableRewards_[2].indexSnapshot, 0);
+    }
+
+    skip(ONE_YEAR);
+
+    // UserB stakes 200e6 in stakePoolA, increasing stkReceiptTokenSupply to 0.4e18.
+    // UserB owns 50% of total stake, 400e6.
+    _stake(0, 200e6, userB_);
+
+    // UserA claims rewards again from stakePoolA and sends to a receiver.
+    // Reward Pool A doesn’t drip, Reward Pool B doesn’t claim
+
+    // fee, reward
+
+    // Earned this period:
+    // A: 1, 48
+    // B: 187.5K, 9.1875M
+    // C: 1,4
+
+    // Dripped this period:
+    // A: 0,0
+    // B: 187.5K + 250K, 9.1875M + 12.25M (Dripped during stake call)
+    // C: 1 + 10 ,4 + 484 (Dripped during stake call)
+
+    // Claimable this period:
+    // A: 1,48 (Even though we dont drip A in this in this claimRewards call, we dripped during stake, so still
+    // claimable amount this period)
+    // B: 187.5K + 250K, 9.1875M + 12.25M (Dripped during stake call)
+    // C: 1 + 10, 4 + 484
+
+    // Claimed this period:
+    // A: 1,48 (Even though we dont drip A in this in this claimRewards call, we dripped during stake, so still
+    // claimable amount this period)
+    // B: 0,0
+    // C: 1 + 10, 4 + 484
+
+    {
+      ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](2);
+      claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 0, drip: false});
+      claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 2, drip: true});
+
+      address rewardsReceiver_ = _randomAddress();
+      uint16 stakePoolId_ = 0;
+
+      // Rewards received by userA are calculated as:
+      //    drippedRewards * rewardsWeight * (userStkReceiptTokenBalance / totalStkReceiptTokenSupply)
+      // rounded down. Time skipped one year before userB's stake into stakePoolA, so for the entirety of the skip userA
+      // still owned 50% of the stake.
+      uint256 rewardsReceivedPoolA_ = 48;
+      uint256 rewardsReceivedPoolB_ = 0;
+      uint256 rewardsReceivedPoolC_ = 489;
+      uint256 claimFeeAmountA_ = 1;
+      uint256 claimFeeAmountB_ = 0;
+      uint256 claimFeeAmountC_ = 10;
+
+      _expectEmit();
+      emit ClaimedRewards(
+        stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_, userA_, rewardsReceiver_
+      );
+      _expectEmit();
+      emit ClaimedRewards(
+        stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, claimFeeAmountC_, userA_, rewardsReceiver_
+      );
+
+      vm.prank(userA_);
+      component.claimRewards(stakePoolId_, claimRewardsPoolData_, rewardsReceiver_);
+
+      // Check that the rewards receiver received the assets.
+      assertEq(rewardAssetA_.balanceOf(rewardsReceiver_), rewardsReceivedPoolA_);
+      assertEq(rewardAssetB_.balanceOf(rewardsReceiver_), rewardsReceivedPoolB_);
+      assertEq(rewardAssetC_.balanceOf(rewardsReceiver_), rewardsReceivedPoolC_);
+
+      // Since user claimed rewards, accrued rewards should be 0 and index snapshot should be updated.
+      UserRewardsData[] memory userRewardsData_ = component.getUserRewards(stakePoolId_, userA_);
+      UserRewardsData[] memory expectedUserRewardsData_ = new UserRewardsData[](3);
+      for (uint16 i = 0; i < numRewardAssets_; i++) {
+        uint256 claimableIndexSnapshot = component.getClaimableRewardsData(stakePoolId_, i).indexSnapshot;
+        assertEq(userRewardsData_[i].accruedRewards, 0);
+        if (i == 1) {
+          //There has not been a claim on reward pool B (i==1) yet, so its index snapshot for the user hasnt been
+          // updated and should not match the current claimable index snapshot
+          assertTrue(userRewardsData_[i].indexSnapshot != claimableIndexSnapshot);
+        } else {
+          assertEq(userRewardsData_[i].indexSnapshot, claimableIndexSnapshot);
+        }
+      }
+
+      // Claimable reward indices should be updated as:
+      //    oldIndex + [(drippedRewards * rewardsWeight) / stkReceiptTokenSupply] * WAD
+      ClaimableRewardsData[] memory claimableRewards_ = component.getClaimableRewards(stakePoolId_);
+      assertEq(claimableRewards_[0].indexSnapshot, 995_000_000_000 * MathConstants.WAD); // ~= 500000000000 +
+        // [(drippedRewardsA_ * 0.1)/200e6] * WAD^2
+      assertEq(claimableRewards_[1].indexSnapshot, 218_750_000_000_000_000 * MathConstants.WAD); // ~=
+        // 125000000000000000 + [(drippedRewardsB_ * 0.1) / 200e6] * WAD^2
+      assertEq(claimableRewards_[2].indexSnapshot, 4_995_000_000_000 * MathConstants.WAD); // ~= 4945000000000 +
+        // [(drippedRewardsC_ * 0.1) / 200e6] * WAD^2
+    }
+
+    skip(ONE_YEAR);
+
+    // UserB claims rewards from both stakePoolA and stakePoolB.
+    // Reward Pool C doesn’t drip, Reward Pool A doesn’t claim
+    //140_625_000 total dripped from pool B over last year, user A owns 25% of stake pool A and stake pool A has a 10%
+    // weight, so user A gets 2.5% == 3,515,625 before fee, 3,445,312.5 after 2% fee (fee == 70,312.5)
+    // fee, reward
+
+    // Earned this period:
+    // A: 1, 48
+    // B: 140.625K, 6.890625M
+    // C: 0,0
+
+    // Dripped this period:
+    // A: 0,0
+    // B: 140.625K, 6.890625M
+    // C: 0,0
+
+    // Claimable this period:
+    // A: 0,0
+    // B: 187.5K + 250K + 70,312.5, 9.1875M + 12.25M + 3,445,312.5
+    // C: 0,0
+
+    // Claimed this period:
+    // A: 0,0
+    // B: 187.5K + 250K + 70,312.5, 9.1875M + 12.25M + 3,445,312.5
+    // C: 0,0
+
+    {
+      ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](2);
+      claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 1, drip: true});
+      claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 2, drip: false});
+
+      address rewardsReceiver_ = _randomAddress();
+      uint16 stakePoolId_ = 0;
+
+      // Rewards received by userA are calculated as:
+      //    drippedRewards * rewardsWeight * (userStkReceiptTokenBalance / totalStkReceiptTokenSupply)
+      // rounded down. Time skipped one year before userB's stake into stakePoolA, so for the entirety of the skip userA
+      // still owned 50% of the stake.
+      uint256 rewardsReceivedPoolA_ = 0;
+      uint256 rewardsReceivedPoolB_ = 24_882_812;
+      uint256 claimFeeAmountA_ = 0;
+      uint256 claimFeeAmountB_ = 507_813;
+
+      _expectEmit();
+      emit ClaimedRewards(
+        stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, claimFeeAmountB_, userA_, rewardsReceiver_
+      );
+
+      vm.prank(userA_);
+      component.claimRewards(stakePoolId_, claimRewardsPoolData_, rewardsReceiver_);
+
+      // Check that the rewards receiver received the assets.
+      assertEq(rewardAssetA_.balanceOf(rewardsReceiver_), rewardsReceivedPoolA_);
+      assertEq(rewardAssetB_.balanceOf(rewardsReceiver_), rewardsReceivedPoolB_);
+    }
+  }
+
+  function test_claimRewardsInvalidRewardPoolSpecifiedReverts() public {
+    _setUpConcrete();
+
+    address user_ = _randomAddress();
+    _stake(0, 100e6, user_);
+    skip(ONE_YEAR);
+
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](3);
+    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 0, drip: true});
+    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 99, drip: false});
+    claimRewardsPoolData_[2] = ClaimRewardsPoolData({rewardPoolId: 100, drip: true});
+
+    vm.prank(user_);
+    vm.expectRevert(IRewardsDistributorErrors.InvalidClaimRewardsPoolData.selector);
+    component.claimRewards(0, claimRewardsPoolData_, _randomAddress());
+  }
+
+  function test_claimRewardsDuplicateRewardPoolSpecifiedReverts() public {
+    _setUpConcrete();
+
+    address user_ = _randomAddress();
+    _stake(0, 100e6, user_);
+    skip(ONE_YEAR);
+
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](2);
+    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 2, drip: true});
+    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 2, drip: false});
+
+    vm.prank(user_);
+    vm.expectRevert(IRewardsDistributorErrors.InvalidClaimRewardsPoolData.selector);
+    component.claimRewards(0, claimRewardsPoolData_, _randomAddress());
+  }
+
+  function test_claimRewardsWithStakePoolIds_InvalidRewardPoolSpecifiedReverts() public {
+    _setUpConcrete();
+
+    address user_ = _randomAddress();
+    _stake(0, 100e6, user_);
+    skip(ONE_YEAR);
+
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](3);
+    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 0, drip: true});
+    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 99, drip: false});
+    claimRewardsPoolData_[2] = ClaimRewardsPoolData({rewardPoolId: 100, drip: true});
+
+    uint16[] memory stakePoolIds_ = new uint16[](2);
+    stakePoolIds_[0] = 0;
+    stakePoolIds_[1] = 1;
+
+    vm.prank(user_);
+    vm.expectRevert(IRewardsDistributorErrors.InvalidClaimRewardsPoolData.selector);
+    component.claimRewards(stakePoolIds_, claimRewardsPoolData_, _randomAddress());
+  }
+
+  function test_claimRewardsWithStakePoolIds_DuplicateRewardPoolSpecifiedReverts() public {
+    _setUpConcrete();
+
+    address user_ = _randomAddress();
+    _stake(0, 100e6, user_);
+    skip(ONE_YEAR);
+
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](2);
+    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 0, drip: true});
+    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 0, drip: false});
+
+    uint16[] memory stakePoolIds_ = new uint16[](2);
+    stakePoolIds_[0] = 0;
+    stakePoolIds_[1] = 1;
+
+    vm.prank(user_);
+    vm.expectRevert(IRewardsDistributorErrors.InvalidClaimRewardsPoolData.selector);
+    component.claimRewards(stakePoolIds_, claimRewardsPoolData_, _randomAddress());
+  }
+
   function testFuzz_previewClaimableRewards(uint64 timeElapsed_) public {
     _setUpDefault();
     (address user_, uint16 stakePoolId_, address receiver_) = _getUserClaimRewardsFixture();
@@ -1135,11 +1468,90 @@ contract RewardsDistributorDripAndResetCumulativeValuesUnitTest is RewardsDistri
     ClaimableRewardsData[][] memory claimableRewards_ = component.getClaimableRewards();
     RewardPool[] memory rewardPools_ = component.getRewardPools();
     expectedRewardPools_[0].lastDripTime = uint128(block.timestamp);
-    expectedRewardPools_[0].undrippedRewards -=
-      _calculateExpectedDripQuantity(expectedRewardPools_[0].undrippedRewards, 0.1e18);
+    // Reward pool undripped rewards should not change because there are no stakers, so the unclaimed dripped rewards
+    // are recycled back to the pool.
+    expectedRewardPools_[0].undrippedRewards = expectedRewardPools_[0].undrippedRewards;
 
     assertEq(claimableRewards_[0][0], _expectedClaimableRewardsData(initialClaimableRewards_[0][0].indexSnapshot));
     assertEq(expectedRewardPools_, rewardPools_);
+  }
+
+  function test_dripAndResetCumulativeRewardsValues_recyclesOnlyZeroSupplyShare() public {
+    uint16 zeroWeight_ = 4000;
+    uint16 nonZeroWeight_ = uint16(MathConstants.ZOC - zeroWeight_);
+    uint256 mintedSupply_ = 1e18;
+    uint256 wadSquared_ = MathConstants.WAD * MathConstants.WAD;
+
+    MockERC20 zeroStakeAsset_ = new MockERC20("Mock Stake Asset", "MockStakeAsset", 6);
+    MockStkReceiptToken zeroStkReceiptToken_ =
+      new MockStkReceiptToken(address(component), "Mock Stake Receipt Token", "MockStakeReceiptToken", 6);
+    StakePool memory zeroStakePool_ = StakePool({
+      amount: 0,
+      asset: IERC20(address(zeroStakeAsset_)),
+      stkReceiptToken: IReceiptToken(address(zeroStkReceiptToken_)),
+      rewardsWeight: zeroWeight_
+    });
+    component.mockAddStakePool(zeroStakePool_);
+
+    MockERC20 nonZeroStakeAsset_ = new MockERC20("Mock Stake Asset", "MockStakeAsset", 6);
+    MockStkReceiptToken nonZeroStkReceiptToken_ =
+      new MockStkReceiptToken(address(component), "Mock Stake Receipt Token", "MockStakeReceiptToken", 6);
+    nonZeroStkReceiptToken_.mint(address(this), mintedSupply_);
+    StakePool memory nonZeroStakePool_ = StakePool({
+      amount: mintedSupply_,
+      asset: IERC20(address(nonZeroStakeAsset_)),
+      stkReceiptToken: IReceiptToken(address(nonZeroStkReceiptToken_)),
+      rewardsWeight: nonZeroWeight_
+    });
+    component.mockAddStakePool(nonZeroStakePool_);
+
+    MockERC20 rewardAsset_ = new MockERC20("Mock Reward Asset", "MockRewardAsset", 6);
+    RewardPool memory rewardPool_ = RewardPool({
+      undrippedRewards: 10_000,
+      cumulativeDrippedRewards: 1200,
+      lastDripTime: uint128(block.timestamp),
+      asset: IERC20(address(rewardAsset_)),
+      dripModel: IDripModel(address(new MockDripModel(0))),
+      epoch: 5,
+      logIndexSnapshot: 11
+    });
+    component.mockAddRewardPool(rewardPool_);
+
+    ClaimableRewardsData memory zeroClaimable_ =
+      ClaimableRewardsData({cumulativeClaimableRewards: 90, indexSnapshot: 33});
+    component.mockSetClaimableRewardsData(
+      0, 0, uint128(zeroClaimable_.indexSnapshot), uint128(zeroClaimable_.cumulativeClaimableRewards)
+    );
+
+    ClaimableRewardsData memory nonZeroClaimable_ =
+      ClaimableRewardsData({cumulativeClaimableRewards: 200, indexSnapshot: 44});
+    component.mockSetClaimableRewardsData(
+      1, 0, uint128(nonZeroClaimable_.indexSnapshot), uint128(nonZeroClaimable_.cumulativeClaimableRewards)
+    );
+
+    component.dripAndResetCumulativeRewardsValues();
+
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    ClaimableRewardsData[] memory zeroClaimableAfter_ = component.getClaimableRewards(0);
+    ClaimableRewardsData[] memory nonZeroClaimableAfter_ = component.getClaimableRewards(1);
+
+    uint256 zeroShare_ = (rewardPool_.cumulativeDrippedRewards * zeroStakePool_.rewardsWeight) / MathConstants.ZOC;
+    uint256 expectedRecycled_ = zeroShare_ - zeroClaimable_.cumulativeClaimableRewards;
+    assertEq(rewardPools_[0].undrippedRewards, rewardPool_.undrippedRewards + expectedRecycled_);
+    assertEq(rewardPools_[0].cumulativeDrippedRewards, 0);
+
+    assertEq(zeroClaimableAfter_[0].cumulativeClaimableRewards, 0);
+    assertEq(zeroClaimableAfter_[0].indexSnapshot, zeroClaimable_.indexSnapshot);
+
+    uint256 nonZeroShare_ = (rewardPool_.cumulativeDrippedRewards * nonZeroStakePool_.rewardsWeight) / MathConstants.ZOC;
+    uint256 expectedNonZeroUnclaimed_ = nonZeroShare_ - nonZeroClaimable_.cumulativeClaimableRewards;
+    uint256 expectedNonZeroIndex_ =
+      nonZeroClaimable_.indexSnapshot + (expectedNonZeroUnclaimed_ * wadSquared_) / mintedSupply_;
+
+    assertEq(nonZeroClaimableAfter_[0].cumulativeClaimableRewards, 0);
+    assertEq(nonZeroClaimableAfter_[0].indexSnapshot, expectedNonZeroIndex_);
+    assertEq(rewardPools_[0].epoch, rewardPool_.epoch);
+    assertEq(rewardPools_[0].logIndexSnapshot, rewardPool_.logIndexSnapshot);
   }
 
   function test_dripAndResetCumulativeRewardsValuesConcrete() public {

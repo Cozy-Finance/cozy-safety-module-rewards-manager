@@ -13,6 +13,7 @@ import {
 import {StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
+import {ClaimRewardsPoolData} from "../src/lib/structs/Rewards.sol";
 
 contract RewardsManagerCommonUnitTest is TestBase {
   MockManager cozyManager = new MockManager();
@@ -72,11 +73,14 @@ contract TestableRewardsManagerCommon is RewardsManagerCommon {
     cozyManager = ICozyManager(address(manager_));
   }
 
-  function _claimRewards(ClaimRewardsArgs memory) internal override {}
+  function _claimRewards(ClaimRewardsArgs memory args_, ClaimRewardsPoolData[] memory claimRewardsPoolData_)
+    internal
+    override
+  {}
 
   function dripRewards() public override {}
 
-  function _poolAmountWithFloor(uint256 poolAmount_) internal pure override returns (uint256) {
+  function _poolAmountWithFloor(uint256 poolAmount_) internal pure returns (uint256) {
     return poolAmount_;
   }
 
@@ -85,6 +89,13 @@ contract TestableRewardsManagerCommon is RewardsManagerCommon {
   function _getNextDripAmount(uint256, IDripModel, uint256) internal pure override returns (uint256) {
     return 0;
   }
+
+  function _getNextDripFactor(uint256 totalBaseAmount_, IDripModel dripModel_, uint256 lastDripTime_)
+    internal
+    pure
+    override
+    returns (uint256)
+  {}
 
   function _updateUserRewards(uint256, mapping(uint16 => ClaimableRewardsData) storage, UserRewardsData[] storage)
     internal

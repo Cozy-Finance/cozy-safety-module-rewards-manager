@@ -9,6 +9,7 @@ import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
+import {IRewardsDistributorErrors} from "../interfaces/IRewardsDistributorErrors.sol";
 import {StakePool} from "./structs/Pools.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {RewardsMathLib} from "./RewardsMathLib.sol";
@@ -18,7 +19,8 @@ import {
   PreviewClaimableRewardsData,
   PreviewClaimableRewards,
   ClaimRewardsArgs,
-  ClaimableRewardsData
+  ClaimableRewardsData,
+  ClaimRewardsPoolData
 } from "./structs/Rewards.sol";
 import {RewardPool, IdLookup} from "./structs/Pools.sol";
 
@@ -45,7 +47,6 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint256 userStkReceiptTokenBalance;
     uint256 stkReceiptTokenSupply;
     uint256 rewardsWeight;
-    uint256 numRewardAssets;
     uint256 numUserRewardAssets;
   }
 
@@ -75,19 +76,74 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     _dripRewardPool(rewardPools[rewardPoolId_]);
   }
 
-  /// @notice Claim rewards for a specific stake pool and transfer rewards to `receiver_`.
+  /// @notice Claim rewards for a specific stake pool and all reward pools and transfer rewards to `receiver_`.
+  /// @dev Note that this function drips all reward pools. If you want to claim without dripping from specific reward
+  /// pools, you can use one of the claimRewards functions that accepts `ClaimRewardsPoolData[] calldata
+  /// claimRewardsPoolData_` as an arg.
   /// @param stakePoolId_ The ID of the stake pool to claim rewards for.
   /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(uint16 stakePoolId_, address receiver_) external {
-    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender));
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools.length);
+    for (uint16 i = 0; i < rewardPools.length; i++) {
+      claimRewardsPoolData_[i] = ClaimRewardsPoolData({rewardPoolId: i, drip: true});
+    }
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), claimRewardsPoolData_);
   }
 
-  /// @notice Claim rewards for a set of stake pools and transfer rewards to `receiver_`.
+  /// @notice Claim rewards for a set of stake pools and all reward pools and transfer rewards to `receiver_`.
+  /// @dev Note that this function drips all reward pools. If you want to claim without dripping from specific reward
+  /// pools, you can use one of the claimRewards functions that accepts `ClaimRewardsPoolData[] calldata
+  /// claimRewardsPoolData_` as an arg.
   /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
   /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(uint16[] calldata stakePoolIds_, address receiver_) external {
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools.length);
+    for (uint16 i = 0; i < rewardPools.length; i++) {
+      claimRewardsPoolData_[i] = ClaimRewardsPoolData({rewardPoolId: i, drip: true});
+    }
     for (uint256 i = 0; i < stakePoolIds_.length; i++) {
-      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender));
+      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), claimRewardsPoolData_);
+    }
+  }
+
+  /// @notice Claim rewards for a specific stake pool and set of reward pools and transfer rewards to `receiver_`.
+  /// @dev Note that this function only drips and claims rewards for the reward pools specified in
+  /// `claimRewardsPoolData_`. If a reward pool is omitted from `claimRewardsPoolData_`, then no rewards will be dripped
+  /// or claimed for that reward pool. If drip is false, then no rewards will be dripped for that reward pool, but
+  /// rewards will still be claimed.
+  /// @dev The `claimRewardsPoolData_` must contain only valid reward pool IDs and no duplicates.
+  /// @param stakePoolId_ The ID of the stake pool to claim rewards for.
+  /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip or not.
+  /// @param receiver_ The address to transfer the claimed rewards to.
+  function claimRewards(uint16 stakePoolId_, ClaimRewardsPoolData[] calldata claimRewardsPoolData_, address receiver_)
+    external
+  {
+    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) {
+      revert IRewardsDistributorErrors.InvalidClaimRewardsPoolData();
+    }
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), claimRewardsPoolData_);
+  }
+
+  /// @notice Claim rewards for a specific set of stake pools and set of reward pools and transfer rewards to
+  /// `receiver_`.
+  /// @dev Note that this function only drips and claims rewards for the reward pools specified in
+  /// `claimRewardsPoolData_`. If a reward pool is omitted from `claimRewardsPoolData_`, then no rewards will be dripped
+  /// or claimed for that reward pool. If drip is false, then no rewards will be dripped for that reward pool, but
+  /// rewards will still be claimed.
+  /// @dev The `claimRewardsPoolData_` must contain only valid reward pool IDs and no duplicates.
+  /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
+  /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip or not.
+  /// @param receiver_ The address to transfer the claimed rewards to.
+  function claimRewards(
+    uint16[] calldata stakePoolIds_,
+    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
+    address receiver_
+  ) external {
+    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) {
+      revert IRewardsDistributorErrors.InvalidClaimRewardsPoolData();
+    }
+    for (uint256 i = 0; i < stakePoolIds_.length; i++) {
+      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), claimRewardsPoolData_);
     }
   }
 
@@ -130,8 +186,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
     // Fully accrue historical rewards for both users given their current stkReceiptToken balances. Moving forward all
     // rewards will accrue based on: (1) the stkReceiptToken balances of the `from_` and `to_` address after the
-    // transfer, (2)
-    // the current claimable reward index snapshots.
+    // transfer, (2) the current claimable reward index snapshots.
     _updateUserRewards(stkReceiptToken_.balanceOf(from_), claimableRewards_, userRewards[stakePoolId_][from_]);
     _updateUserRewards(stkReceiptToken_.balanceOf(to_), claimableRewards_, userRewards[stakePoolId_][to_]);
   }
@@ -157,7 +212,10 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     rewardPool_.lastDripTime = uint128(block.timestamp);
   }
 
-  function _claimRewards(ClaimRewardsArgs memory args_) internal override {
+  function _claimRewards(ClaimRewardsArgs memory args_, ClaimRewardsPoolData[] memory claimRewardsPoolData_)
+    internal
+    override
+  {
     StakePool storage stakePool_ = stakePools[args_.stakePoolId];
     IReceiptToken stkReceiptToken_ = stakePool_.stkReceiptToken;
     mapping(uint16 => ClaimableRewardsData) storage claimableRewards_ = claimableRewards[args_.stakePoolId];
@@ -168,24 +226,26 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
       userStkReceiptTokenBalance: stkReceiptToken_.balanceOf(args_.owner),
       stkReceiptTokenSupply: stkReceiptToken_.totalSupply(),
       rewardsWeight: stakePool_.rewardsWeight,
-      numRewardAssets: rewardPools.length,
       numUserRewardAssets: userRewards_.length
     });
 
     // When claiming rewards from a given reward pool, we take four steps:
-    // (1) Drip from the reward pool since time may have passed since the last drip.
+    // (1) (Optionally) drip from the reward pool since time may have passed since the last drip.
     // (2) Compute and update the next claimable rewards data for the (stake pool, reward pool) pair.
     // (3) Update the user's accrued rewards data for the (stake pool, reward pool) pair.
     // (4) Transfer the user's accrued rewards from the reward pool to the receiver, while potentially taking a fee (if
     // set) that is sent to the protocol owner
-    for (uint16 rewardPoolId_ = 0; rewardPoolId_ < claimRewardsData_.numRewardAssets; rewardPoolId_++) {
+    for (uint256 i; i < claimRewardsPoolData_.length; i++) {
       // Step (1)
+      uint16 rewardPoolId_ = claimRewardsPoolData_[i].rewardPoolId;
       RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-      if (rewardsManagerState == RewardsManagerState.ACTIVE) _dripRewardPool(rewardPool_);
+      if (rewardsManagerState == RewardsManagerState.ACTIVE && claimRewardsPoolData_[i].drip) {
+        _dripRewardPool(rewardPool_);
+      }
 
       {
         // Step (2)
-        ClaimableRewardsData memory newClaimableRewardsData_ = _previewNextClaimableRewardsData(
+        (ClaimableRewardsData memory newClaimableRewardsData_,) = _previewNextClaimableRewardsData(
           claimableRewards_[rewardPoolId_],
           rewardPool_.cumulativeDrippedRewards,
           claimRewardsData_.stkReceiptTokenSupply,
@@ -232,18 +292,19 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint256 cumulativeDrippedRewards_,
     uint256 stkReceiptTokenSupply_,
     uint256 rewardsWeight_
-  ) internal pure returns (ClaimableRewardsData memory nextClaimableRewardsData_) {
+  ) internal pure returns (ClaimableRewardsData memory nextClaimableRewardsData_, uint256 unclaimedDrippedRewards_) {
     nextClaimableRewardsData_.cumulativeClaimableRewards = claimableRewardsData_.cumulativeClaimableRewards;
     nextClaimableRewardsData_.indexSnapshot = claimableRewardsData_.indexSnapshot;
+
+    // Round down, in favor of leaving assets in the pool.
+    unclaimedDrippedRewards_ = cumulativeDrippedRewards_.mulDivDown(rewardsWeight_, MathConstants.ZOC)
+      - claimableRewardsData_.cumulativeClaimableRewards;
+
     // If `stkReceiptTokenSupply_ == 0`, then we get a divide by zero error if we try to update the index snapshot. To
     // avoid this, we wait until the `stkReceiptTokenSupply_ > 0`, to apply all accumulated unclaimed dripped rewards to
     // the claimable rewards data. We have to update the index snapshot and cumulative claimed rewards at the same time
     // to keep accounting correct.
     if (stkReceiptTokenSupply_ > 0) {
-      // Round down, in favor of leaving assets in the pool.
-      uint256 unclaimedDrippedRewards_ = cumulativeDrippedRewards_.mulDivDown(rewardsWeight_, MathConstants.ZOC)
-        - claimableRewardsData_.cumulativeClaimableRewards;
-
       nextClaimableRewardsData_.cumulativeClaimableRewards += unclaimedDrippedRewards_;
       // Round down, in favor of leaving assets in the claimable reward pool.
       nextClaimableRewardsData_.indexSnapshot +=
@@ -302,7 +363,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
     for (uint16 i = 0; i < nextRewardDrips_.length; i++) {
       RewardPool storage rewardPool_ = rewardPools[i];
-      ClaimableRewardsData memory previewNextClaimableRewardsData_ = _previewNextClaimableRewardsData(
+      (ClaimableRewardsData memory previewNextClaimableRewardsData_,) = _previewNextClaimableRewardsData(
         claimableRewards_[i],
         rewardPool_.cumulativeDrippedRewards + nextRewardDrips_[i].amount,
         stkReceiptTokenSupply_,
@@ -340,6 +401,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   function _getNextDripFactor(uint256 totalBaseAmount_, IDripModel dripModel_, uint256 lastDripTime_)
     internal
     view
+    override
     returns (uint256)
   {
     if (rewardsManagerState == RewardsManagerState.PAUSED) return 0;
@@ -362,7 +424,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
       _dripRewardPool(rewardPool_);
       ClaimableRewardsData storage claimableRewardsData_ = claimableRewards_[i];
 
-      claimableRewards_[i] = _previewNextClaimableRewardsData(
+      (claimableRewards_[i],) = _previewNextClaimableRewardsData(
         claimableRewardsData_, rewardPool_.cumulativeDrippedRewards, stkReceiptTokenSupply_, rewardsWeight_
       );
     }
@@ -384,16 +446,24 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
       uint256 oldCumulativeDrippedRewards_ = rewardPool_.cumulativeDrippedRewards;
       rewardPool_.cumulativeDrippedRewards = 0;
 
+      uint256 totalUnclaimedDrippedRewardsToRecycle_;
       for (uint16 j = 0; j < numStakePools_; j++) {
         StakePool storage stakePool_ = stakePools_[j];
-        ClaimableRewardsData memory claimableRewardsData_ = _previewNextClaimableRewardsData(
-          claimableRewards[j][i],
-          oldCumulativeDrippedRewards_,
-          stakePool_.stkReceiptToken.totalSupply(),
-          stakePool_.rewardsWeight
+        uint256 stakeReceiptTokenSupply_ = stakePool_.stkReceiptToken.totalSupply();
+        (ClaimableRewardsData memory claimableRewardsData_, uint256 unclaimedDrippedRewards_) =
+        _previewNextClaimableRewardsData(
+          claimableRewards[j][i], oldCumulativeDrippedRewards_, stakeReceiptTokenSupply_, stakePool_.rewardsWeight
         );
         claimableRewards[j][i] =
           ClaimableRewardsData({cumulativeClaimableRewards: 0, indexSnapshot: claimableRewardsData_.indexSnapshot});
+
+        // If there were no stakers, we can recycle the unclaimed dripped rewards.
+        if (stakeReceiptTokenSupply_ == 0) totalUnclaimedDrippedRewardsToRecycle_ += unclaimedDrippedRewards_;
+      }
+
+      // Recycle any unclaimed dripped rewards by adding them back to the undripped rewards.
+      if (totalUnclaimedDrippedRewardsToRecycle_ > 0) {
+        rewardPool_.undrippedRewards += totalUnclaimedDrippedRewardsToRecycle_;
       }
     }
   }
@@ -446,5 +516,29 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
   function _computeClaimFeeAmount(uint256 claimAmount_, uint16 claimFee_) internal pure returns (uint256) {
     return claimAmount_.mulDivUp(claimFee_, MathConstants.ZOC);
+  }
+
+  function _checkValidClaimRewardsPoolData(ClaimRewardsPoolData[] calldata claimRewardsPoolData_)
+    internal
+    view
+    returns (bool)
+  {
+    uint256 numRewardPools_ = rewardPools.length;
+    uint256[256] memory bitmap_; // Since reward pool ids are a uint16, we are guaranteed to have rewardPoolId < 2^16 =
+    // 65536. We use a 256 * 256 = 65536 bit bitmap to check for duplicates.
+
+    uint256 numClaimRewardsPoolData_ = claimRewardsPoolData_.length;
+    for (uint256 i = 0; i < numClaimRewardsPoolData_; i++) {
+      uint16 rewardPoolId_ = claimRewardsPoolData_[i].rewardPoolId;
+
+      if (rewardPoolId_ >= numRewardPools_) return false;
+
+      uint256 word_ = rewardPoolId_ >> 8; // rewardPoolId / 256
+      uint256 bit_ = 1 << (rewardPoolId_ & 0xff); // rewardPoolId % 256
+      if (bitmap_[word_] & bit_ != 0) return false;
+      bitmap_[word_] |= bit_;
+    }
+
+    return true;
   }
 }
