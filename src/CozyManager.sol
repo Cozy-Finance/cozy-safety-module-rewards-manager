@@ -129,14 +129,14 @@ contract CozyManager is Governable, ICozyManager {
   }
 
   /// @notice For the specified RewardsManager, returns the claim fee.
-  function getClaimFee(IRewardsManager rewardsManager_) public view returns (uint16) {
+  function getClaimFee(IRewardsManager rewardsManager_) external view returns (uint16) {
     FeeLookup memory overrideClaimFee_ = overrideClaimFees[rewardsManager_];
     if (overrideClaimFee_.exists) return overrideClaimFee_.fee;
     else return claimFee;
   }
 
   /// @notice For the specified RewardsManager, returns the deposit fee.
-  function getDepositFee(IRewardsManager rewardsManager_) public view returns (uint16) {
+  function getDepositFee(IRewardsManager rewardsManager_) external view returns (uint16) {
     FeeLookup memory overrideDepositFee_ = overrideDepositFees[rewardsManager_];
     if (overrideDepositFee_.exists) return overrideDepositFee_.fee;
     else return depositFee;

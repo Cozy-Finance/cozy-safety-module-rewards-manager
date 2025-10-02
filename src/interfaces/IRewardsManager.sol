@@ -3,10 +3,16 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
 import {StakePool, RewardPool, AssetPool} from "../lib/structs/Pools.sol";
-import {ClaimableRewardsData, PreviewClaimableRewards, UserRewardsData} from "../lib/structs/Rewards.sol";
+import {
+  ClaimableRewardsData,
+  PreviewClaimableRewards,
+  UserRewardsData,
+  DepositorRewardsData
+} from "../lib/structs/Rewards.sol";
 import {RewardsManagerState} from "../lib/RewardsManagerStates.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 import {ICozyManager} from "./ICozyManager.sol";
+import {ClaimRewardsPoolData} from "../lib/structs/Rewards.sol";
 
 interface IRewardsManager {
   function allowedRewardPools() external view returns (uint16);
@@ -21,6 +27,17 @@ interface IRewardsManager {
     returns (ClaimableRewardsData memory);
 
   function claimRewards(uint16 stakePoolId_, address receiver_) external;
+
+  function claimRewards(uint16[] calldata stakePoolIds_, address receiver_) external;
+
+  function claimRewards(uint16 stakePoolId_, ClaimRewardsPoolData[] calldata claimRewardsPoolData_, address receiver_)
+    external;
+
+  function claimRewards(
+    uint16[] calldata stakePoolIds_,
+    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
+    address receiver_
+  ) external;
 
   function cozyManager() external returns (ICozyManager);
 
@@ -39,6 +56,11 @@ interface IRewardsManager {
   function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory);
 
   function getClaimableRewards(uint16 stakePoolId_) external view returns (ClaimableRewardsData[] memory);
+
+  function getDepositorRewards(uint16 rewardPoolId_, address depositor_)
+    external
+    view
+    returns (DepositorRewardsData memory);
 
   function getRewardPools() external view returns (RewardPool[] memory);
 
@@ -60,6 +82,8 @@ interface IRewardsManager {
   function owner() external view returns (address);
 
   function pause() external;
+
+  function pause(bool[] memory dripRewardPool_) external;
 
   function pauser() external view returns (address);
 
@@ -88,10 +112,20 @@ interface IRewardsManager {
 
   function unpause() external;
 
+  function unpause(bool[] memory dripRewardPool_) external;
+
   function updateConfigs(StakePoolConfig[] calldata stakePoolConfigs_, RewardPoolConfig[] calldata rewardPoolConfigs_)
     external;
 
   function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external;
+
+  function unstake(
+    uint16 stakePoolId_,
+    uint256 stkReceiptTokenAmount_,
+    address receiver_,
+    address owner_,
+    bool[] memory dripRewardPool_
+  ) external;
 
   function updateUserRewardsForStkReceiptTokenTransfer(address from_, address to_) external;
 }

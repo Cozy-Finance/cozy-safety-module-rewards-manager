@@ -13,7 +13,11 @@ import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptT
 import {RewardPoolConfig, StakePoolConfig} from "../src/lib/structs/Configs.sol";
 import {StakePool, RewardPool, IdLookup} from "../src/lib/structs/Pools.sol";
 import {
-  ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData, DepositorRewardsData
+  ClaimRewardsArgs,
+  ClaimableRewardsData,
+  UserRewardsData,
+  DepositorRewardsData,
+  ClaimRewardsPoolData
 } from "../src/lib/structs/Rewards.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
@@ -755,7 +759,10 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
 
   // -------- Overridden abstract function placeholders --------
 
-  function _claimRewards(ClaimRewardsArgs memory /* args_ */ ) internal override {
+  function _claimRewards(
+    ClaimRewardsArgs memory, /* args_ */
+    ClaimRewardsPoolData[] memory /* claimRewardsPoolData_ */
+  ) internal override {
     __writeStub__();
   }
 
@@ -771,6 +778,15 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
   }
 
   function _getNextDripAmount(uint256, /* totalBaseAmount_ */ IDripModel, /* dripModel_ */ uint256 /*lastDripTime_*/ )
+    internal
+    view
+    override
+    returns (uint256)
+  {
+    __readStub__();
+  }
+
+  function _getNextDripFactor(uint256, /* totalBaseAmount_ */ IDripModel, /* dripModel_ */ uint256 /*lastDripTime_*/ )
     internal
     view
     override
