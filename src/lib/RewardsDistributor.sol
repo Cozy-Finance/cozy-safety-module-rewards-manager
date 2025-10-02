@@ -7,6 +7,7 @@ import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.so
 import {Ownable} from "cozy-safety-module-libs/lib/Ownable.sol";
 import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {SafeERC20} from "cozy-safety-module-libs/lib/SafeERC20.sol";
+import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IRewardsManager} from "../interfaces/IRewardsManager.sol";
 import {StakePool} from "./structs/Pools.sol";
@@ -25,6 +26,10 @@ import {RewardPool, IdLookup} from "./structs/Pools.sol";
 abstract contract RewardsDistributor is RewardsManagerCommon {
   using FixedPointMathLib for uint256;
   using SafeERC20 for IERC20;
+
+  bytes32 public constant CLAIM_REWARDS_BY_SIG_TYPEHASH = keccak256(
+    "ClaimRewardsBySig(uint16[] stakePoolIds,address owner,address caller,address receiver,uint256 deadline)"
+  );
 
   event ClaimedRewards(
     uint16 indexed stakePoolId_,
@@ -79,7 +84,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// @param stakePoolId_ The ID of the stake pool to claim rewards for.
   /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(uint16 stakePoolId_, address receiver_) external {
-    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender));
+    _claimRewardsFor(stakePoolId_, receiver_, msg.sender);
   }
 
   /// @notice Claim rewards for a set of stake pools and transfer rewards to `receiver_`.
@@ -87,8 +92,52 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(uint16[] calldata stakePoolIds_, address receiver_) external {
     for (uint256 i = 0; i < stakePoolIds_.length; i++) {
-      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender));
+      _claimRewardsFor(stakePoolIds_[i], receiver_, msg.sender);
     }
+  }
+
+  /// @notice Claim rewards for a set of stake pools on behalf of `owner_`, authorized by signature.
+  /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
+  /// @param owner_ The address whose rewards are being claimed.
+  /// @param receiver_ The address to receive the claimed rewards.
+  /// @param deadline_ The time after which the signature is no longer valid.
+  /// @param signature_ The owner's signature over the EIP-712 structured data.
+  function claimRewardsBySig(
+    uint16[] calldata stakePoolIds_,
+    address owner_,
+    address receiver_,
+    uint256 deadline_,
+    bytes calldata signature_
+  ) external {
+    if (block.timestamp > deadline_) revert SignatureExpired();
+
+    bytes32 stakePoolIdsHash_ = keccak256(abi.encodePacked(stakePoolIds_));
+    bytes32 digest_ = keccak256(
+      abi.encodePacked(
+        "\x19\x01",
+        _buildDomainSeparator(),
+        keccak256(
+          abi.encode(
+            CLAIM_REWARDS_BY_SIG_TYPEHASH,
+            stakePoolIdsHash_,
+            owner_,
+            msg.sender,
+            receiver_,
+            deadline_
+          )
+        )
+      )
+    );
+
+    if (!SignatureChecker.isValidSignatureNow(owner_, digest_, signature_)) revert InvalidSignature();
+
+    for (uint256 i = 0; i < stakePoolIds_.length; i++) {
+      _claimRewardsFor(stakePoolIds_[i], receiver_, owner_);
+    }
+  }
+
+  function _claimRewardsFor(uint16 stakePoolId_, address receiver_, address owner_) internal {
+    _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, owner_));
   }
 
   /// @notice Preview the claimable rewards for a given set of stake pools.
