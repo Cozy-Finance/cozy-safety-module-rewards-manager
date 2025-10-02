@@ -3,7 +3,7 @@ pragma solidity 0.8.22;
 
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {StakePool, RewardPool} from "./structs/Pools.sol";
-import {ClaimableRewardsData, UserRewardsData} from "./structs/Rewards.sol";
+import {ClaimableRewardsData, UserRewardsData, DepositorRewardsData} from "./structs/Rewards.sol";
 
 abstract contract RewardsManagerInspector is RewardsManagerCommon {
   uint256 internal constant POOL_AMOUNT_FLOOR = 1;
@@ -26,6 +26,18 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
   /// @return userRewards_ The array of user rewards data.
   function getUserRewards(uint16 stakePoolId_, address user) external view returns (UserRewardsData[] memory) {
     return userRewards[stakePoolId_][user];
+  }
+
+  /// @notice Returns the depositor rewards for a reward pool.
+  /// @param rewardPoolId_ The ID of the reward pool.
+  /// @param depositor_ The depositor's address.
+  /// @return depositorRewards_ The depositor rewards data.
+  function getDepositorRewards(uint16 rewardPoolId_, address depositor_)
+    external
+    view
+    returns (DepositorRewardsData memory)
+  {
+    return depositorRewards[rewardPoolId_][depositor_];
   }
 
   /// @notice Returns all claimable rewards for all stake pools and reward pools.
@@ -59,12 +71,5 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
     }
 
     return claimableRewards_;
-  }
-
-  /// @notice The pool amount for the purposes of performing conversions. We set a floor once reward
-  /// deposit receipt tokens have been initialized to avoid divide-by-zero errors that would occur when the supply
-  /// of reward deposit receipt tokens > 0, but the `poolAmount` = 0, which can occur due to drip.
-  function _poolAmountWithFloor(uint256 poolAmount_) internal pure override returns (uint256) {
-    return poolAmount_ > POOL_AMOUNT_FLOOR ? poolAmount_ : POOL_AMOUNT_FLOOR;
   }
 }

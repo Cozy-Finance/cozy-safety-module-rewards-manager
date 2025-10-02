@@ -15,7 +15,11 @@ import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {AssetPool, StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {
-  UserRewardsData, ClaimRewardsArgs, ClaimableRewardsData, DepositorRewardsData
+  UserRewardsData,
+  ClaimRewardsArgs,
+  ClaimableRewardsData,
+  DepositorRewardsData,
+  ClaimRewardsPoolData
 } from "../src/lib/structs/Rewards.sol";
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockManager} from "./utils/MockManager.sol";
@@ -357,7 +361,10 @@ contract TestableDepositor is Withdrawer, Depositor, RewardsManagerInspector {
 
   // -------- Overridden abstract function placeholders --------
 
-  function _claimRewards(ClaimRewardsArgs memory /* args_ */ ) internal override {
+  function _claimRewards(
+    ClaimRewardsArgs memory, /* args_ */
+    ClaimRewardsPoolData[] memory /* claimRewardsPoolData_ */
+  ) internal override {
     __writeStub__();
   }
 
@@ -374,6 +381,15 @@ contract TestableDepositor is Withdrawer, Depositor, RewardsManagerInspector {
     return block.timestamp - lastDripTime_ == 0 || rewardsManagerState == RewardsManagerState.PAUSED
       ? 0
       : mockNextRewardsDripAmount;
+  }
+
+  function _getNextDripFactor(uint256, /* totalBaseAmount_ */ IDripModel, /* dripModel_ */ uint256 /*lastDripTime_*/ )
+    internal
+    view
+    override
+    returns (uint256)
+  {
+    __readStub__();
   }
 
   function _updateUserRewards(

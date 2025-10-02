@@ -41,10 +41,6 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
   function _depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address owner_) internal {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
     IERC20 asset_ = rewardPool_.asset;
-
-    // Pull in deposited assets. After the transfer we ensure we no longer need any assets. This check is
-    // required to support fee on transfer tokens, for example if USDT enables a fee.
-    // Also, we need to transfer before minting or ERC777s could reenter.
     asset_.safeTransferFrom(owner_, address(this), rewardAssetAmount_);
     _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, rewardPool_, owner_);
   }
