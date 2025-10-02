@@ -817,7 +817,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
         if (i == 1) {
           //There has not been a claim on reward pool B (i==1) yet, so its index snapshot for the user hasnt been
           // updated and should not match the current claimable index snapshot
-          assertNotEq(userRewardsData_[i].indexSnapshot, claimableIndexSnapshot);
+          assertTrue(userRewardsData_[i].indexSnapshot != claimableIndexSnapshot);
         } else {
           assertEq(userRewardsData_[i].indexSnapshot, claimableIndexSnapshot);
         }
