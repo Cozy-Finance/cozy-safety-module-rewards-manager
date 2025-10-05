@@ -26,6 +26,7 @@ import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 import "forge-std/console2.sol";
+import {IRewardsDistributorErrors} from "../src/interfaces/IRewardsDistributorErrors.sol";
 
 contract StakerUnitTest is TestBase {
   using FixedPointMathLib for uint256;
@@ -73,6 +74,7 @@ contract StakerUnitTest is TestBase {
     component.mockAddAssetPool(IERC20(address(mockStakeAsset)), initialAssetPool_);
 
     component.mockAddRewardPool(IERC20(address(mockAsset)), cumulativeDrippedRewards_);
+
     AssetPool memory initialRewardsPool_ = AssetPool({amount: cumulativeDrippedRewards_});
     component.mockAddAssetPool(IERC20(address(mockAsset)), initialRewardsPool_);
     mockAsset.mint(address(component), cumulativeDrippedRewards_);
@@ -618,6 +620,65 @@ contract StakerUnitTest is TestBase {
     );
     assertEq(mockAsset.balanceOf(unstakeReceiver_), 0);
   }
+
+  function test_unstake_revertsWithInvalidDripRewardPoolLength() public {
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
+    address unstakeReceiver_ = _randomAddress();
+
+    vm.prank(receiver_);
+    mockStkReceiptToken.approve(address(component), amountStaked_);
+
+    bool[] memory dripRewardPool_ = new bool[](5);
+    dripRewardPool_[0] = true;
+    dripRewardPool_[1] = false;
+    dripRewardPool_[2] = true;
+    dripRewardPool_[3] = false;
+    dripRewardPool_[4] = true;
+
+    vm.prank(receiver_);
+    vm.expectRevert(IRewardsDistributorErrors.InvalidLength.selector);
+    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_, dripRewardPool_);
+  }
+
+  function test_unstake_doesNotDripSelectedRewardPools() public {
+    (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
+    address unstakeReceiver_ = _randomAddress();
+
+    vm.prank(receiver_);
+    mockStkReceiptToken.approve(address(component), amountStaked_);
+
+    MockDripModel mockDripModel_ = new MockDripModel(1e18);
+    mockDripModel_.setIsValidDripModel(false);
+
+    RewardPool memory rewardPoolTwo_ = RewardPool({
+      asset: IERC20(address(mockAsset)),
+      dripModel: IDripModel(address(mockDripModel_)),
+      undrippedRewards: 0,
+      cumulativeDrippedRewards: 1_000_000,
+      lastDripTime: uint128(block.timestamp),
+      epoch: 0,
+      logIndexSnapshot: 0
+    });
+
+    component.mockAddRewardPool(rewardPoolTwo_);
+
+    bool[] memory dripRewardPool_ = new bool[](2);
+    dripRewardPool_[0] = true;
+    dripRewardPool_[1] = false;
+
+    skip(100 days);
+
+    vm.prank(receiver_);
+    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_, dripRewardPool_);
+
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+
+    RewardPool memory firstRewardPool_ = rewardPools_[0];
+    assertEq(firstRewardPool_.lastDripTime, block.timestamp, "First reward pool should have dripped");
+
+    RewardPool memory secondRewardPool_ = rewardPools_[1];
+    assertEq(secondRewardPool_.lastDripTime, block.timestamp - 100 days, "Second reward pool should not have dripped");
+  }
 }
 
 contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManagerInspector {
@@ -638,6 +699,10 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManager
 
   function mockAddAssetPool(IERC20 asset_, AssetPool memory assetPool_) external {
     assetPools[asset_] = assetPool_;
+  }
+
+  function mockAddRewardPool(RewardPool memory rewardPool_) external {
+    rewardPools.push(rewardPool_);
   }
 
   function mockAddRewardPool(IERC20 rewardAsset_, uint256 cumulativeDrippedRewards_) external {
