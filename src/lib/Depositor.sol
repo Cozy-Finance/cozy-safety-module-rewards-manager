@@ -64,7 +64,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
 
     IERC20 asset_ = rewardPool_.asset;
 
-    if (shouldTransferAssets_) asset_.safeTransferFrom(msg.sender, address(this), rewardAssetAmount_);
+    if (shouldTransferAssets_) asset_.safeTransferFrom(depositor_, address(this), rewardAssetAmount_);
 
     _assertValidDepositBalance(asset_, assetPools[asset_].amount, rewardAssetAmount_);
 
@@ -75,8 +75,8 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     uint256 depositAmount_ = rewardAssetAmount_ - depositFeeAmount_;
 
     uint256 currentWithdrawableRewards_ =
-      _previewCurrentWithdrawableRewards(rewardPool_, depositorRewards[rewardPoolId_][msg.sender]);
-    depositorRewards[rewardPoolId_][msg.sender] = DepositorRewardsData({
+      _previewCurrentWithdrawableRewards(rewardPool_, depositorRewards[rewardPoolId_][depositor_]);
+    depositorRewards[rewardPoolId_][depositor_] = DepositorRewardsData({
       withdrawableRewards: currentWithdrawableRewards_ + depositAmount_,
       logIndexSnapshot: rewardPool_.logIndexSnapshot,
       epoch: rewardPool_.epoch
