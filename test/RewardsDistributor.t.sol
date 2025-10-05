@@ -254,7 +254,12 @@ contract RewardsDistributorUnitTest is TestBase {
     address receiver_,
     uint256 deadline_
   ) internal view returns (bytes32) {
-    bytes32 stakePoolIdsHash_ = keccak256(abi.encodePacked(stakePoolIds_));
+    uint256 stakePoolCount_ = stakePoolIds_.length;
+    bytes32[] memory stakePoolIdsEncoded_ = new bytes32[](stakePoolCount_);
+    for (uint256 i = 0; i < stakePoolCount_; i++) {
+      stakePoolIdsEncoded_[i] = bytes32(uint256(stakePoolIds_[i]));
+    }
+    bytes32 stakePoolIdsHash_ = keccak256(abi.encodePacked(stakePoolIdsEncoded_));
     bytes32 claimRewardsPoolDataHash_ = _hashClaimRewardsPoolData(claimRewardsPoolData_);
     bytes32 typeHash_ = component.CLAIM_REWARDS_BY_SIG_TYPEHASH();
     uint256 nonce_ = component.eip712Nonces(owner_, typeHash_);

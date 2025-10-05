@@ -178,7 +178,13 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
     uint256 nonce_ = eip712Nonces[owner_][CLAIM_REWARDS_BY_SIG_TYPEHASH];
 
-    bytes32 stakePoolIdsHash_ = keccak256(abi.encodePacked(stakePoolIds_));
+    // Encode each stake pool id as a full 32-byte word to satisfy EIP-712 array hashing semantics.
+    uint256 stakePoolCount_ = stakePoolIds_.length;
+    bytes32[] memory stakePoolIdsEncoded_ = new bytes32[](stakePoolCount_);
+    for (uint256 i = 0; i < stakePoolCount_; i++) {
+      stakePoolIdsEncoded_[i] = bytes32(uint256(stakePoolIds_[i]));
+    }
+    bytes32 stakePoolIdsHash_ = keccak256(abi.encodePacked(stakePoolIdsEncoded_));
     bytes32 claimRewardsPoolDataHash_ = _hashClaimRewardsPoolData(claimRewardsPoolData_);
     bytes32 digest_ = keccak256(
       abi.encodePacked(
