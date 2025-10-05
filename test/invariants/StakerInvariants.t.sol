@@ -41,7 +41,7 @@ abstract contract StakerInvariants is InvariantTestBase {
       });
     }
 
-    rewardsManagerHandler.stakeWithExistingActorWithoutCountingCall(_randomUint256());
+    rewardsManagerHandler.stakeWithoutTransferWithExistingActorWithoutCountingCall(_randomUint256());
 
     // rewardsManagerHandler.currentStakePoolId is set to the reserve pool that was just deposited into during
     // this invariant test.
@@ -161,26 +161,20 @@ abstract contract StakerInvariants is InvariantTestBase {
   function invariant_cannotStakeZeroAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
     uint16 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
     address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
-    IERC20 asset_ = getStakePool(rewardsManager, stakePoolId_).asset;
-    vm.prank(actor_);
-    asset_.approve(address(rewardsManager), type(uint256).max);
 
     vm.prank(actor_);
     vm.expectRevert(ICommonErrors.AmountIsZero.selector);
-    rewardsManager.stake(stakePoolId_, 0, actor_);
+    rewardsManager.stakeWithoutTransfer(stakePoolId_, 0, actor_);
   }
 
   function invariant_cannotStakeWithInsufficientAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
     uint16 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
     address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
     uint256 assetAmount_ = rewardsManagerHandler.boundDepositAssetAmount(_randomUint256());
-    IERC20 asset_ = getStakePool(rewardsManager, stakePoolId_).asset;
-    vm.prank(actor_);
-    asset_.approve(address(rewardsManager), assetAmount_);
 
     vm.prank(actor_);
     vm.expectRevert(IDepositorErrors.InvalidDeposit.selector);
-    rewardsManager.stake(stakePoolId_, assetAmount_, actor_);
+    rewardsManager.stakeWithoutTransfer(stakePoolId_, assetAmount_, actor_);
   }
 }
 

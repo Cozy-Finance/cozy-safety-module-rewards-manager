@@ -139,13 +139,10 @@ abstract contract RewardsDepositInvariants is InvariantTestBase {
     uint16 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
     address actor_ = rewardsManagerHandler.pickActor(_randomUint256());
     uint256 assetAmount_ = rewardsManagerHandler.boundDepositAssetAmount(_randomUint256());
-    IERC20 asset_ = getRewardPool(rewardsManager, rewardPoolId_).asset;
-    vm.prank(actor_);
-    asset_.approve(address(rewardsManager), assetAmount_);
 
     vm.prank(actor_);
     vm.expectRevert(IDepositorErrors.InvalidDeposit.selector);
-    rewardsManager.depositRewardAssets(rewardPoolId_, assetAmount_);
+    rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, assetAmount_);
   }
 }
 
