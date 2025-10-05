@@ -4,10 +4,15 @@ pragma solidity ^0.8.0;
 interface IDepositorEvents {
   /// @notice Emitted when a user deposits.
   /// @param caller_ The caller of the deposit.
+  /// @param depositor_ The address of the depositor.
   /// @param rewardPoolId_ The reward pool ID that the user deposited into.
   /// @param depositAmount_ The amount of the underlying asset deposited.
   /// @param depositFeeAmount_ The amount of the underlying asset used to pay the deposit fee.
   event Deposited(
-    address indexed caller_, uint16 indexed rewardPoolId_, uint256 depositAmount_, uint256 depositFeeAmount_
+    address indexed caller_,
+    address indexed depositor_,
+    uint16 indexed rewardPoolId_,
+    uint256 depositAmount_,
+    uint256 depositFeeAmount_
   );
 }

@@ -43,7 +43,8 @@ interface IRewardsManager {
 
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
 
-  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
+  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address depositor_)
+    external;
 
   function dripRewardPool(uint16 rewardPoolId_) external;
 
@@ -110,7 +111,8 @@ interface IRewardsManager {
 
   function stakePools(uint256 id_) external view returns (StakePool memory);
 
-  function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external;
+  function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address depositor_, address receiver_)
+    external;
 
   function unpause() external;
 

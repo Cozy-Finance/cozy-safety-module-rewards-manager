@@ -24,11 +24,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
   /// @param rewardPoolId_ The ID of the reward pool.
   /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external {
-    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    IERC20 asset_ = rewardPool_.asset;
-
-    asset_.safeTransferFrom(msg.sender, address(this), rewardAssetAmount_);
-    _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, rewardPool_);
+    _executeRewardDeposit(rewardPoolId_, rewardAssetAmount_, msg.sender, true);
   }
 
   /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool.
@@ -36,9 +32,11 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
   /// manager.
   /// @param rewardPoolId_ The ID of the reward pool.
   /// @param rewardAssetAmount_ The amount of the reward pool's asset to deposit.
-  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external {
-    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    _executeRewardDeposit(rewardPoolId_, rewardPool_.asset, rewardAssetAmount_, rewardPool_);
+  /// @param depositor_ The address of the depositor (for event logging purposes).
+  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address depositor_)
+    external
+  {
+    _executeRewardDeposit(rewardPoolId_, rewardAssetAmount_, depositor_, false);
   }
 
   /// @notice Preview the current amount of undripped rewards in the `rewardPoolId_` reward pool with unrealized drip
@@ -57,12 +55,18 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
 
   function _executeRewardDeposit(
     uint16 rewardPoolId_,
-    IERC20 token_,
     uint256 rewardAssetAmount_,
-    RewardPool storage rewardPool_
+    address depositor_,
+    bool shouldTransferAssets_
   ) internal {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
-    _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
+    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
+
+    IERC20 asset_ = rewardPool_.asset;
+
+    if (shouldTransferAssets_) asset_.safeTransferFrom(msg.sender, address(this), rewardAssetAmount_);
+
+    _assertValidDepositBalance(asset_, assetPools[asset_].amount, rewardAssetAmount_);
 
     // To ensure reward drip times are in sync with reward deposit times we drip rewards before depositing.
     _dripRewardPool(rewardPool_);
@@ -78,10 +82,10 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
       epoch: rewardPool_.epoch
     });
     rewardPool_.undrippedRewards += depositAmount_;
-    assetPools[token_].amount += depositAmount_;
-    token_.safeTransfer(cozyManager.owner(), depositFeeAmount_);
+    assetPools[asset_].amount += depositAmount_;
+    asset_.safeTransfer(cozyManager.owner(), depositFeeAmount_);
 
-    emit Deposited(msg.sender, rewardPoolId_, depositAmount_, depositFeeAmount_);
+    emit Deposited(msg.sender, depositor_, rewardPoolId_, depositAmount_, depositFeeAmount_);
   }
 
   function _assertValidDepositBalance(IERC20 token_, uint256 assetPoolBalance_, uint256 depositAmount_)
