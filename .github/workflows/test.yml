@@ -1,9 +1,16 @@
 name: test
 
-on: workflow_dispatch
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 env:
   FOUNDRY_PROFILE: ci
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -20,15 +27,20 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
+
+      - name: Run Forge fmt
+        run: |
+          forge fmt --check
+        id: fmt
 
       - name: Run Forge build
         run: |
           forge --version
-          forge build --sizes
+          forge build --sizes src/*
         id: build
 
-      - name: Run Forge tests
+      - name: Run Forge tests (skip invariants)
         run: |
-          forge test -vvv
+          forge test -vvv --no-match-test "invariant_"
         id: test

@@ -22,6 +22,14 @@ interface IRewardsManager {
 
   function claimRewards(uint16 stakePoolId_, address receiver_) external;
 
+  function claimRewardsBySig(
+    uint16[] calldata stakePoolIds_,
+    address owner_,
+    address receiver_,
+    uint256 deadline_,
+    bytes calldata signature_
+  ) external;
+
   function cozyManager() external returns (ICozyManager);
 
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
@@ -35,6 +43,8 @@ interface IRewardsManager {
   function eip712DomainName() external view returns (string memory);
 
   function eip712DomainVersion() external view returns (uint64);
+
+  function eip712Nonces(address owner_, bytes32 actionKey_) external view returns (uint256);
 
   function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory);
 

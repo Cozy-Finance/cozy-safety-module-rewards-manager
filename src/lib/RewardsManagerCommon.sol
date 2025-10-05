@@ -23,8 +23,7 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
     return keccak256(
       abi.encode(
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"), //EIP712
-          // Domain
-          // typehash
+          // Domain typehash
         keccak256(bytes(eip712DomainName)), // name
         keccak256(bytes(Strings.toString(eip712DomainVersion))), // version
         block.chainid, // chainId

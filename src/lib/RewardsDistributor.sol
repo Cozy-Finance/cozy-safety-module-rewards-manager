@@ -27,9 +27,8 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   using FixedPointMathLib for uint256;
   using SafeERC20 for IERC20;
 
-  bytes32 public constant CLAIM_REWARDS_BY_SIG_TYPEHASH = keccak256(
-    "ClaimRewardsBySig(uint16[] stakePoolIds,address owner,address caller,address receiver,uint256 deadline)"
-  );
+  bytes32 public constant CLAIM_REWARDS_BY_SIG_TYPEHASH =
+    keccak256("ClaimRewardsBySig(uint16[] stakePoolIds,address owner,address caller,address receiver,uint256 deadline)");
 
   event ClaimedRewards(
     uint16 indexed stakePoolId_,
@@ -111,25 +110,22 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   ) external {
     if (block.timestamp > deadline_) revert SignatureExpired();
 
+    uint256 nonce_ = eip712Nonces[owner_][CLAIM_REWARDS_BY_SIG_TYPEHASH];
+
     bytes32 stakePoolIdsHash_ = keccak256(abi.encodePacked(stakePoolIds_));
     bytes32 digest_ = keccak256(
       abi.encodePacked(
         "\x19\x01",
         _buildDomainSeparator(),
         keccak256(
-          abi.encode(
-            CLAIM_REWARDS_BY_SIG_TYPEHASH,
-            stakePoolIdsHash_,
-            owner_,
-            msg.sender,
-            receiver_,
-            deadline_
-          )
+          abi.encode(CLAIM_REWARDS_BY_SIG_TYPEHASH, stakePoolIdsHash_, owner_, msg.sender, receiver_, deadline_)
         )
       )
     );
 
     if (!SignatureChecker.isValidSignatureNow(owner_, digest_, signature_)) revert InvalidSignature();
+
+    eip712Nonces[owner_][CLAIM_REWARDS_BY_SIG_TYPEHASH] = nonce_ + 1;
 
     for (uint256 i = 0; i < stakePoolIds_.length; i++) {
       _claimRewardsFor(stakePoolIds_[i], receiver_, owner_);

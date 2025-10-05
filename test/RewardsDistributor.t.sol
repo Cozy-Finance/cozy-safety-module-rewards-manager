@@ -53,9 +53,8 @@ contract RewardsDistributorUnitTest is TestBase {
     address receiver_
   );
 
-  bytes32 internal constant EIP712_DOMAIN_TYPEHASH = keccak256(
-    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-  );
+  bytes32 internal constant EIP712_DOMAIN_TYPEHASH =
+    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
   function _setUpRewardPools(uint256 numRewardAssets_) internal {
     for (uint256 i = 0; i < numRewardAssets_; i++) {
@@ -244,14 +243,10 @@ contract RewardsDistributorUnitTest is TestBase {
     uint256 deadline_
   ) internal view returns (bytes32) {
     bytes32 stakePoolIdsHash_ = keccak256(abi.encodePacked(stakePoolIds_));
+    uint256 nonce_ = rewardsManager.eip712Nonces(owner_, typeHash_);
     bytes32 structHash_ = keccak256(
       abi.encode(
-        component.CLAIM_REWARDS_BY_SIG_TYPEHASH(),
-        stakePoolIdsHash_,
-        owner_,
-        caller_,
-        receiver_,
-        deadline_
+        component.CLAIM_REWARDS_BY_SIG_TYPEHASH(), stakePoolIdsHash_, owner_, caller_, receiver_, deadline_, nonce_
       )
     );
     bytes32 domainSeparator_ = keccak256(
@@ -1149,6 +1144,7 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
     _setUpConcrete();
 
     (address owner_, uint256 ownerPK) = makeAddrAndKey("owner");
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_TYPEHASH());
     _stake(0, 100e6, owner_);
 
     skip(ONE_YEAR);
@@ -1171,13 +1167,20 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
     component.claimRewardsBySig(stakePoolIds_, owner_, receiver_, deadline_, signature_);
 
     for (uint256 i = 0; i < rewardPools_.length; i++) {
-      assertGt(rewardPools_[i].asset.balanceOf(receiver_), receiverBalancesBefore_[i], "receiver should receive rewards");
+      assertGt(
+        rewardPools_[i].asset.balanceOf(receiver_), receiverBalancesBefore_[i], "receiver should receive rewards"
+      );
     }
 
     UserRewardsData[] memory userRewardsData_ = component.getUserRewards(stakePoolIds_[0], owner_);
     for (uint256 i = 0; i < userRewardsData_.length; i++) {
       assertEq(userRewardsData_[i].accruedRewards, 0, "accrued rewards should reset");
     }
+    assertEq(
+      rewardsManager.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_TYPEHASH()),
+      nonceBefore_ + 1,
+      "nonce should increment"
+    );
   }
 
   function test_claimRewardsBySig_validContractSignature() external {
@@ -1185,6 +1188,8 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
 
     MockERC1271Signer mockSigner_ = new MockERC1271Signer(_randomAddress());
     address owner_ = address(mockSigner_);
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_TYPEHASH());
+
     _stake(0, 100e6, owner_);
 
     skip(ONE_YEAR);
@@ -1204,12 +1209,18 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
     for (uint256 i = 0; i < rewardPools_.length; i++) {
       assertGt(rewardPools_[i].asset.balanceOf(receiver_), 0, "receiver should receive rewards");
     }
+    assertEq(
+      rewardsManager.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_TYPEHASH()),
+      nonceBefore_ + 1,
+      "nonce should increment"
+    );
   }
 
   function test_claimRewardsBySig_invalidSignature() external {
     _setUpConcrete();
 
-    (address owner_, ) = makeAddrAndKey("owner");
+    (address owner_,) = makeAddrAndKey("owner");
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_TYPEHASH());
     _stake(0, 100e6, owner_);
 
     skip(ONE_YEAR);
@@ -1223,12 +1234,18 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
 
     vm.expectRevert(RewardsManagerCommon.InvalidSignature.selector);
     component.claimRewardsBySig(stakePoolIds_, owner_, receiver_, deadline_, invalidSignature_);
+    assertEq(
+      rewardsManager.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_TYPEHASH()),
+      nonceBefore_,
+      "nonce should remain unchanged"
+    );
   }
 
   function test_claimRewardsBySig_expiredSignature() external {
     _setUpConcrete();
 
     (address owner_, uint256 ownerPK) = makeAddrAndKey("owner");
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_TYPEHASH());
     _stake(0, 100e6, owner_);
 
     skip(ONE_YEAR);
@@ -1244,12 +1261,18 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
 
     vm.expectRevert(RewardsManagerCommon.SignatureExpired.selector);
     component.claimRewardsBySig(stakePoolIds_, owner_, receiver_, deadline_, signature_);
+    assertEq(
+      rewardsManager.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_TYPEHASH()),
+      nonceBefore_,
+      "nonce should remain unchanged"
+    );
   }
 
   function test_claimRewardsBySig_unauthorizedCaller() external {
     _setUpConcrete();
 
     (address owner_, uint256 ownerPK) = makeAddrAndKey("owner");
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_TYPEHASH());
     _stake(0, 100e6, owner_);
 
     skip(ONE_YEAR);
@@ -1267,8 +1290,19 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
     vm.expectRevert(RewardsManagerCommon.InvalidSignature.selector);
     component.claimRewardsBySig(stakePoolIds_, owner_, receiver_, deadline_, signature_);
 
+    assertEq(
+      rewardsManager.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_TYPEHASH()),
+      nonceBefore_,
+      "nonce should remain unchanged"
+    );
+
     vm.prank(authorizedCaller_);
     component.claimRewardsBySig(stakePoolIds_, owner_, receiver_, deadline_, signature_);
+    assertEq(
+      rewardsManager.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_TYPEHASH()),
+      nonceBefore_ + 1,
+      "nonce should increment"
+    );
   }
 
   function test_revertsOnUnauthorizedUserRewardsUpdate() public {
