@@ -24,19 +24,15 @@ import {
 import {MockERC20} from "./utils/MockERC20.sol";
 import {MockManager} from "./utils/MockManager.sol";
 import {TestBase} from "./utils/TestBase.sol";
+import {IDepositorEvents} from "../src/interfaces/IDepositorEvents.sol";
 import "./utils/Stub.sol";
 
-contract DepositorUnitTest is TestBase {
+contract DepositorUnitTest is TestBase, IDepositorEvents {
   using FixedPointMathLib for uint256;
 
   MockERC20 mockAsset = new MockERC20("Mock Asset", "MOCK", 6);
   MockManager cozyManager = new MockManager();
   TestableDepositor component = new TestableDepositor(cozyManager);
-
-  /// @dev Emitted when a user deposits rewards.
-  event Deposited(
-    address indexed caller_, uint16 indexed rewardPoolId_, uint256 depositAmount_, uint256 depositFeeAmount_
-  );
 
   event Transfer(address indexed from, address indexed to, uint256 amount);
 
@@ -62,8 +58,15 @@ contract DepositorUnitTest is TestBase {
     deal(address(mockAsset), address(component), initialUndrippedRewards);
   }
 
-  function _deposit(bool withoutTransfer_, uint16 poolId_, uint256 amountToDeposit_) internal {
-    if (withoutTransfer_) component.depositRewardAssetsWithoutTransfer(poolId_, amountToDeposit_);
+  function _deposit(
+    bool withoutTransfer_,
+    uint16 poolId_,
+    uint256 amountToDeposit_,
+    address caller_,
+    address depositor_
+  ) internal {
+    vm.prank(caller_);
+    if (withoutTransfer_) component.depositRewardAssetsWithoutTransfer(poolId_, amountToDeposit_, depositor_);
     else component.depositRewardAssets(poolId_, amountToDeposit_);
   }
 
@@ -79,10 +82,9 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit Deposited(depositor_, depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
-    vm.prank(depositor_);
-    _deposit(false, 0, amountToDeposit_);
+    _deposit(false, 0, amountToDeposit_, depositor_, depositor_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
@@ -109,10 +111,9 @@ contract DepositorUnitTest is TestBase {
 
     component.mockSetNextRewardsDripAmount(45e18);
 
-    vm.prank(depositor_);
     _expectEmit();
-    emit Deposited(depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
-    _deposit(false, 0, amountToDeposit_);
+    emit Deposited(depositor_, depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    _deposit(false, 0, amountToDeposit_, depositor_, depositor_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
@@ -140,16 +141,16 @@ contract DepositorUnitTest is TestBase {
     component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
 
     vm.expectRevert(ICommonErrors.InvalidState.selector);
-    vm.prank(depositor_);
-    _deposit(false, 0, amountToDeposit_);
+
+    _deposit(false, 0, amountToDeposit_, depositor_, depositor_);
   }
 
   function test_depositRewards_RevertOutOfBoundsRewardPoolId() external {
     address depositor_ = _randomAddress();
 
     _expectPanic(INDEX_OUT_OF_BOUNDS);
-    vm.prank(depositor_);
-    _deposit(false, 1, 10e18);
+
+    _deposit(false, 1, 10e18, depositor_, depositor_);
   }
 
   function testFuzz_depositRewards_RevertInsufficientAssetsAvailable(uint256 amountToDeposit_) external {
@@ -164,12 +165,13 @@ contract DepositorUnitTest is TestBase {
     mockAsset.approve(address(component), amountToDeposit_);
 
     _expectPanic(PANIC_MATH_UNDEROVERFLOW);
-    vm.prank(depositor_);
-    _deposit(false, 0, amountToDeposit_);
+
+    _deposit(false, 0, amountToDeposit_, depositor_, depositor_);
   }
 
   function test_depositRewardAssetsWithoutTransfer_DepositAndStorageUpdates() external {
     address depositor_ = _randomAddress();
+    address caller_ = _randomAddress();
     uint256 amountToDeposit_ = 10e18;
     uint256 depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
     // Mint initial balance for depositor.
@@ -179,10 +181,9 @@ contract DepositorUnitTest is TestBase {
     mockAsset.transfer(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit Deposited(caller_, depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
-    vm.prank(depositor_);
-    _deposit(true, 0, amountToDeposit_);
+    _deposit(true, 0, amountToDeposit_, caller_, depositor_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
@@ -198,6 +199,7 @@ contract DepositorUnitTest is TestBase {
 
   function test_depositRewardAssetsWithoutTransfer_DepositAndStorageUpdatesNonZeroSupply() external {
     address depositor_ = _randomAddress();
+    address caller_ = _randomAddress();
     uint256 amountToDeposit_ = 20e18;
     uint256 depositFeeAmount_ = amountToDeposit_.mulDivUp(DEFAULT_DEPOSIT_FEE, MathConstants.ZOC);
 
@@ -208,10 +210,9 @@ contract DepositorUnitTest is TestBase {
     mockAsset.transfer(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit Deposited(caller_, depositor_, 0, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
-    vm.prank(depositor_);
-    _deposit(true, 0, amountToDeposit_);
+    _deposit(true, 0, amountToDeposit_, caller_, depositor_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset)));
@@ -227,6 +228,7 @@ contract DepositorUnitTest is TestBase {
 
   function test_depositRewardAssetsWithoutTransfer_RevertWhenPaused() external {
     address depositor_ = _randomAddress();
+    address caller_ = _randomAddress();
     uint128 amountToDeposit_ = 10e18;
 
     // Mint initial balance for depositor.
@@ -238,13 +240,15 @@ contract DepositorUnitTest is TestBase {
     component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
 
     vm.expectRevert(ICommonErrors.InvalidState.selector);
-    vm.prank(depositor_);
-    _deposit(true, 0, amountToDeposit_);
+
+    _deposit(true, 0, amountToDeposit_, caller_, depositor_);
   }
 
   function test_depositRewardAssetsWithoutTransfer_RevertOutOfBoundsRewardPoolId() external {
+    address depositor_ = _randomAddress();
+    address caller_ = _randomAddress();
     _expectPanic(INDEX_OUT_OF_BOUNDS);
-    _deposit(true, 1, 10e18);
+    _deposit(true, 1, 10e18, caller_, depositor_);
   }
 
   function testFuzz_depositRewardAssetsWithoutTransfer_RevertInsufficientAssetsAvailable(uint256 amountToDeposit_)
@@ -252,6 +256,7 @@ contract DepositorUnitTest is TestBase {
   {
     amountToDeposit_ = bound(amountToDeposit_, 1, type(uint128).max);
     address depositor_ = _randomAddress();
+    address caller_ = _randomAddress();
 
     // Mint insufficient assets for depositor.
     mockAsset.mint(depositor_, amountToDeposit_ - 1);
@@ -260,8 +265,8 @@ contract DepositorUnitTest is TestBase {
     mockAsset.transfer(address(component), amountToDeposit_ - 1);
 
     vm.expectRevert(IDepositorErrors.InvalidDeposit.selector);
-    vm.prank(depositor_);
-    _deposit(true, 0, amountToDeposit_);
+
+    _deposit(true, 0, amountToDeposit_, caller_, depositor_);
   }
 
   function test_depositReward_MultipleLargeDeposits() external {
@@ -292,10 +297,9 @@ contract DepositorUnitTest is TestBase {
     mockAsset_.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit Deposited(depositor_, depositor_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
-    vm.prank(depositor_);
-    _deposit(false, 1, amountToDeposit_);
+    _deposit(false, 1, amountToDeposit_, depositor_, depositor_);
 
     RewardPool memory finalRewardPool_ = component.getRewardPool(1);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset_)));
@@ -315,10 +319,9 @@ contract DepositorUnitTest is TestBase {
     mockAsset_.approve(address(component), amountToDeposit_);
 
     _expectEmit();
-    emit Deposited(depositor_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
+    emit Deposited(depositor_, depositor_, 1, amountToDeposit_ - depositFeeAmount_, depositFeeAmount_);
 
-    vm.prank(depositor_);
-    _deposit(false, 1, amountToDeposit_);
+    _deposit(false, 1, amountToDeposit_, depositor_, depositor_);
 
     finalRewardPool_ = component.getRewardPool(1);
     finalAssetPool_ = component.getAssetPool(IERC20(address(mockAsset_)));

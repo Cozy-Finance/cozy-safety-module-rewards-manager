@@ -28,7 +28,7 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
   function _buildDomainSeparator() internal view returns (bytes32) {
     return keccak256(
       abi.encode(
-        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"), //EIP712
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"), // EIP712
           // Domain typehash
         keccak256(bytes(eip712DomainName)), // name
         keccak256(bytes(Strings.toString(eip712DomainVersion))), // version

@@ -96,7 +96,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
 
   function _depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) internal {
     _setUpDepositRewardAssets(rewardPoolId_);
-    rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, rewardAssetAmount_);
+    rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, rewardAssetAmount_, _randomAddress());
   }
 
   function _setUpStake(uint16 stakePoolId_) internal {
@@ -106,7 +106,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
 
   function _stake(uint16 stakePoolId_, uint256 stakeAssetAmount_, address receiver_) internal {
     _setUpStake(stakePoolId_);
-    rewardsManager.stakeWithoutTransfer(stakePoolId_, stakeAssetAmount_, receiver_);
+    rewardsManager.stakeWithoutTransfer(stakePoolId_, stakeAssetAmount_, _randomAddress(), receiver_);
   }
 
   function _setUpUnstake(uint16 stakePoolId_, uint256 stakeAssetAmount_, address receiver_) internal {
@@ -165,7 +165,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     _setUpDepositRewardAssets(rewardPoolId_);
 
     uint256 gasInitial_ = gasleft();
-    rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, rewardAssetAmount_);
+    rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, rewardAssetAmount_, _randomAddress());
     console2.log("Gas used for depositRewardAssetsWithoutTransfer: %s", gasInitial_ - gasleft());
   }
 
@@ -174,7 +174,7 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     _setUpStake(stakePoolId_);
 
     uint256 gasInitial_ = gasleft();
-    rewardsManager.stakeWithoutTransfer(stakePoolId_, stakeAssetAmount_, receiver_);
+    rewardsManager.stakeWithoutTransfer(stakePoolId_, stakeAssetAmount_, _randomAddress(), receiver_);
     console2.log("Gas used for stakeWithoutTransfer: %s", gasInitial_ - gasleft());
   }
 

@@ -27,8 +27,9 @@ import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 import "forge-std/console2.sol";
 import {IRewardsDistributorErrors} from "../src/interfaces/IRewardsDistributorErrors.sol";
+import {IStakerEvents} from "../src/interfaces/IStakerEvents.sol";
 
-contract StakerUnitTest is TestBase {
+contract StakerUnitTest is TestBase, IStakerEvents {
   using FixedPointMathLib for uint256;
   using SafeCastLib for uint256;
 
@@ -40,23 +41,6 @@ contract StakerUnitTest is TestBase {
   uint256 cumulativeDrippedRewards_ = 290e18;
   uint256 cumulativeClaimableRewards_ = 90e18;
   uint256 initialIndexSnapshot_ = 11;
-
-  event Staked(
-    address indexed caller_,
-    address indexed receiver_,
-    uint16 indexed stakePoolId_,
-    IReceiptToken stkReceiptToken_,
-    uint256 assetAmount_
-  );
-
-  event Unstaked(
-    address caller_,
-    address indexed receiver_,
-    address indexed owner_,
-    uint16 indexed stakePoolId_,
-    IReceiptToken stkReceiptToken_,
-    uint256 stkReceiptTokenAmount_
-  );
 
   event Transfer(address indexed from, address indexed to, uint256 amount);
 
@@ -103,7 +87,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(staker_, staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
     component.stake(0, amountToStake_, receiver_);
@@ -147,7 +131,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(staker_, staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
     vm.prank(staker_);
     component.stake(0, amountToStake_, receiver_);
@@ -215,6 +199,7 @@ contract StakerUnitTest is TestBase {
   }
 
   function test_stakeWithoutTransfer_StkReceiptTokensAndStorageUpdates_NonZeroSupply() external {
+    address caller_ = _randomAddress();
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
@@ -226,10 +211,10 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.transfer(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(caller_, staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
-    vm.prank(staker_);
-    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
+    vm.prank(caller_);
+    component.stakeWithoutTransfer(0, amountToStake_, staker_, receiver_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockStakeAsset)));
@@ -246,6 +231,7 @@ contract StakerUnitTest is TestBase {
     _overrideSetUpToZeroStkReceiptTokenSupply();
 
     address staker_ = _randomAddress();
+    address caller_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint128 amountToStake_ = 20e18;
 
@@ -256,10 +242,10 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.transfer(address(component), amountToStake_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
+    emit Staked(caller_, staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountToStake_);
 
-    vm.prank(staker_);
-    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
+    vm.prank(caller_);
+    component.stakeWithoutTransfer(0, amountToStake_, staker_, receiver_);
 
     StakePool memory finalStakePool_ = component.getStakePool(0);
     AssetPool memory finalAssetPool_ = component.getAssetPool(IERC20(address(mockStakeAsset)));
@@ -281,7 +267,7 @@ contract StakerUnitTest is TestBase {
   function test_stakeWithoutTransfer_RevertWhenPaused() external {
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
-
+    address caller_ = _randomAddress();
     // Mint initial safety module receipt token balance for rewards manager.
     mockStakeAsset.mint(address(component), 150e18);
 
@@ -296,20 +282,20 @@ contract StakerUnitTest is TestBase {
     component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
 
     vm.expectRevert(ICommonErrors.InvalidState.selector);
-    vm.prank(staker_);
-    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
+    vm.prank(caller_);
+    component.stakeWithoutTransfer(0, amountToStake_, staker_, receiver_);
   }
 
   function test_stakeWithoutTransfer_RevertOutOfBoundsStakePoolId() external {
     address receiver_ = _randomAddress();
-
+    address staker_ = _randomAddress();
     _expectPanic(INDEX_OUT_OF_BOUNDS);
-    component.stakeWithoutTransfer(1, 10e18, receiver_);
+    component.stakeWithoutTransfer(1, 10e18, staker_, receiver_);
   }
 
   function testFuzz_stakeWithoutTransfer_RevertInsufficientAssetsAvailable(uint256 amountToStake_) external {
     amountToStake_ = bound(amountToStake_, 1, type(uint216).max);
-
+    address caller_ = _randomAddress();
     address staker_ = _randomAddress();
     address receiver_ = _randomAddress();
 
@@ -320,8 +306,8 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.transfer(address(component), amountToStake_ - 1);
 
     vm.expectRevert(IDepositorErrors.InvalidDeposit.selector);
-    vm.prank(staker_);
-    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
+    vm.prank(caller_);
+    component.stakeWithoutTransfer(0, amountToStake_, staker_, receiver_);
   }
 
   function test_stake_RevertZeroShares() external {
@@ -337,13 +323,14 @@ contract StakerUnitTest is TestBase {
 
   function test_stakeWithoutTransfer_RevertZeroShares() external {
     address staker_ = _randomAddress();
+    address caller_ = _randomAddress();
     address receiver_ = _randomAddress();
     uint256 amountToStake_ = 0;
 
     // 0 assets should give 0 shares.
     vm.expectRevert(ICommonErrors.AmountIsZero.selector);
-    vm.prank(staker_);
-    component.stakeWithoutTransfer(0, amountToStake_, receiver_);
+    vm.prank(caller_);
+    component.stakeWithoutTransfer(0, amountToStake_, staker_, receiver_);
   }
 
   function _setupDefaultSingleUserFixture()
@@ -361,7 +348,7 @@ contract StakerUnitTest is TestBase {
     mockStakeAsset.approve(address(component), amountStaked_);
 
     _expectEmit();
-    emit Staked(staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
+    emit Staked(staker_, staker_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
 
     vm.prank(staker_);
     component.stake(0, amountStaked_, receiver_);

@@ -164,7 +164,7 @@ abstract contract StakerInvariants is InvariantTestBase {
 
     vm.prank(actor_);
     vm.expectRevert(ICommonErrors.AmountIsZero.selector);
-    rewardsManager.stakeWithoutTransfer(stakePoolId_, 0, actor_);
+    rewardsManager.stakeWithoutTransfer(stakePoolId_, 0, actor_, actor_);
   }
 
   function invariant_cannotStakeWithInsufficientAssets() public syncCurrentTimestamp(rewardsManagerHandler) {
@@ -174,7 +174,7 @@ abstract contract StakerInvariants is InvariantTestBase {
 
     vm.prank(actor_);
     vm.expectRevert(IDepositorErrors.InvalidDeposit.selector);
-    rewardsManager.stakeWithoutTransfer(stakePoolId_, assetAmount_, actor_);
+    rewardsManager.stakeWithoutTransfer(stakePoolId_, assetAmount_, actor_, actor_);
   }
 }
 
