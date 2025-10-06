@@ -28,7 +28,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
 
     IERC20 asset_ = rewardPool_.asset;
     asset_.safeTransferFrom(msg.sender, address(this), rewardAssetAmount_);
-    _executeRewardDeposit(rewardPoolId_, rewardAssetAmount_, msg.sender, rewardPool_, asset_);
+    _executeRewardDeposit(rewardPoolId_, asset_, rewardAssetAmount_, rewardPool_, msg.sender);
   }
 
   /// @notice Deposit `rewardAssetAmount_` assets into the `rewardPoolId_` reward pool.
@@ -41,7 +41,7 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
     external
   {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    _executeRewardDeposit(rewardPoolId_, rewardAssetAmount_, owner_, rewardPool_, rewardPool_.asset);
+    _executeRewardDeposit(rewardPoolId_, rewardPool_.asset, rewardAssetAmount_, rewardPool_, owner_);
   }
 
   /// @notice Preview the current amount of undripped rewards in the `rewardPoolId_` reward pool with unrealized drip
@@ -60,14 +60,14 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
 
   function _executeRewardDeposit(
     uint16 rewardPoolId_,
+    IERC20 token_,
     uint256 rewardAssetAmount_,
-    address owner_,
     RewardPool storage rewardPool_,
-    IERC20 asset_
+    address owner_
   ) internal {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
 
-    _assertValidDepositBalance(asset_, assetPools[asset_].amount, rewardAssetAmount_);
+    _assertValidDepositBalance(token_, assetPools[token_].amount, rewardAssetAmount_);
 
     // To ensure reward drip times are in sync with reward deposit times we drip rewards before depositing.
     _dripRewardPool(rewardPool_);
@@ -83,8 +83,8 @@ abstract contract Depositor is RewardsManagerCommon, IDepositorErrors, IDeposito
       epoch: rewardPool_.epoch
     });
     rewardPool_.undrippedRewards += depositAmount_;
-    assetPools[asset_].amount += depositAmount_;
-    asset_.safeTransfer(cozyManager.owner(), depositFeeAmount_);
+    assetPools[token_].amount += depositAmount_;
+    token_.safeTransfer(cozyManager.owner(), depositFeeAmount_);
 
     emit Deposited(msg.sender, owner_, rewardPoolId_, depositAmount_, depositFeeAmount_);
   }
