@@ -22,11 +22,16 @@ abstract contract Staker is RewardsManagerCommon, IStakerEvents {
   /// @param assetAmount_ The amount of the underlying asset to stake.
   /// @param receiver_ The address that will receive the stkReceiptTokens.
   function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external {
+    if (assetAmount_ == 0) revert AmountIsZero();
+
     StakePool storage stakePool_ = stakePools[stakePoolId_];
     IERC20 asset_ = stakePool_.asset;
+    AssetPool storage assetPool_ = assetPools[asset_];
 
     asset_.safeTransferFrom(msg.sender, address(this), assetAmount_);
-    _executeStake(stakePoolId_, assetAmount_, receiver_, msg.sender, stakePool_, asset_);
+    _assertValidDepositBalance(asset_, assetPool_.amount, assetAmount_);
+
+    _executeStake(stakePoolId_, assetAmount_, receiver_, msg.sender, assetPool_, stakePool_);
   }
 
   /// @notice Stake by minting `assetAmount_` stkReceiptTokens to `receiver_`.
@@ -37,8 +42,15 @@ abstract contract Staker is RewardsManagerCommon, IStakerEvents {
   /// @param owner_ The owner of the staked assets (for event logging purposes).
   /// @param receiver_ The address that will receive the stkReceiptTokens.
   function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address owner_, address receiver_) external {
+    if (assetAmount_ == 0) revert AmountIsZero();
+
     StakePool storage stakePool_ = stakePools[stakePoolId_];
-    _executeStake(stakePoolId_, assetAmount_, receiver_, owner_, stakePool_, stakePool_.asset);
+    IERC20 asset_ = stakePool_.asset;
+    AssetPool storage assetPool_ = assetPools[asset_];
+
+    _assertValidDepositBalance(asset_, assetPool_.amount, assetAmount_);
+
+    _executeStake(stakePoolId_, assetAmount_, receiver_, owner_, assetPool_, stakePool_);
   }
 
   /// @notice Unstakes by burning `stkReceiptTokenAmount_` of `stakePoolId_` stake pool stake receipt tokens and
@@ -91,15 +103,11 @@ abstract contract Staker is RewardsManagerCommon, IStakerEvents {
     uint256 assetAmount_,
     address receiver_,
     address owner_,
-    StakePool storage stakePool_,
-    IERC20 asset_
+    AssetPool storage assetPool_,
+    StakePool storage stakePool_
   ) internal {
     if (rewardsManagerState == RewardsManagerState.PAUSED) revert InvalidState();
-    if (assetAmount_ == 0) revert AmountIsZero();
 
-    AssetPool storage assetPool_ = assetPools[asset_];
-
-    _assertValidDepositBalance(asset_, assetPool_.amount, assetAmount_);
     // Given the 1:1 conversion rate between the underlying asset and stkReceiptTokens, we always have `assetAmount_ ==
     // stkReceiptTokenAmount_`.
     stakePool_.amount += assetAmount_;
