@@ -490,7 +490,7 @@ contract RewardsManagerHandler is TestBase {
     _simulateTransferToRewardsManager(asset_, assetAmount_);
 
     vm.startPrank(currentActor);
-    rewardsManager.depositRewardAssetsWithoutTransfer(currentRewardPoolId, assetAmount_);
+    rewardsManager.depositRewardAssetsWithoutTransfer(currentRewardPoolId, assetAmount_, currentActor);
     vm.stopPrank();
 
     ghost_rewardPoolCumulative[currentRewardPoolId].totalAssetAmount += assetAmount_;
@@ -520,7 +520,7 @@ contract RewardsManagerHandler is TestBase {
     _simulateTransferToRewardsManager(asset_, assetAmount_);
 
     vm.startPrank(currentActor);
-    rewardsManager.stakeWithoutTransfer(currentStakePoolId, assetAmount_, currentActor);
+    rewardsManager.stakeWithoutTransfer(currentStakePoolId, assetAmount_, currentActor, currentActor);
     vm.stopPrank();
 
     ghost_stakePoolCumulative[currentStakePoolId].stakeAssetAmount += assetAmount_;

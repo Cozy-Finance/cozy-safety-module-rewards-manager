@@ -9,39 +9,10 @@ import {AssetPool, StakePool} from "./structs/Pools.sol";
 import {ClaimRewardsArgs, ClaimableRewardsData, ClaimRewardsPoolData} from "./structs/Rewards.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {IRewardsDistributorErrors} from "../interfaces/IRewardsDistributorErrors.sol";
+import {IStakerEvents} from "../interfaces/IStakerEvents.sol";
 
-abstract contract Staker is RewardsManagerCommon {
+abstract contract Staker is RewardsManagerCommon, IStakerEvents {
   using SafeERC20 for IERC20;
-
-  /// @notice Emitted when a user stakes.
-  /// @param caller_ The address that called the stake function.
-  /// @param receiver_ The address that received the stkReceiptTokens.
-  /// @param stakePoolId_ The stake pool ID that the user staked in.
-  /// @param stkReceiptToken_ The stkReceiptToken that was minted.
-  /// @param assetAmount_ The amount of the underlying asset staked.
-  event Staked(
-    address indexed caller_,
-    address indexed receiver_,
-    uint16 indexed stakePoolId_,
-    IReceiptToken stkReceiptToken_,
-    uint256 assetAmount_
-  );
-
-  /// @notice Emitted when a user unstakes.
-  /// @param caller_ The address that called the unstake function.
-  /// @param receiver_ The address that received the unstaked assets.
-  /// @param owner_ The owner of the stkReceiptTokens being unstaked.
-  /// @param stakePoolId_ The stake pool ID that the user unstaked from.
-  /// @param stkReceiptToken_ The stkReceiptToken that was burned.
-  /// @param stkReceiptTokenAmount_ The amount of stkReceiptTokens burned.
-  event Unstaked(
-    address caller_,
-    address indexed receiver_,
-    address indexed owner_,
-    uint16 indexed stakePoolId_,
-    IReceiptToken stkReceiptToken_,
-    uint256 stkReceiptTokenAmount_
-  );
 
   /// @notice Stake by minting `assetAmount_` stkReceiptTokens to `receiver_` after depositing exactly `assetAmount_` of
   /// `stakePoolId_` stake pool asset.
@@ -60,7 +31,7 @@ abstract contract Staker is RewardsManagerCommon {
     asset_.safeTransferFrom(msg.sender, address(this), assetAmount_);
     _assertValidDepositBalance(asset_, assetPool_.amount, assetAmount_);
 
-    _executeStake(stakePoolId_, assetAmount_, receiver_, assetPool_, stakePool_);
+    _executeStake(stakePoolId_, assetAmount_, receiver_, msg.sender, assetPool_, stakePool_);
   }
 
   /// @notice Stake by minting `assetAmount_` stkReceiptTokens to `receiver_`.
@@ -68,8 +39,9 @@ abstract contract Staker is RewardsManagerCommon {
   /// manager contract.
   /// @param stakePoolId_ The ID of the stake pool to stake in.
   /// @param assetAmount_ The amount of the underlying asset to stake.
+  /// @param owner_ The owner of the staked assets (for event logging purposes).
   /// @param receiver_ The address that will receive the stkReceiptTokens.
-  function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external {
+  function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address owner_, address receiver_) external {
     if (assetAmount_ == 0) revert AmountIsZero();
 
     StakePool storage stakePool_ = stakePools[stakePoolId_];
@@ -78,7 +50,7 @@ abstract contract Staker is RewardsManagerCommon {
 
     _assertValidDepositBalance(asset_, assetPool_.amount, assetAmount_);
 
-    _executeStake(stakePoolId_, assetAmount_, receiver_, assetPool_, stakePool_);
+    _executeStake(stakePoolId_, assetAmount_, receiver_, owner_, assetPool_, stakePool_);
   }
 
   /// @notice Unstakes by burning `stkReceiptTokenAmount_` of `stakePoolId_` stake pool stake receipt tokens and
@@ -130,6 +102,7 @@ abstract contract Staker is RewardsManagerCommon {
     uint16 stakePoolId_,
     uint256 assetAmount_,
     address receiver_,
+    address owner_,
     AssetPool storage assetPool_,
     StakePool storage stakePool_
   ) internal {
@@ -147,7 +120,7 @@ abstract contract Staker is RewardsManagerCommon {
     _updateUserRewards(stkReceiptToken_.balanceOf(receiver_), claimableRewards_, userRewards[stakePoolId_][receiver_]);
 
     stkReceiptToken_.mint(receiver_, assetAmount_);
-    emit Staked(msg.sender, receiver_, stakePoolId_, stkReceiptToken_, assetAmount_);
+    emit Staked(msg.sender, owner_, receiver_, stakePoolId_, stkReceiptToken_, assetAmount_);
   }
 
   function _executeUnstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_)
