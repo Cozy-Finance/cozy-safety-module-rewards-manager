@@ -32,11 +32,11 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   bytes32 public constant CLAIM_REWARDS_POOL_DATA_TYPEHASH =
     keccak256("ClaimRewardsPoolData(uint16 rewardPoolId,bool drip)");
 
-  bytes32 public constant CLAIM_REWARDS_ALL_POOLS_BY_SIG_TYPEHASH = keccak256(
+  bytes32 public constant CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH = keccak256(
     "ClaimRewardsBySig(uint16[] stakePoolIds,address owner,address caller,address receiver,uint256 deadline,uint256 nonce)"
   );
 
-  bytes32 public constant CLAIM_REWARDS_BY_SIG_TYPEHASH = keccak256(
+  bytes32 public constant CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH = keccak256(
     "ClaimRewardsBySig(uint16[] stakePoolIds,ClaimRewardsPoolData[] claimRewardsPoolData,address owner,address caller,address receiver,uint256 deadline,uint256 nonce)ClaimRewardsPoolData(uint16 rewardPoolId,bool drip)"
   );
 
@@ -176,11 +176,12 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
       receiver_,
       deadline_,
       signature_,
-      CLAIM_REWARDS_ALL_POOLS_BY_SIG_TYPEHASH
+      CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH
     );
   }
 
   /// @notice Claim rewards for a set of stake pools on behalf of `owner_`, authorized by signature.
+  /// @dev This variant claims and drips specified reward pools.
   /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
   /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip before claiming each one.
   /// @param owner_ The address whose rewards are being claimed.
@@ -208,7 +209,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
       receiver_,
       deadline_,
       signature_,
-      CLAIM_REWARDS_BY_SIG_TYPEHASH
+      CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH
     );
   }
 
