@@ -82,6 +82,19 @@ abstract contract StateTransitionInvariantsWithStateTransitions is InvariantTest
     }
   }
 
+  function invariant_depositRewardAssetsWithoutTransferRevertsWhenPaused()
+    public
+    syncCurrentTimestamp(rewardsManagerHandler)
+  {
+    uint16 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
+
+    if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) {
+      vm.expectRevert(ICommonErrors.InvalidState.selector);
+      vm.prank(_randomAddress());
+      rewardsManager.depositRewardAssetsWithoutTransfer(rewardPoolId_, _randomUint256());
+    }
+  }
+
   function invariant_depositRewardAssetsRevertsWhenPaused() public syncCurrentTimestamp(rewardsManagerHandler) {
     address actor_ = _randomAddress();
     uint16 rewardPoolId_ = rewardsManagerHandler.pickValidRewardPoolId(_randomUint256());
@@ -97,6 +110,24 @@ abstract contract StateTransitionInvariantsWithStateTransitions is InvariantTest
       vm.expectRevert(ICommonErrors.InvalidState.selector);
       vm.prank(actor_);
       rewardsManager.depositRewardAssets(rewardPoolId_, depositAmount_);
+    }
+  }
+
+  function invariant_stakeWithoutTransferRevertsWhenPaused() public syncCurrentTimestamp(rewardsManagerHandler) {
+    address actor_ = _randomAddress();
+    uint16 stakePoolId_ = rewardsManagerHandler.pickValidStakePoolId(_randomUint256());
+    IERC20 asset_ = rewardsManager.stakePools(stakePoolId_).asset;
+
+    uint256 stakeAmount_ = bound(_randomUint64(), 1, type(uint64).max);
+    deal(address(asset_), actor_, stakeAmount_, true);
+
+    vm.prank(actor_);
+    asset_.transfer(address(rewardsManager), stakeAmount_);
+
+    if (rewardsManager.rewardsManagerState() == RewardsManagerState.PAUSED) {
+      vm.expectRevert(ICommonErrors.InvalidState.selector);
+      vm.prank(actor_);
+      rewardsManager.stakeWithoutTransfer(stakePoolId_, stakeAmount_, _randomAddress());
     }
   }
 
