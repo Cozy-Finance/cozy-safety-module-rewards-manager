@@ -32,6 +32,10 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   bytes32 public constant CLAIM_REWARDS_POOL_DATA_TYPEHASH =
     keccak256("ClaimRewardsPoolData(uint16 rewardPoolId,bool drip)");
 
+  bytes32 public constant CLAIM_REWARDS_ALL_POOLS_BY_SIG_TYPEHASH = keccak256(
+    "ClaimRewardsBySig(uint16[] stakePoolIds,address owner,address caller,address receiver,uint256 deadline,uint256 nonce)"
+  );
+
   bytes32 public constant CLAIM_REWARDS_BY_SIG_TYPEHASH = keccak256(
     "ClaimRewardsBySig(uint16[] stakePoolIds,ClaimRewardsPoolData[] claimRewardsPoolData,address owner,address caller,address receiver,uint256 deadline,uint256 nonce)ClaimRewardsPoolData(uint16 rewardPoolId,bool drip)"
   );
@@ -91,10 +95,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// @param stakePoolId_ The ID of the stake pool to claim rewards for.
   /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(uint16 stakePoolId_, address receiver_) external {
-    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools.length);
-    for (uint16 i = 0; i < rewardPools.length; i++) {
-      claimRewardsPoolData_[i] = ClaimRewardsPoolData({rewardPoolId: i, drip: true});
-    }
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = _buildDefaultClaimRewardsPoolData();
     _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), claimRewardsPoolData_);
   }
 
@@ -105,10 +106,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
   /// @param receiver_ The address to transfer the claimed rewards to.
   function claimRewards(uint16[] calldata stakePoolIds_, address receiver_) external {
-    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools.length);
-    for (uint16 i = 0; i < rewardPools.length; i++) {
-      claimRewardsPoolData_[i] = ClaimRewardsPoolData({rewardPoolId: i, drip: true});
-    }
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = _buildDefaultClaimRewardsPoolData();
     for (uint256 i = 0; i < stakePoolIds_.length; i++) {
       _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), claimRewardsPoolData_);
     }
@@ -156,6 +154,33 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   }
 
   /// @notice Claim rewards for a set of stake pools on behalf of `owner_`, authorized by signature.
+  /// @dev This variant claims and drips all reward pools.
+  /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
+  /// @param owner_ The address whose rewards are being claimed.
+  /// @param receiver_ The address to receive the claimed rewards.
+  /// @param deadline_ The time after which the signature is no longer valid.
+  /// @param signature_ The owner's signature over the EIP-712 structured data.
+  function claimRewardsBySig(
+    uint16[] calldata stakePoolIds_,
+    address owner_,
+    address receiver_,
+    uint256 deadline_,
+    bytes calldata signature_
+  ) external {
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = _buildDefaultClaimRewardsPoolData();
+    _claimRewardsBySig(
+      stakePoolIds_,
+      claimRewardsPoolData_,
+      bytes32(0),
+      owner_,
+      receiver_,
+      deadline_,
+      signature_,
+      CLAIM_REWARDS_ALL_POOLS_BY_SIG_TYPEHASH
+    );
+  }
+
+  /// @notice Claim rewards for a set of stake pools on behalf of `owner_`, authorized by signature.
   /// @param stakePoolIds_ The IDs of the stake pools to claim rewards for.
   /// @param claimRewardsPoolData_ The reward pool IDs and whether to drip before claiming each one.
   /// @param owner_ The address whose rewards are being claimed.
@@ -170,48 +195,21 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint256 deadline_,
     bytes calldata signature_
   ) external {
-    if (block.timestamp > deadline_) revert SignatureExpired();
-
     if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) {
       revert IRewardsDistributorErrors.InvalidClaimRewardsPoolData();
     }
 
-    uint256 nonce_ = eip712Nonces[owner_][CLAIM_REWARDS_BY_SIG_TYPEHASH];
-
-    // Encode each stake pool id as a full 32-byte word to satisfy EIP-712 array hashing semantics.
-    uint256 stakePoolCount_ = stakePoolIds_.length;
-    bytes32[] memory stakePoolIdsEncoded_ = new bytes32[](stakePoolCount_);
-    for (uint256 i = 0; i < stakePoolCount_; i++) {
-      stakePoolIdsEncoded_[i] = bytes32(uint256(stakePoolIds_[i]));
-    }
-    bytes32 stakePoolIdsHash_ = keccak256(abi.encodePacked(stakePoolIdsEncoded_));
     bytes32 claimRewardsPoolDataHash_ = _hashClaimRewardsPoolData(claimRewardsPoolData_);
-    bytes32 digest_ = keccak256(
-      abi.encodePacked(
-        "\x19\x01",
-        _buildDomainSeparator(),
-        keccak256(
-          abi.encode(
-            CLAIM_REWARDS_BY_SIG_TYPEHASH,
-            stakePoolIdsHash_,
-            claimRewardsPoolDataHash_,
-            owner_,
-            msg.sender,
-            receiver_,
-            deadline_,
-            nonce_
-          )
-        )
-      )
+    _claimRewardsBySig(
+      stakePoolIds_,
+      claimRewardsPoolData_,
+      claimRewardsPoolDataHash_,
+      owner_,
+      receiver_,
+      deadline_,
+      signature_,
+      CLAIM_REWARDS_BY_SIG_TYPEHASH
     );
-
-    if (!SignatureChecker.isValidSignatureNow(owner_, digest_, signature_)) revert InvalidSignature();
-
-    eip712Nonces[owner_][CLAIM_REWARDS_BY_SIG_TYPEHASH] = nonce_ + 1;
-
-    for (uint256 i = 0; i < stakePoolIds_.length; i++) {
-      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, owner_), claimRewardsPoolData_);
-    }
   }
 
   /// @notice Preview the claimable rewards for a given set of stake pools.
@@ -256,6 +254,56 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     // transfer, (2) the current claimable reward index snapshots.
     _updateUserRewards(stkReceiptToken_.balanceOf(from_), claimableRewards_, userRewards[stakePoolId_][from_]);
     _updateUserRewards(stkReceiptToken_.balanceOf(to_), claimableRewards_, userRewards[stakePoolId_][to_]);
+  }
+
+  function _buildDefaultClaimRewardsPoolData()
+    internal
+    view
+    returns (ClaimRewardsPoolData[] memory claimRewardsPoolData_)
+  {
+    uint256 numRewardPools_ = rewardPools.length;
+    claimRewardsPoolData_ = new ClaimRewardsPoolData[](numRewardPools_);
+    for (uint16 i = 0; i < numRewardPools_; i++) {
+      claimRewardsPoolData_[i] = ClaimRewardsPoolData({rewardPoolId: i, drip: true});
+    }
+  }
+
+  function _claimRewardsBySig(
+    uint16[] calldata stakePoolIds_,
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_,
+    bytes32 claimRewardsPoolDataHash_,
+    address owner_,
+    address receiver_,
+    uint256 deadline_,
+    bytes calldata signature_,
+    bytes32 typeHash_
+  ) internal {
+    if (block.timestamp > deadline_) revert SignatureExpired();
+
+    bytes32 stakePoolIdsHash_ = _hashStakePoolIds(stakePoolIds_);
+    uint256 nonce_ = eip712Nonces[owner_][typeHash_];
+
+    bytes32 structHash_;
+    if (claimRewardsPoolDataHash_ != bytes32(0)) {
+      structHash_ = keccak256(
+        abi.encode(
+          typeHash_, stakePoolIdsHash_, claimRewardsPoolDataHash_, owner_, msg.sender, receiver_, deadline_, nonce_
+        )
+      );
+    } else {
+      structHash_ =
+        keccak256(abi.encode(typeHash_, stakePoolIdsHash_, owner_, msg.sender, receiver_, deadline_, nonce_));
+    }
+
+    bytes32 digest_ = keccak256(abi.encodePacked("\x19\x01", _buildDomainSeparator(), structHash_));
+
+    if (!SignatureChecker.isValidSignatureNow(owner_, digest_, signature_)) revert InvalidSignature();
+
+    eip712Nonces[owner_][typeHash_] = nonce_ + 1;
+
+    for (uint256 i = 0; i < stakePoolIds_.length; i++) {
+      _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, owner_), claimRewardsPoolData_);
+    }
   }
 
   function _dripRewardPool(RewardPool storage rewardPool_) internal override {
@@ -583,6 +631,16 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
   function _computeClaimFeeAmount(uint256 claimAmount_, uint16 claimFee_) internal pure returns (uint256) {
     return claimAmount_.mulDivUp(claimFee_, MathConstants.ZOC);
+  }
+
+  function _hashStakePoolIds(uint16[] calldata stakePoolIds_) internal pure returns (bytes32) {
+    // Encode each stake pool id as a full 32-byte word to satisfy EIP-712 array hashing semantics.
+    uint256 stakePoolCount_ = stakePoolIds_.length;
+    bytes32[] memory stakePoolIdsEncoded_ = new bytes32[](stakePoolCount_);
+    for (uint256 i = 0; i < stakePoolCount_; i++) {
+      stakePoolIdsEncoded_[i] = bytes32(uint256(stakePoolIds_[i]));
+    }
+    return keccak256(abi.encodePacked(stakePoolIdsEncoded_));
   }
 
   function _hashClaimRewardsPoolData(ClaimRewardsPoolData[] calldata claimRewardsPoolData_)

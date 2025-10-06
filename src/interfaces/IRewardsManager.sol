@@ -30,6 +30,14 @@ interface IRewardsManager {
 
   function claimRewardsBySig(
     uint16[] calldata stakePoolIds_,
+    address owner_,
+    address receiver_,
+    uint256 deadline_,
+    bytes calldata signature_
+  ) external;
+
+  function claimRewardsBySig(
+    uint16[] calldata stakePoolIds_,
     ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
     address owner_,
     address receiver_,
