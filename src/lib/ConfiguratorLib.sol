@@ -30,7 +30,7 @@ library ConfiguratorLib {
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     uint16 allowedStakePools_,
     uint16 allowedRewardPools_
-  ) internal view returns (bool) {
+  ) public view returns (bool) {
     uint256 numExistingStakePools_ = stakePools_.length;
     uint256 numExistingRewardPools_ = rewardPools_.length;
 
@@ -81,7 +81,7 @@ library ConfiguratorLib {
     uint256 numExistingRewardPools_,
     uint16 allowedStakePools_,
     uint16 allowedRewardPools_
-  ) internal view returns (bool) {
+  ) public view returns (bool) {
     // Validate number of stake pools. The number of stake pools configs must be greater than or equal to the number of
     // existing stake pools, and less than or equal to the maximum allowed stake pools.
     if (stakePoolConfigs_.length > allowedStakePools_ || stakePoolConfigs_.length < numExistingStakePools_) {
@@ -140,7 +140,7 @@ library ConfiguratorLib {
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     uint16 allowedStakePools_,
     uint16 allowedRewardPools_
-  ) internal {
+  ) public {
     if (
       !isValidUpdate(
         stakePools_,
@@ -182,7 +182,7 @@ library ConfiguratorLib {
     IReceiptTokenFactory receiptTokenFactory_,
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_
-  ) internal {
+  ) public {
     // Update existing stake pool weights. No need to update the stake pool asset since it cannot change.
     uint16 numExistingStakePools_ = uint16(stakePools_.length);
     for (uint16 i = 0; i < numExistingStakePools_; i++) {
@@ -224,7 +224,7 @@ library ConfiguratorLib {
     IReceiptTokenFactory receiptTokenFactory_,
     StakePoolConfig calldata stakePoolConfig_,
     uint16 stakePoolId_
-  ) internal {
+  ) public {
     IReceiptToken stkReceiptToken_ = receiptTokenFactory_.deployReceiptToken(
       stakePoolId_, IReceiptTokenFactory.PoolType.STAKE, stakePoolConfig_.asset.decimals()
     );
@@ -250,7 +250,7 @@ library ConfiguratorLib {
     RewardPool[] storage rewardPools_,
     RewardPoolConfig calldata rewardPoolConfig_,
     uint16 rewardPoolId_
-  ) internal {
+  ) public {
     rewardPools_.push(
       RewardPool({
         asset: rewardPoolConfig_.asset,
