@@ -5,8 +5,6 @@ import {ReceiptToken} from "cozy-safety-module-libs/ReceiptToken.sol";
 import {IRewardsManager} from "./interfaces/IRewardsManager.sol";
 
 contract StkReceiptToken is ReceiptToken {
-  constructor() ReceiptToken() {}
-
   /// @dev Updates the user's rewards before transferring the stkReceiptTokens by calling into the rewards manager.
   function transfer(address to_, uint256 amount_) public override returns (bool) {
     IRewardsManager(module).updateUserRewardsForStkReceiptTokenTransfer(msg.sender, to_);
