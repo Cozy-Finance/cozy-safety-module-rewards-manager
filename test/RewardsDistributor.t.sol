@@ -11,6 +11,7 @@ import {MathConstants} from "cozy-safety-module-libs/lib/MathConstants.sol";
 import {Ownable} from "cozy-safety-module-libs/lib/Ownable.sol";
 import {Depositor} from "../src/lib/Depositor.sol";
 import {RewardsDistributor} from "../src/lib/RewardsDistributor.sol";
+import {RewardsManagerCommon} from "../src/lib/RewardsManagerCommon.sol";
 import {RewardsManagerInspector} from "../src/lib/RewardsManagerInspector.sol";
 import {RewardsManagerState} from "../src/lib/RewardsManagerStates.sol";
 import {Staker} from "../src/lib/Staker.sol";
@@ -29,6 +30,8 @@ import {MockERC20} from "./utils/MockERC20.sol";
 import {MockDripModel} from "./utils/MockDripModel.sol";
 import {MockStkReceiptToken} from "./utils/MockStkReceiptToken.sol";
 import {MockManager} from "./utils/MockManager.sol";
+import {MockERC1271Signer} from "./utils/MockERC1271Signer.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 import {ClaimRewardsPoolData} from "../src/lib/structs/Rewards.sol";
@@ -51,6 +54,9 @@ contract RewardsDistributorUnitTest is TestBase {
     address indexed owner_,
     address receiver_
   );
+
+  bytes32 internal constant EIP712_DOMAIN_TYPEHASH =
+    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
   function _setUpRewardPools(uint256 numRewardAssets_) internal {
     for (uint256 i = 0; i < numRewardAssets_; i++) {
@@ -229,6 +235,93 @@ contract RewardsDistributorUnitTest is TestBase {
     mockStakeAsset_.approve(address(component), amount_);
     component.stake(stakePoolId_, amount_, user_);
     vm.stopPrank();
+  }
+
+  function _buildDripAllClaimRewardsPoolData() internal view returns (ClaimRewardsPoolData[] memory) {
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools_.length);
+    for (uint16 i = 0; i < rewardPools_.length; i++) {
+      claimRewardsPoolData_[i] = ClaimRewardsPoolData({rewardPoolId: i, drip: true});
+    }
+    return claimRewardsPoolData_;
+  }
+
+  function _buildClaimRewardsDigest(
+    address owner_,
+    uint16[] memory stakePoolIds_,
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_,
+    address caller_,
+    address receiver_,
+    uint256 deadline_
+  ) internal view returns (bytes32) {
+    bytes32 stakePoolIdsHash_ = _hashStakePoolIds(stakePoolIds_);
+    bytes32 claimRewardsPoolDataHash_ = _hashClaimRewardsPoolData(claimRewardsPoolData_);
+    bytes32 typeHash_ = component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH();
+    uint256 nonce_ = component.eip712Nonces(owner_, typeHash_);
+    bytes32 structHash_ = keccak256(
+      abi.encode(typeHash_, stakePoolIdsHash_, claimRewardsPoolDataHash_, owner_, caller_, receiver_, deadline_, nonce_)
+    );
+    bytes32 domainSeparator_ = keccak256(
+      abi.encode(
+        EIP712_DOMAIN_TYPEHASH,
+        keccak256(bytes(component.eip712DomainName())),
+        keccak256(bytes(Strings.toString(component.eip712DomainVersion()))),
+        block.chainid,
+        address(component)
+      )
+    );
+    return keccak256(abi.encodePacked("\x19\x01", domainSeparator_, structHash_));
+  }
+
+  function _hashClaimRewardsPoolData(ClaimRewardsPoolData[] memory claimRewardsPoolData_)
+    internal
+    view
+    returns (bytes32)
+  {
+    uint256 length_ = claimRewardsPoolData_.length;
+    if (length_ == 0) return keccak256("");
+
+    bytes32[] memory elementHashes_ = new bytes32[](length_);
+    bytes32 typeHash_ = component.CLAIM_REWARDS_POOL_DATA_TYPEHASH();
+    for (uint256 i = 0; i < length_; i++) {
+      elementHashes_[i] =
+        keccak256(abi.encode(typeHash_, claimRewardsPoolData_[i].rewardPoolId, claimRewardsPoolData_[i].drip));
+    }
+
+    return keccak256(abi.encodePacked(elementHashes_));
+  }
+
+  function _hashStakePoolIds(uint16[] memory stakePoolIds_) internal pure returns (bytes32) {
+    uint256 stakePoolCount_ = stakePoolIds_.length;
+    bytes32[] memory stakePoolIdsEncoded_ = new bytes32[](stakePoolCount_);
+    for (uint256 i = 0; i < stakePoolCount_; i++) {
+      stakePoolIdsEncoded_[i] = bytes32(uint256(stakePoolIds_[i]));
+    }
+    return keccak256(abi.encodePacked(stakePoolIdsEncoded_));
+  }
+
+  function _buildClaimRewardsAllPoolsDigest(
+    address owner_,
+    uint16[] memory stakePoolIds_,
+    address caller_,
+    address receiver_,
+    uint256 deadline_
+  ) internal view returns (bytes32) {
+    bytes32 stakePoolIdsHash_ = _hashStakePoolIds(stakePoolIds_);
+    bytes32 typeHash_ = component.CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH();
+    uint256 nonce_ = component.eip712Nonces(owner_, typeHash_);
+    bytes32 structHash_ =
+      keccak256(abi.encode(typeHash_, stakePoolIdsHash_, owner_, caller_, receiver_, deadline_, nonce_));
+    bytes32 domainSeparator_ = keccak256(
+      abi.encode(
+        EIP712_DOMAIN_TYPEHASH,
+        keccak256(bytes(component.eip712DomainName())),
+        keccak256(bytes(Strings.toString(component.eip712DomainVersion()))),
+        block.chainid,
+        address(component)
+      )
+    );
+    return keccak256(abi.encodePacked("\x19\x01", domainSeparator_, structHash_));
   }
 
   function _getUserClaimRewardsFixture() internal returns (address user_, uint16 stakePoolId_, address receiver_) {
@@ -1439,6 +1532,285 @@ contract RewardsDistributorStkReceiptTokenTransferUnitTest is RewardsDistributor
     assertEq(rewardAssetA_.balanceOf(receiver_), 0);
     assertEq(rewardAssetB_.balanceOf(receiver_), 0);
     assertEq(rewardAssetC_.balanceOf(receiver_), 0);
+  }
+
+  function test_claimRewardsBySigAllPools_validEOASignature() external {
+    _setUpConcrete();
+
+    (address owner_, uint256 ownerPK) = makeAddrAndKey("owner");
+    uint256 nonceBefore_ = component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH());
+    _stake(0, 100e6, owner_);
+
+    skip(ONE_YEAR);
+
+    address receiver_ = _randomAddress();
+    uint16[] memory stakePoolIds_ = new uint16[](1);
+    stakePoolIds_[0] = 0;
+
+    uint256 deadline_ = block.timestamp + 1 hours;
+    bytes32 digest_ = _buildClaimRewardsAllPoolsDigest(owner_, stakePoolIds_, address(this), receiver_, deadline_);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPK, digest_);
+    bytes memory signature_ = abi.encodePacked(r, s, v);
+
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    uint256[] memory receiverBalancesBefore_ = new uint256[](rewardPools_.length);
+    for (uint256 i = 0; i < rewardPools_.length; i++) {
+      receiverBalancesBefore_[i] = rewardPools_[i].asset.balanceOf(receiver_);
+    }
+
+    component.claimRewardsBySig(stakePoolIds_, owner_, receiver_, deadline_, signature_);
+
+    for (uint256 i = 0; i < rewardPools_.length; i++) {
+      assertGt(
+        rewardPools_[i].asset.balanceOf(receiver_), receiverBalancesBefore_[i], "receiver should receive rewards"
+      );
+    }
+
+    UserRewardsData[] memory userRewardsData_ = component.getUserRewards(stakePoolIds_[0], owner_);
+    for (uint256 i = 0; i < userRewardsData_.length; i++) {
+      assertEq(userRewardsData_[i].accruedRewards, 0, "accrued rewards should reset");
+    }
+    assertEq(
+      component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH()),
+      nonceBefore_ + 1,
+      "nonce should increment"
+    );
+  }
+
+  function test_claimRewardsBySigAllPools_invalidSignature() external {
+    _setUpConcrete();
+
+    (address owner_,) = makeAddrAndKey("owner");
+    uint256 nonceBefore_ = component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH());
+    _stake(0, 100e6, owner_);
+
+    skip(ONE_YEAR);
+
+    address receiver_ = _randomAddress();
+    uint16[] memory stakePoolIds_ = new uint16[](1);
+    stakePoolIds_[0] = 0;
+
+    uint256 deadline_ = block.timestamp + 1 hours;
+    bytes memory invalidSignature_ = "0xdeadbeef";
+
+    vm.expectRevert(RewardsManagerCommon.InvalidSignature.selector);
+    component.claimRewardsBySig(stakePoolIds_, owner_, receiver_, deadline_, invalidSignature_);
+    assertEq(
+      component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH()),
+      nonceBefore_,
+      "nonce should remain unchanged"
+    );
+  }
+
+  function test_claimRewardsBySigAllPools_unauthorizedCaller() external {
+    _setUpConcrete();
+
+    (address owner_, uint256 ownerPK) = makeAddrAndKey("owner");
+    uint256 nonceBefore_ = component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH());
+    _stake(0, 100e6, owner_);
+
+    skip(ONE_YEAR);
+
+    address receiver_ = _randomAddress();
+    address authorizedCaller_ = _randomAddress();
+    uint16[] memory stakePoolIds_ = new uint16[](1);
+    stakePoolIds_[0] = 0;
+
+    uint256 deadline_ = block.timestamp + 1 hours;
+    bytes32 digest_ = _buildClaimRewardsAllPoolsDigest(owner_, stakePoolIds_, authorizedCaller_, receiver_, deadline_);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPK, digest_);
+    bytes memory signature_ = abi.encodePacked(r, s, v);
+
+    vm.expectRevert(RewardsManagerCommon.InvalidSignature.selector);
+    component.claimRewardsBySig(stakePoolIds_, owner_, receiver_, deadline_, signature_);
+
+    assertEq(
+      component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH()),
+      nonceBefore_,
+      "nonce should remain unchanged"
+    );
+
+    vm.prank(authorizedCaller_);
+    component.claimRewardsBySig(stakePoolIds_, owner_, receiver_, deadline_, signature_);
+    assertEq(
+      component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH()),
+      nonceBefore_ + 1,
+      "nonce should increment"
+    );
+  }
+
+  function test_claimRewardsBySig_validEOASignature() external {
+    _setUpConcrete();
+
+    (address owner_, uint256 ownerPK) = makeAddrAndKey("owner");
+    uint256 nonceBefore_ = component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH());
+    _stake(0, 100e6, owner_);
+
+    skip(ONE_YEAR);
+
+    address receiver_ = _randomAddress();
+    uint16[] memory stakePoolIds_ = new uint16[](1);
+    stakePoolIds_[0] = 0;
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = _buildDripAllClaimRewardsPoolData();
+
+    uint256 deadline_ = block.timestamp + 1 hours;
+    bytes32 digest_ =
+      _buildClaimRewardsDigest(owner_, stakePoolIds_, claimRewardsPoolData_, address(this), receiver_, deadline_);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPK, digest_);
+    bytes memory signature_ = abi.encodePacked(r, s, v);
+
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+    uint256[] memory receiverBalancesBefore_ = new uint256[](rewardPools_.length);
+    for (uint256 i = 0; i < rewardPools_.length; i++) {
+      receiverBalancesBefore_[i] = rewardPools_[i].asset.balanceOf(receiver_);
+    }
+
+    component.claimRewardsBySig(stakePoolIds_, claimRewardsPoolData_, owner_, receiver_, deadline_, signature_);
+
+    for (uint256 i = 0; i < rewardPools_.length; i++) {
+      assertGt(
+        rewardPools_[i].asset.balanceOf(receiver_), receiverBalancesBefore_[i], "receiver should receive rewards"
+      );
+    }
+
+    UserRewardsData[] memory userRewardsData_ = component.getUserRewards(stakePoolIds_[0], owner_);
+    for (uint256 i = 0; i < userRewardsData_.length; i++) {
+      assertEq(userRewardsData_[i].accruedRewards, 0, "accrued rewards should reset");
+    }
+    assertEq(
+      component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH()),
+      nonceBefore_ + 1,
+      "nonce should increment"
+    );
+  }
+
+  function test_claimRewardsBySig_validContractSignature() external {
+    _setUpConcrete();
+
+    MockERC1271Signer mockSigner_ = new MockERC1271Signer(_randomAddress());
+    address owner_ = address(mockSigner_);
+    uint256 nonceBefore_ = component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH());
+
+    _stake(0, 100e6, owner_);
+
+    skip(ONE_YEAR);
+
+    address receiver_ = _randomAddress();
+    uint16[] memory stakePoolIds_ = new uint16[](1);
+    stakePoolIds_[0] = 0;
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = _buildDripAllClaimRewardsPoolData();
+
+    uint256 deadline_ = block.timestamp + 1 hours;
+    bytes32 digest_ =
+      _buildClaimRewardsDigest(owner_, stakePoolIds_, claimRewardsPoolData_, address(this), receiver_, deadline_);
+    bytes memory signature_ = mockSigner_.signMessage(digest_);
+
+    RewardPool[] memory rewardPools_ = component.getRewardPools();
+
+    component.claimRewardsBySig(stakePoolIds_, claimRewardsPoolData_, owner_, receiver_, deadline_, signature_);
+
+    for (uint256 i = 0; i < rewardPools_.length; i++) {
+      assertGt(rewardPools_[i].asset.balanceOf(receiver_), 0, "receiver should receive rewards");
+    }
+    assertEq(
+      component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH()),
+      nonceBefore_ + 1,
+      "nonce should increment"
+    );
+  }
+
+  function test_claimRewardsBySig_invalidSignature() external {
+    _setUpConcrete();
+
+    (address owner_,) = makeAddrAndKey("owner");
+    uint256 nonceBefore_ = component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH());
+    _stake(0, 100e6, owner_);
+
+    skip(ONE_YEAR);
+
+    address receiver_ = _randomAddress();
+    uint16[] memory stakePoolIds_ = new uint16[](1);
+    stakePoolIds_[0] = 0;
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = _buildDripAllClaimRewardsPoolData();
+
+    uint256 deadline_ = block.timestamp + 1 hours;
+    bytes memory invalidSignature_ = "0xdeadbeef";
+
+    vm.expectRevert(RewardsManagerCommon.InvalidSignature.selector);
+    component.claimRewardsBySig(stakePoolIds_, claimRewardsPoolData_, owner_, receiver_, deadline_, invalidSignature_);
+    assertEq(
+      component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH()),
+      nonceBefore_,
+      "nonce should remain unchanged"
+    );
+  }
+
+  function test_claimRewardsBySig_expiredSignature() external {
+    _setUpConcrete();
+
+    (address owner_, uint256 ownerPK) = makeAddrAndKey("owner");
+    uint256 nonceBefore_ = component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH());
+    _stake(0, 100e6, owner_);
+
+    skip(ONE_YEAR);
+
+    address receiver_ = _randomAddress();
+    uint16[] memory stakePoolIds_ = new uint16[](1);
+    stakePoolIds_[0] = 0;
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = _buildDripAllClaimRewardsPoolData();
+
+    uint256 deadline_ = block.timestamp - 1;
+    bytes32 digest_ =
+      _buildClaimRewardsDigest(owner_, stakePoolIds_, claimRewardsPoolData_, address(this), receiver_, deadline_);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPK, digest_);
+    bytes memory signature_ = abi.encodePacked(r, s, v);
+
+    vm.expectRevert(RewardsManagerCommon.SignatureExpired.selector);
+    component.claimRewardsBySig(stakePoolIds_, claimRewardsPoolData_, owner_, receiver_, deadline_, signature_);
+    assertEq(
+      component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH()),
+      nonceBefore_,
+      "nonce should remain unchanged"
+    );
+  }
+
+  function test_claimRewardsBySig_unauthorizedCaller() external {
+    _setUpConcrete();
+
+    (address owner_, uint256 ownerPK) = makeAddrAndKey("owner");
+    uint256 nonceBefore_ = component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH());
+    _stake(0, 100e6, owner_);
+
+    skip(ONE_YEAR);
+
+    address receiver_ = _randomAddress();
+    address authorizedCaller_ = _randomAddress();
+    uint16[] memory stakePoolIds_ = new uint16[](1);
+    stakePoolIds_[0] = 0;
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = _buildDripAllClaimRewardsPoolData();
+
+    uint256 deadline_ = block.timestamp + 1 hours;
+    bytes32 digest_ =
+      _buildClaimRewardsDigest(owner_, stakePoolIds_, claimRewardsPoolData_, authorizedCaller_, receiver_, deadline_);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPK, digest_);
+    bytes memory signature_ = abi.encodePacked(r, s, v);
+
+    vm.expectRevert(RewardsManagerCommon.InvalidSignature.selector);
+    component.claimRewardsBySig(stakePoolIds_, claimRewardsPoolData_, owner_, receiver_, deadline_, signature_);
+
+    assertEq(
+      component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH()),
+      nonceBefore_,
+      "nonce should remain unchanged"
+    );
+
+    vm.prank(authorizedCaller_);
+    component.claimRewardsBySig(stakePoolIds_, claimRewardsPoolData_, owner_, receiver_, deadline_, signature_);
+    assertEq(
+      component.eip712Nonces(owner_, component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH()),
+      nonceBefore_ + 1,
+      "nonce should increment"
+    );
   }
 
   function test_revertsOnUnauthorizedUserRewardsUpdate() public {

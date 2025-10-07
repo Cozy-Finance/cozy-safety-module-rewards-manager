@@ -17,7 +17,6 @@ contract MockERC1271Signer is IERC1271 {
   }
 
   function signMessage(bytes32 digest_) external returns (bytes memory signature) {
-    // Any deterministic scheme works as long as isValidSignature agrees.
     signature = abi.encodePacked(digest_, labeledOwner);
     expectedSigHash[digest_] = keccak256(signature);
   }

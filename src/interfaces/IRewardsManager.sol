@@ -28,6 +28,23 @@ interface IRewardsManager {
 
   function claimRewards(uint16 stakePoolId_, address receiver_) external;
 
+  function claimRewardsBySig(
+    uint16[] calldata stakePoolIds_,
+    address owner_,
+    address receiver_,
+    uint256 deadline_,
+    bytes calldata signature_
+  ) external;
+
+  function claimRewardsBySig(
+    uint16[] calldata stakePoolIds_,
+    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
+    address owner_,
+    address receiver_,
+    uint256 deadline_,
+    bytes calldata signature_
+  ) external;
+
   function claimRewards(uint16[] calldata stakePoolIds_, address receiver_) external;
 
   function claimRewards(uint16 stakePoolId_, ClaimRewardsPoolData[] calldata claimRewardsPoolData_, address receiver_)
@@ -52,9 +69,9 @@ interface IRewardsManager {
 
   function eip712DomainName() external view returns (string memory);
 
-  function eip712Nonces(address owner_, bytes32 actionKey_) external view returns (uint256);
-
   function eip712DomainVersion() external view returns (uint64);
+
+  function eip712Nonces(address owner_, bytes32 actionKey_) external view returns (uint256);
 
   function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory);
 
