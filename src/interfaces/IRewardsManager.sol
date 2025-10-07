@@ -24,8 +24,6 @@ interface IRewardsManager {
 
   function WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH() external view returns (bytes32);
 
-  function acceptOwnership() external;
-
   function allowedRewardPools() external view returns (uint16);
 
   function allowedStakePools() external view returns (uint16);
@@ -131,10 +129,6 @@ interface IRewardsManager {
   function pause(bool[] memory dripRewardPool_) external;
 
   function pauser() external view returns (address);
-
-  function pendingOwner() external view returns (address);
-
-  function transferOwnership(address newOwner_) external;
 
   function updatePauser(address newPauser_) external;
 
