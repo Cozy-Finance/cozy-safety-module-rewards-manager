@@ -281,19 +281,26 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   ) internal {
     if (block.timestamp > deadline_) revert SignatureExpired();
 
-    bytes32 stakePoolIdsHash_ = _hashStakePoolIds(stakePoolIds_);
     uint256 nonce_ = eip712Nonces[owner_][typeHash_];
 
     bytes32 structHash_;
     if (claimRewardsPoolDataHash_ != bytes32(0)) {
       structHash_ = keccak256(
         abi.encode(
-          typeHash_, stakePoolIdsHash_, claimRewardsPoolDataHash_, owner_, msg.sender, receiver_, deadline_, nonce_
+          typeHash_,
+          _hashStakePoolIds(stakePoolIds_),
+          claimRewardsPoolDataHash_,
+          owner_,
+          msg.sender,
+          receiver_,
+          deadline_,
+          nonce_
         )
       );
     } else {
-      structHash_ =
-        keccak256(abi.encode(typeHash_, stakePoolIdsHash_, owner_, msg.sender, receiver_, deadline_, nonce_));
+      structHash_ = keccak256(
+        abi.encode(typeHash_, _hashStakePoolIds(stakePoolIds_), owner_, msg.sender, receiver_, deadline_, nonce_)
+      );
     }
 
     bytes32 digest_ = keccak256(abi.encodePacked("\x19\x01", _buildDomainSeparator(), structHash_));
