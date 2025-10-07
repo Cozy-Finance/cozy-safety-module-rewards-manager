@@ -64,6 +64,12 @@ interface ICozyManager is IGovernable, ICozyManagerEvents {
   /// @notice For the specified RewardsManager, returns the deposit fee.
   function getDepositFee(IRewardsManager rewardsManager_) external view returns (uint16);
 
+  /// @notice Returns the override claim fee configuration for `rewardsManager_` if it exists.
+  function overrideClaimFees(IRewardsManager rewardsManager_) external view returns (uint16 fee, bool exists);
+
+  /// @notice Returns the override deposit fee configuration for `rewardsManager_` if it exists.
+  function overrideDepositFees(IRewardsManager rewardsManager_) external view returns (uint16 fee, bool exists);
+
   /// @notice Batch pauses rewardsManagers_. The manager's pauser or owner can perform this action.
   /// @param rewardsManagers_ The array of rewards managers to pause.
   function pause(IRewardsManager[] calldata rewardsManagers_) external;
