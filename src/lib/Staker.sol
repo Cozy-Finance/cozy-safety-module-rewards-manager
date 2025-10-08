@@ -64,9 +64,9 @@ abstract contract Staker is RewardsManagerCommon, IStakerEvents {
   /// dripRewardPool_ instead.
   /// @param stakePoolId_ The ID of the stake pool to unstake from.
   /// @param stkReceiptTokenAmount_ The amount of stkReceiptTokens to unstake.
-  /// @param receiver_ The address that will receive the unstaked assets.
   /// @param owner_ The owner of the stkReceiptTokens being unstaked.
-  function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external {
+  /// @param receiver_ The address that will receive the unstaked assets.
+  function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address owner_, address receiver_) external {
     if (stkReceiptTokenAmount_ == 0) revert AmountIsZero();
 
     ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](rewardPools.length);
@@ -83,8 +83,8 @@ abstract contract Staker is RewardsManagerCommon, IStakerEvents {
   function unstake(
     uint16 stakePoolId_,
     uint256 stkReceiptTokenAmount_,
-    address receiver_,
     address owner_,
+    address receiver_,
     bool[] memory dripRewardPool_
   ) external {
     if (stkReceiptTokenAmount_ == 0) revert AmountIsZero();
@@ -139,6 +139,6 @@ abstract contract Staker is RewardsManagerCommon, IStakerEvents {
 
     asset_.safeTransfer(receiver_, stkReceiptTokenAmount_);
 
-    emit Unstaked(msg.sender, receiver_, owner_, stakePoolId_, stkReceiptToken_, stkReceiptTokenAmount_);
+    emit Unstaked(msg.sender, owner_, receiver_, stakePoolId_, stkReceiptToken_, stkReceiptTokenAmount_);
   }
 }

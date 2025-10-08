@@ -24,8 +24,9 @@ import {
   ClaimRewardsPoolData
 } from "./structs/Rewards.sol";
 import {RewardPool, IdLookup} from "./structs/Pools.sol";
+import {IRewardsDistributorEvents} from "../interfaces/IRewardsDistributorEvents.sol";
 
-abstract contract RewardsDistributor is RewardsManagerCommon {
+abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributorErrors, IRewardsDistributorEvents {
   using FixedPointMathLib for uint256;
   using SafeERC20 for IERC20;
 
@@ -38,16 +39,6 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
 
   bytes32 public constant CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH = keccak256(
     "ClaimRewardsBySig(uint16[] stakePoolIds,ClaimRewardsPoolData[] claimRewardsPoolData,address owner,address caller,address receiver,uint256 deadline,uint256 nonce)ClaimRewardsPoolData(uint16 rewardPoolId,bool drip)"
-  );
-
-  event ClaimedRewards(
-    uint16 indexed stakePoolId_,
-    uint16 indexed rewardPoolId_,
-    IERC20 rewardAsset_,
-    uint256 amount_,
-    uint256 claimFeeAmount_,
-    address indexed owner_,
-    address receiver_
   );
 
   struct RewardDrip {
@@ -124,9 +115,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
   function claimRewards(uint16 stakePoolId_, ClaimRewardsPoolData[] calldata claimRewardsPoolData_, address receiver_)
     external
   {
-    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) {
-      revert IRewardsDistributorErrors.InvalidClaimRewardsPoolData();
-    }
+    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) revert InvalidClaimRewardsPoolData();
     _claimRewards(ClaimRewardsArgs(stakePoolId_, receiver_, msg.sender), claimRewardsPoolData_);
   }
 
@@ -145,9 +134,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
     address receiver_
   ) external {
-    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) {
-      revert IRewardsDistributorErrors.InvalidClaimRewardsPoolData();
-    }
+    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) revert InvalidClaimRewardsPoolData();
     for (uint256 i = 0; i < stakePoolIds_.length; i++) {
       _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), claimRewardsPoolData_);
     }
@@ -196,9 +183,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     uint256 deadline_,
     bytes calldata signature_
   ) external {
-    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) {
-      revert IRewardsDistributorErrors.InvalidClaimRewardsPoolData();
-    }
+    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) revert InvalidClaimRewardsPoolData();
 
     bytes32 claimRewardsPoolDataHash_ = _hashClaimRewardsPoolData(claimRewardsPoolData_);
     _claimRewardsBySig(
@@ -448,13 +433,14 @@ abstract contract RewardsDistributor is RewardsManagerCommon {
     args_.rewardAsset.safeTransfer(args_.receiver, claimedAmount_);
 
     emit ClaimedRewards(
+      msg.sender,
+      args_.owner,
+      args_.receiver,
       args_.stakePoolId,
       args_.rewardPoolId,
       args_.rewardAsset,
       claimedAmount_,
-      claimFeeAmount_,
-      args_.owner,
-      args_.receiver
+      claimFeeAmount_
     );
   }
 

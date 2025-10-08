@@ -35,8 +35,9 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {TestBase} from "./utils/TestBase.sol";
 import "./utils/Stub.sol";
 import {ClaimRewardsPoolData} from "../src/lib/structs/Rewards.sol";
+import {IRewardsDistributorEvents} from "../src/interfaces/IRewardsDistributorEvents.sol";
 
-contract RewardsDistributorUnitTest is TestBase {
+contract RewardsDistributorUnitTest is TestBase, IRewardsDistributorEvents {
   using FixedPointMathLib for uint256;
 
   MockManager cozyManager = new MockManager();
@@ -44,16 +45,6 @@ contract RewardsDistributorUnitTest is TestBase {
 
   uint256 internal constant ONE_YEAR = 365.25 days;
   uint256 internal constant CLAIM_FEE = 200; // 2%
-
-  event ClaimedRewards(
-    uint16 indexed stakePoolId_,
-    uint16 indexed rewardPoolId_,
-    IERC20 rewardAsset_,
-    uint256 amount_,
-    uint256 claimFeeAmount_,
-    address indexed owner_,
-    address receiver_
-  );
 
   bytes32 internal constant EIP712_DOMAIN_TYPEHASH =
     keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
@@ -530,15 +521,15 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_, userA_, rewardsReceiver_
+        userA_, userA_, rewardsReceiver_, stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_
       );
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, claimFeeAmountB_, userA_, rewardsReceiver_
+        userA_, userA_, rewardsReceiver_, stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, claimFeeAmountB_
       );
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, claimFeeAmountC_, userA_, rewardsReceiver_
+        userA_, userA_, rewardsReceiver_, stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, claimFeeAmountC_
       );
 
       vm.prank(userA_);
@@ -605,15 +596,15 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_, userA_, rewardsReceiver_
+        userA_, userA_, rewardsReceiver_, stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_
       );
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, claimFeeAmountB_, userA_, rewardsReceiver_
+        userA_, userA_, rewardsReceiver_, stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, claimFeeAmountB_
       );
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, claimFeeAmountC_, userA_, rewardsReceiver_
+        userA_, userA_, rewardsReceiver_, stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, claimFeeAmountC_
       );
 
       vm.prank(userA_);
@@ -667,11 +658,11 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_, userB_, rewardsReceiver_
+        userB_, userB_, rewardsReceiver_, stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_
       );
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, claimFeeAmountB_, userB_, rewardsReceiver_
+        userB_, userB_, rewardsReceiver_, stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, claimFeeAmountB_
       );
       // Event is not emitted from rewardPoolC because no rewards are transfered.
 
@@ -700,15 +691,15 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_, userB_, rewardsReceiver_
+        userB_, userB_, rewardsReceiver_, stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_
       );
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, claimFeeAmountB_, userB_, rewardsReceiver_
+        userB_, userB_, rewardsReceiver_, stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, claimFeeAmountB_
       );
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, claimFeeAmountC_, userB_, rewardsReceiver_
+        userB_, userB_, rewardsReceiver_, stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, claimFeeAmountC_
       );
 
       vm.prank(userB_);
@@ -796,7 +787,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_, userA_, rewardsReceiver_
+        userA_, userA_, rewardsReceiver_, stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_
       );
 
       vm.prank(userA_);
@@ -886,11 +877,11 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_, userA_, rewardsReceiver_
+        userA_, userA_, rewardsReceiver_, stakePoolId_, 0, rewardAssetA_, rewardsReceivedPoolA_, claimFeeAmountA_
       );
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, claimFeeAmountC_, userA_, rewardsReceiver_
+        userA_, userA_, rewardsReceiver_, stakePoolId_, 2, rewardAssetC_, rewardsReceivedPoolC_, claimFeeAmountC_
       );
 
       vm.prank(userA_);
@@ -974,7 +965,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
 
       _expectEmit();
       emit ClaimedRewards(
-        stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, claimFeeAmountB_, userA_, rewardsReceiver_
+        userA_, userA_, rewardsReceiver_, stakePoolId_, 1, rewardAssetB_, rewardsReceivedPoolB_, claimFeeAmountB_
       );
 
       vm.prank(userA_);
@@ -1375,15 +1366,15 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     uint256 rewardsReceivedPoolC_ = 7054; // 7198 * 0.98
 
     _expectEmit();
-    emit ClaimedRewards(0, 0, rewardAssetA_, 48, 1, user_, receiver_);
+    emit ClaimedRewards(user_, user_, receiver_, 0, 0, rewardAssetA_, 48, 1);
     _expectEmit();
-    emit ClaimedRewards(0, 1, rewardAssetB_, 6_890_625, 140_625, user_, receiver_);
+    emit ClaimedRewards(user_, user_, receiver_, 0, 1, rewardAssetB_, 6_890_625, 140_625);
     _expectEmit();
-    emit ClaimedRewards(1, 0, rewardAssetA_, 2095, 43, user_, receiver_);
+    emit ClaimedRewards(user_, user_, receiver_, 1, 0, rewardAssetA_, 2095, 43);
     _expectEmit();
-    emit ClaimedRewards(1, 1, rewardAssetB_, 407_925_000, 8_325_000, user_, receiver_);
+    emit ClaimedRewards(user_, user_, receiver_, 1, 1, rewardAssetB_, 407_925_000, 8_325_000);
     _expectEmit();
-    emit ClaimedRewards(1, 2, rewardAssetC_, 7054, 144, user_, receiver_);
+    emit ClaimedRewards(user_, user_, receiver_, 1, 2, rewardAssetC_, 7054, 144);
 
     uint16[] memory stakePoolIds_ = new uint16[](2);
     stakePoolIds_[0] = 0;

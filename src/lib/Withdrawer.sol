@@ -29,7 +29,7 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerEvents {
   /// @param receiver_ The address that will receive the withdrawn assets.
   function withdrawRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) external {
     RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    _withdrawRewardAssets(rewardPool_, rewardPoolId_, msg.sender, receiver_, rewardAssetAmount_);
+    _withdrawRewardAssets(rewardPools[rewardPoolId_], rewardPoolId_, msg.sender, receiver_, rewardAssetAmount_);
   }
 
   /// @notice Withdraw undripped reward assets on behalf of the owner via permit-style authorization.
@@ -102,7 +102,7 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerEvents {
 
     rewardPool_.asset.safeTransfer(receiver_, rewardAssetAmount_);
 
-    emit Withdrawn(owner_, rewardPoolId_, rewardAssetAmount_, receiver_);
+    emit Withdrawn(msg.sender, owner_, receiver_, rewardPoolId_, rewardAssetAmount_);
   }
 
   /// @notice Preview the current withdrawable rewards for the owner.
