@@ -22,16 +22,16 @@ interface IStakerEvents {
 
   /// @notice Emitted when a user unstakes.
   /// @param caller_ The address that called the unstake function.
-  /// @param receiver_ The address that received the unstaked assets.
   /// @param owner_ The owner of the stkReceiptTokens being unstaked.
+  /// @param receiver_ The address that received the unstaked assets.
   /// @param stakePoolId_ The stake pool ID that the user unstaked from.
   /// @param stkReceiptToken_ The stkReceiptToken that was burned.
   /// @param stkReceiptTokenAmount_ The amount of stkReceiptTokens burned.
   event Unstaked(
-    address caller_,
-    address indexed receiver_,
+    address indexed caller_,
     address indexed owner_,
-    uint16 indexed stakePoolId_,
+    address indexed receiver_,
+    uint16 stakePoolId_,
     IReceiptToken stkReceiptToken_,
     uint256 stkReceiptTokenAmount_
   );

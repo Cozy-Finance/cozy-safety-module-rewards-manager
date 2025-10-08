@@ -28,8 +28,7 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerEvents {
   /// rewards will be withdrawn. Else, up to `rewardAssetAmount_` of withdrawable rewards will be withdrawn.
   /// @param receiver_ The address that will receive the withdrawn assets.
   function withdrawRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) external {
-    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
-    _withdrawRewardAssets(rewardPool_, rewardPoolId_, msg.sender, receiver_, rewardAssetAmount_);
+    _withdrawRewardAssets(rewardPoolId_, msg.sender, receiver_, rewardAssetAmount_);
   }
 
   /// @notice Withdraw undripped reward assets on behalf of the owner via permit-style authorization.
@@ -75,16 +74,13 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerEvents {
 
     eip712Nonces[owner_][WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH] = nonce_ + 1;
 
-    _withdrawRewardAssets(rewardPools[rewardPoolId_], rewardPoolId_, owner_, receiver_, rewardAssetAmount_);
+    _withdrawRewardAssets(rewardPoolId_, owner_, receiver_, rewardAssetAmount_);
   }
 
-  function _withdrawRewardAssets(
-    RewardPool storage rewardPool_,
-    uint16 rewardPoolId_,
-    address owner_,
-    address receiver_,
-    uint256 rewardAssetAmount_
-  ) internal {
+  function _withdrawRewardAssets(uint16 rewardPoolId_, address owner_, address receiver_, uint256 rewardAssetAmount_)
+    internal
+  {
+    RewardPool storage rewardPool_ = rewardPools[rewardPoolId_];
     if (rewardsManagerState != RewardsManagerState.PAUSED) _dripRewardPool(rewardPool_);
     uint256 currentWithdrawableRewards_ =
       _previewCurrentWithdrawableRewards(rewardPool_, depositorRewards[rewardPoolId_][owner_]);
@@ -102,7 +98,7 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerEvents {
 
     rewardPool_.asset.safeTransfer(receiver_, rewardAssetAmount_);
 
-    emit Withdrawn(owner_, rewardPoolId_, rewardAssetAmount_, receiver_);
+    emit Withdrawn(msg.sender, owner_, receiver_, rewardPoolId_, rewardAssetAmount_);
   }
 
   /// @notice Preview the current withdrawable rewards for the owner.

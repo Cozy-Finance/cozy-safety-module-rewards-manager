@@ -364,10 +364,10 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     _expectEmit();
     emit Transfer(address(component), unstakeReceiver_, amountStaked_);
     _expectEmit();
-    emit Unstaked(receiver_, unstakeReceiver_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
+    emit Unstaked(receiver_, receiver_, unstakeReceiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
 
     vm.prank(receiver_);
-    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_, receiver_, unstakeReceiver_);
 
     assertEq(mockStakeAsset.balanceOf(unstakeReceiver_), amountStaked_);
 
@@ -413,15 +413,15 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     _expectEmit();
     emit Unstaked(
       receiver_,
-      unstakeReceiver_,
       receiver_,
+      unstakeReceiver_,
       0,
       IReceiptToken(address(mockStkReceiptToken)),
       stkReceiptTokenAmountToUnstake_
     );
 
     vm.prank(receiver_);
-    component.unstake(0, stkReceiptTokenAmountToUnstake_, unstakeReceiver_, receiver_);
+    component.unstake(0, stkReceiptTokenAmountToUnstake_, receiver_, unstakeReceiver_);
 
     assertEq(mockStakeAsset.balanceOf(unstakeReceiver_), amountStaked_ / 2);
 
@@ -453,12 +453,12 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     mockStkReceiptToken.approve(address(component), amountStaked_);
 
     vm.prank(receiver_);
-    component.unstake(0, amountStaked_ / 2, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_ / 2, receiver_, unstakeReceiver_);
 
     assertEq(mockStakeAsset.balanceOf(unstakeReceiver_), amountStaked_ / 2);
 
     vm.prank(receiver_);
-    component.unstake(0, amountStaked_ / 2, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_ / 2, receiver_, unstakeReceiver_);
 
     assertEq(mockStakeAsset.balanceOf(unstakeReceiver_), amountStaked_);
 
@@ -488,9 +488,9 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     _expectEmit();
     emit Transfer(address(component), unstakeReceiver_, amountStaked_);
     _expectEmit();
-    emit Unstaked(receiver_, unstakeReceiver_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
+    emit Unstaked(receiver_, receiver_, unstakeReceiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
     vm.prank(receiver_);
-    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_, receiver_, unstakeReceiver_);
 
     assertEq(mockStakeAsset.balanceOf(unstakeReceiver_), amountStaked_);
 
@@ -522,7 +522,7 @@ contract StakerUnitTest is TestBase, IStakerEvents {
 
     vm.expectRevert(ICommonErrors.AmountIsZero.selector);
     vm.prank(receiver_);
-    component.unstake(0, 0, unstakeReceiver_, receiver_);
+    component.unstake(0, 0, receiver_, unstakeReceiver_);
   }
 
   function test_unstake_canUnstakeThroughAllowance() external {
@@ -534,7 +534,7 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     mockStkReceiptToken.approve(spender_, amountStaked_ + 1); // Allowance is 1 extra.
 
     vm.prank(spender_);
-    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_, receiver_, unstakeReceiver_);
 
     assertEq(mockStkReceiptToken.allowance(receiver_, spender_), 1, "stakeReceiptToken allowance"); // Only 1
       // allowance left
@@ -553,7 +553,7 @@ contract StakerUnitTest is TestBase, IStakerEvents {
 
     _expectPanic(PANIC_MATH_UNDEROVERFLOW);
     vm.prank(spender_);
-    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_, receiver_, unstakeReceiver_);
   }
 
   function test_unstake_cannotUnstake_InsufficientTokenBalance() external {
@@ -582,9 +582,6 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     (, address receiver_, uint256 amountStaked_) = _setupDefaultSingleUserFixture();
     address unstakeReceiver_ = _randomAddress();
 
-    vm.prank(receiver_);
-    mockStkReceiptToken.approve(address(component), amountStaked_);
-
     // Add some rewards and skip time so they're claimable (100% drip rate)
     uint256 addtionalRewards_ = 100e6;
     mockAsset.mint(address(component), addtionalRewards_);
@@ -594,10 +591,10 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     _expectEmit();
     emit Transfer(address(component), unstakeReceiver_, amountStaked_);
     _expectEmit();
-    emit Unstaked(receiver_, unstakeReceiver_, receiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
+    emit Unstaked(receiver_, receiver_, unstakeReceiver_, 0, IReceiptToken(address(mockStkReceiptToken)), amountStaked_);
 
     vm.prank(receiver_);
-    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_);
+    component.unstake(0, amountStaked_, receiver_, unstakeReceiver_);
 
     assertEq(mockStakeAsset.balanceOf(unstakeReceiver_), amountStaked_);
     // The owner of the stake receipt tokens should receive the claimable rewards, not the receiver_ of the unstake call
@@ -624,7 +621,7 @@ contract StakerUnitTest is TestBase, IStakerEvents {
 
     vm.prank(receiver_);
     vm.expectRevert(IRewardsDistributorErrors.InvalidLength.selector);
-    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_, dripRewardPool_);
+    component.unstake(0, amountStaked_, receiver_, unstakeReceiver_, dripRewardPool_);
   }
 
   function test_unstake_doesNotDripSelectedRewardPools() public {
@@ -656,7 +653,7 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     skip(100 days);
 
     vm.prank(receiver_);
-    component.unstake(0, amountStaked_, unstakeReceiver_, receiver_, dripRewardPool_);
+    component.unstake(0, amountStaked_, receiver_, unstakeReceiver_, dripRewardPool_);
 
     RewardPool[] memory rewardPools_ = component.getRewardPools();
 

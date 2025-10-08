@@ -140,7 +140,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertEq(rewardAsset.balanceOf(depositor_), 0, "Depositor should have fully deposited rewards");
 
     _expectEmit();
-    emit IWithdrawerEvents.Withdrawn(depositor_, DEFAULT_REWARD_POOL_ID, depositAmount_, depositor_);
+    emit IWithdrawerEvents.Withdrawn(depositor_, depositor_, depositor_, DEFAULT_REWARD_POOL_ID, depositAmount_);
     vm.prank(depositor_);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, depositAmount_, depositor_);
 
@@ -174,7 +174,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     assertApproxEqRel(withdrawableRewards_, 50e18, 1e15, "Should have 50% remaining after 50% drip");
 
     _expectEmit();
-    emit IWithdrawerEvents.Withdrawn(depositor_, DEFAULT_REWARD_POOL_ID, withdrawableRewards_, depositor_);
+    emit IWithdrawerEvents.Withdrawn(depositor_, depositor_, depositor_, DEFAULT_REWARD_POOL_ID, withdrawableRewards_);
     vm.prank(depositor_);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, withdrawableRewards_, depositor_);
 
@@ -245,7 +245,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     uint256 previewWithdrawable_ = rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, depositor_);
 
     _expectEmit();
-    emit IWithdrawerEvents.Withdrawn(depositor_, DEFAULT_REWARD_POOL_ID, previewWithdrawable_, depositor_);
+    emit IWithdrawerEvents.Withdrawn(depositor_, depositor_, depositor_, DEFAULT_REWARD_POOL_ID, previewWithdrawable_);
     vm.prank(depositor_);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, type(uint256).max, depositor_);
 
@@ -475,7 +475,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     // Alice makes partial withdrawal
     _expectEmit();
-    emit IWithdrawerEvents.Withdrawn(alice_, DEFAULT_REWARD_POOL_ID, 200e18, alice_);
+    emit IWithdrawerEvents.Withdrawn(alice_, alice_, alice_, DEFAULT_REWARD_POOL_ID, 200e18);
     vm.prank(alice_);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, 200e18, alice_);
     assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice_), 520e18, 1e16);
@@ -538,7 +538,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     uint256 charlieWithdrawableRewards_ =
       rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie_);
     _expectEmit();
-    emit IWithdrawerEvents.Withdrawn(charlie_, DEFAULT_REWARD_POOL_ID, charlieWithdrawableRewards_, charlie_);
+    emit IWithdrawerEvents.Withdrawn(charlie_, charlie_, charlie_, DEFAULT_REWARD_POOL_ID, charlieWithdrawableRewards_);
     vm.prank(charlie_);
     rewardsManager.withdrawRewardAssets(DEFAULT_REWARD_POOL_ID, charlieWithdrawableRewards_, charlie_);
 
@@ -573,7 +573,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     bytes memory signature_ = abi.encodePacked(r, s, v);
 
     _expectEmit();
-    emit IWithdrawerEvents.Withdrawn(ownerEOA_, rewardPoolId_, rewardAssetAmount_, receiver_);
+    emit IWithdrawerEvents.Withdrawn(address(this), ownerEOA_, receiver_, rewardPoolId_, rewardAssetAmount_);
 
     rewardsManager.withdrawRewardAssetsBySig(
       rewardPoolId_, rewardAssetAmount_, ownerEOA_, receiver_, deadline_, signature_
@@ -608,7 +608,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     bytes memory signature_ = mockSigner_.signMessage(digest_);
 
     _expectEmit();
-    emit IWithdrawerEvents.Withdrawn(owner_, rewardPoolId_, rewardAssetAmount_, receiver_);
+    emit IWithdrawerEvents.Withdrawn(address(this), owner_, receiver_, rewardPoolId_, rewardAssetAmount_);
 
     rewardsManager.withdrawRewardAssetsBySig(
       rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, signature_
@@ -705,7 +705,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     );
 
     _expectEmit();
-    emit IWithdrawerEvents.Withdrawn(owner_, rewardPoolId_, rewardAssetAmount_, receiver_);
+    emit IWithdrawerEvents.Withdrawn(authorizedCaller_, owner_, receiver_, rewardPoolId_, rewardAssetAmount_);
 
     vm.prank(authorizedCaller_);
     rewardsManager.withdrawRewardAssetsBySig(
