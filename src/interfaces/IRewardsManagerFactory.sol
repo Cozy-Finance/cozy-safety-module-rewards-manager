@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
+import {ICozyManager} from "./ICozyManager.sol";
 import {IRewardsManager} from "./IRewardsManager.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 
@@ -8,6 +9,9 @@ interface IRewardsManagerFactory {
   /// @dev Emitted when a new Rewards Manager is deployed.
   /// @param rewardsManager The deployed rewards manager.
   event RewardsManagerDeployed(IRewardsManager rewardsManager);
+
+  /// @notice Address of the Cozy protocol manager.
+  function cozyManager() external view returns (ICozyManager);
 
   /// @notice Address of the Rewards Manager logic contract used to deploy new reward managers.
   function rewardsManagerLogic() external view returns (IRewardsManager);
