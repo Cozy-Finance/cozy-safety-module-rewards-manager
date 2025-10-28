@@ -107,9 +107,8 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).mulDivDown(
-          MathConstants.WAD ** 2, initialStakeAmount
-        )
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_)
+          .mulDivDown(MathConstants.WAD ** 2, initialStakeAmount)
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
 
@@ -386,9 +385,8 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).mulDivDown(
-          MathConstants.WAD ** 2, initialStakeAmount
-        )
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_)
+          .mulDivDown(MathConstants.WAD ** 2, initialStakeAmount)
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
   }
@@ -438,9 +436,8 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).mulDivDown(
-          MathConstants.WAD ** 2, initialStakeAmount
-        )
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_)
+          .mulDivDown(MathConstants.WAD ** 2, initialStakeAmount)
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
   }
@@ -509,9 +506,8 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     assertEq(
       finalClaimableRewardsData_.indexSnapshot,
       initialIndexSnapshot_
-        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_).mulDivDown(
-          MathConstants.WAD ** 2, initialStakeAmount
-        )
+        + uint256(cumulativeDrippedRewards_ - cumulativeClaimableRewards_)
+          .mulDivDown(MathConstants.WAD ** 2, initialStakeAmount)
     );
     assertEq(finalClaimableRewardsData_.cumulativeClaimableRewards, cumulativeDrippedRewards_);
   }
@@ -710,8 +706,7 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManager
     uint256 cumulativeClaimableRewards_
   ) external {
     claimableRewards[stakePoolId_][rewardPoolid_] = ClaimableRewardsData({
-      indexSnapshot: indexSnapshot_.safeCastTo128(),
-      cumulativeClaimableRewards: cumulativeClaimableRewards_
+      indexSnapshot: indexSnapshot_.safeCastTo128(), cumulativeClaimableRewards: cumulativeClaimableRewards_
     });
   }
 
@@ -752,7 +747,12 @@ contract TestableStaker is Staker, Depositor, RewardsDistributor, RewardsManager
   function _previewCurrentWithdrawableRewards(
     RewardPool storage, /*rewardPool_*/
     DepositorRewardsData storage /*depositorRewardsData_*/
-  ) internal view override returns (uint256) {
+  )
+    internal
+    view
+    override
+    returns (uint256)
+  {
     __readStub__();
   }
 }

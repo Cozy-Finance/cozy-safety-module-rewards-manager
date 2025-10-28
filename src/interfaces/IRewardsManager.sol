@@ -71,13 +71,21 @@ interface IRewardsManager {
 
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
 
-  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address owner_)
-    external;
+  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address owner_) external;
 
   function depositorRewards(uint16 rewardPoolId_, address depositor_)
     external
     view
     returns (uint256 withdrawableRewards, uint256 logIndexSnapshot, uint32 epoch);
+
+  function domainSeparator() external view returns (bytes32);
+
+  function hashStakePoolIds(uint16[] calldata stakePoolIds_) external pure returns (bytes32);
+
+  function hashClaimRewardsPoolData(ClaimRewardsPoolData[] calldata claimRewardsPoolData_)
+    external
+    pure
+    returns (bytes32);
 
   function dripRewardPool(uint16 rewardPoolId_) external;
 

@@ -252,7 +252,12 @@ contract RewardsDistributorUnitTest is TestBase, IRewardsDistributorEvents {
     bytes32 structHash_ = keccak256(
       abi.encode(typeHash_, stakePoolIdsHash_, claimRewardsPoolDataHash_, owner_, caller_, receiver_, deadline_, nonce_)
     );
-    bytes32 domainSeparator_ = keccak256(
+    bytes32 domainSeparator_ = _expectedDomainSeparator();
+    return keccak256(abi.encodePacked("\x19\x01", domainSeparator_, structHash_));
+  }
+
+  function _expectedDomainSeparator() internal view returns (bytes32) {
+    return keccak256(
       abi.encode(
         EIP712_DOMAIN_TYPEHASH,
         keccak256(bytes(component.eip712DomainName())),
@@ -261,7 +266,6 @@ contract RewardsDistributorUnitTest is TestBase, IRewardsDistributorEvents {
         address(component)
       )
     );
-    return keccak256(abi.encodePacked("\x19\x01", domainSeparator_, structHash_));
   }
 
   function _hashClaimRewardsPoolData(ClaimRewardsPoolData[] memory claimRewardsPoolData_)
@@ -303,16 +307,34 @@ contract RewardsDistributorUnitTest is TestBase, IRewardsDistributorEvents {
     uint256 nonce_ = component.eip712Nonces(owner_, typeHash_);
     bytes32 structHash_ =
       keccak256(abi.encode(typeHash_, stakePoolIdsHash_, owner_, caller_, receiver_, deadline_, nonce_));
-    bytes32 domainSeparator_ = keccak256(
-      abi.encode(
-        EIP712_DOMAIN_TYPEHASH,
-        keccak256(bytes(component.eip712DomainName())),
-        keccak256(bytes(Strings.toString(component.eip712DomainVersion()))),
-        block.chainid,
-        address(component)
-      )
-    );
+    bytes32 domainSeparator_ = _expectedDomainSeparator();
     return keccak256(abi.encodePacked("\x19\x01", domainSeparator_, structHash_));
+  }
+
+  function test_domainSeparatorMatchesExpected() public {
+    bytes32 expected_ = _expectedDomainSeparator();
+    assertEq(component.domainSeparator(), expected_);
+  }
+
+  function test_hashStakePoolIdsPublicMatchesReference() public {
+    uint16[] memory stakePoolIds_ = new uint16[](3);
+    stakePoolIds_[0] = 0;
+    stakePoolIds_[1] = 5;
+    stakePoolIds_[2] = 42;
+
+    bytes32 expected_ = _hashStakePoolIds(stakePoolIds_);
+    bytes32 actual_ = component.hashStakePoolIds(stakePoolIds_);
+    assertEq(actual_, expected_);
+  }
+
+  function test_hashClaimRewardsPoolDataPublicMatchesReference() public {
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](2);
+    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 1, drip: true});
+    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 7, drip: false});
+
+    bytes32 expected_ = _hashClaimRewardsPoolData(claimRewardsPoolData_);
+    bytes32 actual_ = component.hashClaimRewardsPoolData(claimRewardsPoolData_);
+    assertEq(actual_, expected_);
   }
 
   function _getUserClaimRewardsFixture() internal returns (address user_, uint16 stakePoolId_, address receiver_) {
@@ -550,8 +572,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       UserRewardsData[] memory expectedUserRewardsData_ = new UserRewardsData[](3);
       for (uint16 i = 0; i < numRewardAssets_; i++) {
         expectedUserRewardsData_[i] = UserRewardsData({
-          accruedRewards: 0,
-          indexSnapshot: component.getClaimableRewardsData(stakePoolId_, i).indexSnapshot
+          accruedRewards: 0, indexSnapshot: component.getClaimableRewardsData(stakePoolId_, i).indexSnapshot
         });
       }
       assertEq(userRewardsData_, expectedUserRewardsData_);
@@ -620,8 +641,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       UserRewardsData[] memory expectedUserRewardsData_ = new UserRewardsData[](3);
       for (uint16 i = 0; i < numRewardAssets_; i++) {
         expectedUserRewardsData_[i] = UserRewardsData({
-          accruedRewards: 0,
-          indexSnapshot: component.getClaimableRewardsData(stakePoolId_, i).indexSnapshot
+          accruedRewards: 0, indexSnapshot: component.getClaimableRewardsData(stakePoolId_, i).indexSnapshot
         });
       }
       assertEq(userRewardsData_, expectedUserRewardsData_);
@@ -711,8 +731,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
         UserRewardsData[] memory expectedUserRewardsData_ = new UserRewardsData[](numRewardAssets_);
         for (uint16 i = 0; i < numRewardAssets_; i++) {
           expectedUserRewardsData_[i] = UserRewardsData({
-            accruedRewards: 0,
-            indexSnapshot: component.getClaimableRewardsData(sid_, i).indexSnapshot
+            accruedRewards: 0, indexSnapshot: component.getClaimableRewardsData(sid_, i).indexSnapshot
           });
         }
         assertEq(userRewardsData_, expectedUserRewardsData_);
@@ -808,8 +827,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       UserRewardsData[] memory expectedUserRewardsData_ = new UserRewardsData[](3);
       for (uint16 i = 0; i < numRewardAssets_; i++) {
         expectedUserRewardsData_[i] = UserRewardsData({
-          accruedRewards: 0,
-          indexSnapshot: component.getClaimableRewardsData(stakePoolId_, i).indexSnapshot
+          accruedRewards: 0, indexSnapshot: component.getClaimableRewardsData(stakePoolId_, i).indexSnapshot
         });
       }
       assertEq(userRewardsData_, expectedUserRewardsData_);
@@ -2028,8 +2046,7 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
     uint128 cumulativeClaimableRewards_
   ) external {
     claimableRewards[stakePoolId_][rewardPoolId_] = ClaimableRewardsData({
-      indexSnapshot: claimableRewardsIndex_,
-      cumulativeClaimableRewards: cumulativeClaimableRewards_
+      indexSnapshot: claimableRewardsIndex_, cumulativeClaimableRewards: cumulativeClaimableRewards_
     });
   }
 
@@ -2063,11 +2080,11 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
   }
 
   // -------- Exposed internal functions --------
-  function getUserAccruedRewards(uint256 stkReceiptTokenAmount_, uint256 newRewardPoolIndex, uint256 oldRewardPoolIndex)
-    external
-    pure
-    returns (uint256)
-  {
+  function getUserAccruedRewards(
+    uint256 stkReceiptTokenAmount_,
+    uint256 newRewardPoolIndex,
+    uint256 oldRewardPoolIndex
+  ) external pure returns (uint256) {
     return _getUserAccruedRewards(stkReceiptTokenAmount_, newRewardPoolIndex, oldRewardPoolIndex);
   }
 
@@ -2078,7 +2095,12 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
   function _previewCurrentWithdrawableRewards(
     RewardPool storage, /*rewardPool_*/
     DepositorRewardsData storage /*depositorRewardsData_*/
-  ) internal view override returns (uint256) {
+  )
+    internal
+    view
+    override
+    returns (uint256)
+  {
     __readStub__();
   }
 }

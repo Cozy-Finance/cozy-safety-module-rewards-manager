@@ -47,8 +47,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     StakePoolConfig[] memory stakePoolConfigs = new StakePoolConfig[](1);
     stakePoolConfigs[0] = StakePoolConfig({
-      asset: IERC20(address(new MockERC20("Stake Asset", "STAKE", 18))),
-      rewardsWeight: uint16(MathConstants.ZOC)
+      asset: IERC20(address(new MockERC20("Stake Asset", "STAKE", 18))), rewardsWeight: uint16(MathConstants.ZOC)
     });
 
     RewardPoolConfig[] memory rewardPoolConfigs = new RewardPoolConfig[](1);
@@ -97,8 +96,9 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
   ) internal view returns (bytes32) {
     bytes32 typeHash_ = WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH;
     uint256 nonce_ = rewardsManager.eip712Nonces(owner_, typeHash_);
-    bytes32 structHash_ =
-      keccak256(abi.encode(typeHash_, owner_, rewardPoolId_, rewardAssetAmount_, caller_, receiver_, deadline_, nonce_));
+    bytes32 structHash_ = keccak256(
+      abi.encode(typeHash_, owner_, rewardPoolId_, rewardAssetAmount_, caller_, receiver_, deadline_, nonce_)
+    );
 
     string memory domainName_ = rewardsManager.eip712DomainName();
     string memory domainVersion_ = Strings.toString(uint256(rewardsManager.eip712DomainVersion()));

@@ -409,7 +409,10 @@ contract TestableDepositor is Withdrawer, Depositor, RewardsManagerInspector {
   function _claimRewards(
     ClaimRewardsArgs memory, /* args_ */
     ClaimRewardsPoolData[] memory /* claimRewardsPoolData_ */
-  ) internal override {
+  )
+    internal
+    override
+  {
     __writeStub__();
   }
 
@@ -417,7 +420,13 @@ contract TestableDepositor is Withdrawer, Depositor, RewardsManagerInspector {
     __readStub__();
   }
 
-  function _getNextDripAmount(uint256, /* totalBaseAmount_ */ IDripModel, /* dripModel_ */ uint256 lastDripTime_)
+  function _getNextDripAmount(
+    uint256,
+    /* totalBaseAmount_ */
+    IDripModel,
+    /* dripModel_ */
+    uint256 lastDripTime_
+  )
     internal
     view
     override
@@ -428,7 +437,13 @@ contract TestableDepositor is Withdrawer, Depositor, RewardsManagerInspector {
       : mockNextRewardsDripAmount;
   }
 
-  function _getNextDripFactor(uint256, /* totalBaseAmount_ */ IDripModel, /* dripModel_ */ uint256 /*lastDripTime_*/ )
+  function _getNextDripFactor(
+    uint256,
+    /* totalBaseAmount_ */
+    IDripModel,
+    /* dripModel_ */
+    uint256 /*lastDripTime_*/
+  )
     internal
     view
     override
@@ -441,7 +456,11 @@ contract TestableDepositor is Withdrawer, Depositor, RewardsManagerInspector {
     uint256, /*userStkReceiptTokenBalance_*/
     mapping(uint16 => ClaimableRewardsData) storage, /*claimableRewards_*/
     UserRewardsData[] storage /*userRewards_*/
-  ) internal view override {
+  )
+    internal
+    view
+    override
+  {
     __readStub__();
   }
 
@@ -454,14 +473,22 @@ contract TestableDepositor is Withdrawer, Depositor, RewardsManagerInspector {
   function _dripAndApplyPendingDrippedRewards(
     StakePool storage, /*stakePool_*/
     mapping(uint16 => ClaimableRewardsData) storage /*claimableRewards_*/
-  ) internal view override {
+  )
+    internal
+    view
+    override
+  {
     __readStub__();
   }
 
   function _dripAndResetCumulativeRewardsValues(
     StakePool[] storage, /*stakePools_*/
     RewardPool[] storage /*rewardPools_*/
-  ) internal view override {
+  )
+    internal
+    view
+    override
+  {
     __readStub__();
   }
 }

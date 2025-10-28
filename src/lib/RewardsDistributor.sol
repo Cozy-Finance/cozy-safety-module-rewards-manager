@@ -134,7 +134,9 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
     ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
     address receiver_
   ) external {
-    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) revert InvalidClaimRewardsPoolData();
+    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) {
+      revert InvalidClaimRewardsPoolData();
+    }
     for (uint256 i = 0; i < stakePoolIds_.length; i++) {
       _claimRewards(ClaimRewardsArgs(stakePoolIds_[i], receiver_, msg.sender), claimRewardsPoolData_);
     }
@@ -183,7 +185,9 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
     uint256 deadline_,
     bytes calldata signature_
   ) external {
-    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) revert InvalidClaimRewardsPoolData();
+    if (!_checkValidClaimRewardsPoolData(claimRewardsPoolData_)) {
+      revert InvalidClaimRewardsPoolData();
+    }
 
     bytes32 claimRewardsPoolDataHash_ = _hashClaimRewardsPoolData(claimRewardsPoolData_);
     _claimRewardsBySig(
@@ -415,8 +419,9 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
     if (stkReceiptTokenSupply_ > 0) {
       nextClaimableRewardsData_.cumulativeClaimableRewards += unclaimedDrippedRewards_;
       // Round down, in favor of leaving assets in the claimable reward pool.
-      nextClaimableRewardsData_.indexSnapshot +=
-        unclaimedDrippedRewards_.mulDivDown(MathConstants.WAD ** 2, stkReceiptTokenSupply_);
+      nextClaimableRewardsData_.indexSnapshot += unclaimedDrippedRewards_.mulDivDown(
+        MathConstants.WAD ** 2, stkReceiptTokenSupply_
+      );
     }
   }
 
@@ -484,7 +489,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
           ownerStkReceiptTokenBalance_, previewNextClaimableRewardsData_.indexSnapshot, userRewards_[i]
         ).accruedRewards
         : _previewAddUserRewardsData(ownerStkReceiptTokenBalance_, previewNextClaimableRewardsData_.indexSnapshot)
-          .accruedRewards;
+        .accruedRewards;
       uint256 claimFeeAmount_ = _computeClaimFeeAmount(accruedRewards_, claimFee_);
 
       claimableRewardsData_[i] = PreviewClaimableRewardsData({
@@ -559,8 +564,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
       for (uint16 j = 0; j < numStakePools_; j++) {
         StakePool storage stakePool_ = stakePools_[j];
         uint256 stakeReceiptTokenSupply_ = stakePool_.stkReceiptToken.totalSupply();
-        (ClaimableRewardsData memory claimableRewardsData_, uint256 unclaimedDrippedRewards_) =
-        _previewNextClaimableRewardsData(
+        (ClaimableRewardsData memory claimableRewardsData_, uint256 unclaimedDrippedRewards_) = _previewNextClaimableRewardsData(
           claimableRewards[j][i], oldCumulativeDrippedRewards_, stakeReceiptTokenSupply_, stakePool_.rewardsWeight
         );
         claimableRewards[j][i] =
@@ -627,6 +631,10 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
     return claimAmount_.mulDivUp(claimFee_, MathConstants.ZOC);
   }
 
+  function hashStakePoolIds(uint16[] calldata stakePoolIds_) external pure returns (bytes32) {
+    return _hashStakePoolIds(stakePoolIds_);
+  }
+
   function _hashStakePoolIds(uint16[] calldata stakePoolIds_) internal pure returns (bytes32) {
     // Encode each stake pool id as a full 32-byte word to satisfy EIP-712 array hashing semantics.
     uint256 stakePoolCount_ = stakePoolIds_.length;
@@ -635,6 +643,14 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
       stakePoolIdsEncoded_[i] = bytes32(uint256(stakePoolIds_[i]));
     }
     return keccak256(abi.encodePacked(stakePoolIdsEncoded_));
+  }
+
+  function hashClaimRewardsPoolData(ClaimRewardsPoolData[] calldata claimRewardsPoolData_)
+    external
+    pure
+    returns (bytes32)
+  {
+    return _hashClaimRewardsPoolData(claimRewardsPoolData_);
   }
 
   function _hashClaimRewardsPoolData(ClaimRewardsPoolData[] calldata claimRewardsPoolData_)
@@ -664,7 +680,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
   {
     uint256 numRewardPools_ = rewardPools.length;
     uint256[256] memory bitmap_; // Since reward pool ids are a uint16, we are guaranteed to have rewardPoolId < 2^16 =
-    // 65536. We use a 256 * 256 = 65536 bit bitmap to check for duplicates.
+      // 65536. We use a 256 * 256 = 65536 bit bitmap to check for duplicates.
 
     uint256 numClaimRewardsPoolData_ = claimRewardsPoolData_.length;
     for (uint256 i = 0; i < numClaimRewardsPoolData_; i++) {

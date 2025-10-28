@@ -126,9 +126,8 @@ abstract contract Withdrawer is RewardsManagerCommon, IWithdrawerEvents {
     } else {
       // Rewards have dripped since the last update, so scale down the depositor's withdrawable rewards by the amount of
       // drip.
-      return depositorRewardsData_.withdrawableRewards.mulWadDown(
-        RewardsMathLib.expNeg(nextRewardPoolLogIndexSnapshot_ - depositorRewardsData_.logIndexSnapshot)
-      );
+      return depositorRewardsData_.withdrawableRewards
+        .mulWadDown(RewardsMathLib.expNeg(nextRewardPoolLogIndexSnapshot_ - depositorRewardsData_.logIndexSnapshot));
     }
   }
 

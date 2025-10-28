@@ -51,6 +51,11 @@ abstract contract RewardsManagerCommon is RewardsManagerBaseStorage, ICommonErro
     emit EIP712DomainNameUpdated(eip712DomainName);
   }
 
+  /// @notice Returns the domain separator.
+  function domainSeparator() external view returns (bytes32) {
+    return _buildDomainSeparator();
+  }
+
   /// @dev Defined in RewardsDistributor.
   function _claimRewards(ClaimRewardsArgs memory args_, ClaimRewardsPoolData[] memory claimRewardsPoolData_)
     internal

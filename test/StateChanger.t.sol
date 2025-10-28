@@ -414,7 +414,10 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
   function _claimRewards(
     ClaimRewardsArgs memory, /* args_ */
     ClaimRewardsPoolData[] memory /* claimRewardsPoolData_ */
-  ) internal override {
+  )
+    internal
+    override
+  {
     __writeStub__();
   }
 
@@ -422,7 +425,13 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
     emit DripRewardsCalled();
   }
 
-  function _getNextDripAmount(uint256, /* totalBaseAmount_ */ IDripModel, /* dripModel_ */ uint256 /*lastDripTime_*/ )
+  function _getNextDripAmount(
+    uint256,
+    /* totalBaseAmount_ */
+    IDripModel,
+    /* dripModel_ */
+    uint256 /*lastDripTime_*/
+  )
     internal
     view
     override
@@ -431,7 +440,13 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
     __readStub__();
   }
 
-  function _getNextDripFactor(uint256, /* totalBaseAmount_ */ IDripModel, /* dripModel_ */ uint256 /*lastDripTime_*/ )
+  function _getNextDripFactor(
+    uint256,
+    /* totalBaseAmount_ */
+    IDripModel,
+    /* dripModel_ */
+    uint256 /*lastDripTime_*/
+  )
     internal
     view
     override
@@ -444,7 +459,11 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
     uint256, /*userStkReceiptTokenBalance_*/
     mapping(uint16 => ClaimableRewardsData) storage, /*claimableRewards_*/
     UserRewardsData[] storage /*userRewards_*/
-  ) internal view override {
+  )
+    internal
+    view
+    override
+  {
     __readStub__();
   }
 
@@ -455,11 +474,21 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
   function _dripAndApplyPendingDrippedRewards(
     StakePool storage, /*stakePool_*/
     mapping(uint16 => ClaimableRewardsData) storage /*claimableRewards_*/
-  ) internal view override {
+  )
+    internal
+    view
+    override
+  {
     __readStub__();
   }
 
-  function _assertValidDepositBalance(IERC20, /*token_*/ uint256, /*tokenPoolBalance_*/ uint256 /*depositAmount_*/ )
+  function _assertValidDepositBalance(
+    IERC20,
+    /*token_*/
+    uint256,
+    /*tokenPoolBalance_*/
+    uint256 /*depositAmount_*/
+  )
     internal
     view
     override
@@ -470,14 +499,23 @@ contract TestableStateChanger is StateChanger, StateChangerTestMockEvents {
   function _dripAndResetCumulativeRewardsValues(
     StakePool[] storage, /*stakePools_*/
     RewardPool[] storage /*rewardPools_*/
-  ) internal view override {
+  )
+    internal
+    view
+    override
+  {
     __readStub__();
   }
 
   function _previewCurrentWithdrawableRewards(
     RewardPool storage, /*rewardPool_*/
     DepositorRewardsData storage /*depositorRewardsData_*/
-  ) internal view override returns (uint256) {
+  )
+    internal
+    view
+    override
+    returns (uint256)
+  {
     __readStub__();
   }
 }
