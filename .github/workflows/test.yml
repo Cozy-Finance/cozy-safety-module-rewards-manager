@@ -26,6 +26,9 @@ jobs:
         with:
           version: stable
 
+      - name: Print Forge version
+        run: forge --version
+
       - name: Run Forge fmt
         run: |
           forge fmt --check
