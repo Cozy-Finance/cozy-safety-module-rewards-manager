@@ -487,7 +487,8 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
       uint256 accruedRewards_ = i < numUserRewardAssets_
         ? _previewUpdateUserRewardsData(
           ownerStkReceiptTokenBalance_, previewNextClaimableRewardsData_.indexSnapshot, userRewards_[i]
-        ).accruedRewards
+        )
+        .accruedRewards
         : _previewAddUserRewardsData(ownerStkReceiptTokenBalance_, previewNextClaimableRewardsData_.indexSnapshot)
         .accruedRewards;
       uint256 claimFeeAmount_ = _computeClaimFeeAmount(accruedRewards_, claimFee_);
