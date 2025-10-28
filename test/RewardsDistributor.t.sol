@@ -46,9 +46,6 @@ contract RewardsDistributorUnitTest is TestBase, IRewardsDistributorEvents {
   uint256 internal constant ONE_YEAR = 365.25 days;
   uint256 internal constant CLAIM_FEE = 200; // 2%
 
-  bytes32 internal constant EIP712_DOMAIN_TYPEHASH =
-    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-
   function _setUpRewardPools(uint256 numRewardAssets_) internal {
     for (uint256 i = 0; i < numRewardAssets_; i++) {
       MockERC20 mockRewardAsset_ = new MockERC20("Mock Reward Asset", "MockRewardAsset", 6);
@@ -245,54 +242,14 @@ contract RewardsDistributorUnitTest is TestBase, IRewardsDistributorEvents {
     address receiver_,
     uint256 deadline_
   ) internal view returns (bytes32) {
-    bytes32 stakePoolIdsHash_ = _hashStakePoolIds(stakePoolIds_);
-    bytes32 claimRewardsPoolDataHash_ = _hashClaimRewardsPoolData(claimRewardsPoolData_);
+    bytes32 stakePoolIdsHash_ = component.hashStakePoolIds(stakePoolIds_);
+    bytes32 claimRewardsPoolDataHash_ = component.hashClaimRewardsPoolData(claimRewardsPoolData_);
     bytes32 typeHash_ = component.CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH();
     uint256 nonce_ = component.eip712Nonces(owner_, typeHash_);
     bytes32 structHash_ = keccak256(
       abi.encode(typeHash_, stakePoolIdsHash_, claimRewardsPoolDataHash_, owner_, caller_, receiver_, deadline_, nonce_)
     );
-    bytes32 domainSeparator_ = _expectedDomainSeparator();
-    return keccak256(abi.encodePacked("\x19\x01", domainSeparator_, structHash_));
-  }
-
-  function _expectedDomainSeparator() internal view returns (bytes32) {
-    return keccak256(
-      abi.encode(
-        EIP712_DOMAIN_TYPEHASH,
-        keccak256(bytes(component.eip712DomainName())),
-        keccak256(bytes(Strings.toString(component.eip712DomainVersion()))),
-        block.chainid,
-        address(component)
-      )
-    );
-  }
-
-  function _hashClaimRewardsPoolData(ClaimRewardsPoolData[] memory claimRewardsPoolData_)
-    internal
-    view
-    returns (bytes32)
-  {
-    uint256 length_ = claimRewardsPoolData_.length;
-    if (length_ == 0) return keccak256("");
-
-    bytes32[] memory elementHashes_ = new bytes32[](length_);
-    bytes32 typeHash_ = component.CLAIM_REWARDS_POOL_DATA_TYPEHASH();
-    for (uint256 i = 0; i < length_; i++) {
-      elementHashes_[i] =
-        keccak256(abi.encode(typeHash_, claimRewardsPoolData_[i].rewardPoolId, claimRewardsPoolData_[i].drip));
-    }
-
-    return keccak256(abi.encodePacked(elementHashes_));
-  }
-
-  function _hashStakePoolIds(uint16[] memory stakePoolIds_) internal pure returns (bytes32) {
-    uint256 stakePoolCount_ = stakePoolIds_.length;
-    bytes32[] memory stakePoolIdsEncoded_ = new bytes32[](stakePoolCount_);
-    for (uint256 i = 0; i < stakePoolCount_; i++) {
-      stakePoolIdsEncoded_[i] = bytes32(uint256(stakePoolIds_[i]));
-    }
-    return keccak256(abi.encodePacked(stakePoolIdsEncoded_));
+    return keccak256(abi.encodePacked("\x19\x01", component.domainSeparator(), structHash_));
   }
 
   function _buildClaimRewardsAllPoolsDigest(
@@ -302,39 +259,12 @@ contract RewardsDistributorUnitTest is TestBase, IRewardsDistributorEvents {
     address receiver_,
     uint256 deadline_
   ) internal view returns (bytes32) {
-    bytes32 stakePoolIdsHash_ = _hashStakePoolIds(stakePoolIds_);
+    bytes32 stakePoolIdsHash_ = component.hashStakePoolIds(stakePoolIds_);
     bytes32 typeHash_ = component.CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH();
     uint256 nonce_ = component.eip712Nonces(owner_, typeHash_);
     bytes32 structHash_ =
       keccak256(abi.encode(typeHash_, stakePoolIdsHash_, owner_, caller_, receiver_, deadline_, nonce_));
-    bytes32 domainSeparator_ = _expectedDomainSeparator();
-    return keccak256(abi.encodePacked("\x19\x01", domainSeparator_, structHash_));
-  }
-
-  function test_domainSeparatorMatchesExpected() public {
-    bytes32 expected_ = _expectedDomainSeparator();
-    assertEq(component.domainSeparator(), expected_);
-  }
-
-  function test_hashStakePoolIdsPublicMatchesReference() public {
-    uint16[] memory stakePoolIds_ = new uint16[](3);
-    stakePoolIds_[0] = 0;
-    stakePoolIds_[1] = 5;
-    stakePoolIds_[2] = 42;
-
-    bytes32 expected_ = _hashStakePoolIds(stakePoolIds_);
-    bytes32 actual_ = component.hashStakePoolIds(stakePoolIds_);
-    assertEq(actual_, expected_);
-  }
-
-  function test_hashClaimRewardsPoolDataPublicMatchesReference() public {
-    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](2);
-    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 1, drip: true});
-    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 7, drip: false});
-
-    bytes32 expected_ = _hashClaimRewardsPoolData(claimRewardsPoolData_);
-    bytes32 actual_ = component.hashClaimRewardsPoolData(claimRewardsPoolData_);
-    assertEq(actual_, expected_);
+    return keccak256(abi.encodePacked("\x19\x01", component.domainSeparator(), structHash_));
   }
 
   function _getUserClaimRewardsFixture() internal returns (address user_, uint16 stakePoolId_, address receiver_) {

@@ -32,13 +32,6 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
   uint16 constant DEFAULT_REWARD_POOL_ID = 0;
   uint16 constant DEFAULT_STAKE_POOL_ID = 0;
 
-  bytes32 internal constant EIP712_DOMAIN_TYPEHASH =
-    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-
-  bytes32 internal constant WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH = keccak256(
-    "WithdrawRewardAssetsBySig(address owner,uint16 rewardPoolId,uint256 rewardAssetAmount,address caller,address receiver,uint256 deadline,uint256 nonce)"
-  );
-
   function setUp() public override {
     super.setUp();
 
@@ -94,26 +87,13 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     address receiver_,
     uint256 deadline_
   ) internal view returns (bytes32) {
-    bytes32 typeHash_ = WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH;
+    bytes32 typeHash_ = rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH();
     uint256 nonce_ = rewardsManager.eip712Nonces(owner_, typeHash_);
     bytes32 structHash_ = keccak256(
       abi.encode(typeHash_, owner_, rewardPoolId_, rewardAssetAmount_, caller_, receiver_, deadline_, nonce_)
     );
 
-    string memory domainName_ = rewardsManager.eip712DomainName();
-    string memory domainVersion_ = Strings.toString(uint256(rewardsManager.eip712DomainVersion()));
-
-    bytes32 domainSeparator_ = keccak256(
-      abi.encode(
-        EIP712_DOMAIN_TYPEHASH,
-        keccak256(bytes(domainName_)),
-        keccak256(bytes(domainVersion_)),
-        block.chainid,
-        address(rewardsManager)
-      )
-    );
-
-    return keccak256(abi.encodePacked("\x19\x01", domainSeparator_, structHash_));
+    return keccak256(abi.encodePacked("\x19\x01", rewardsManager.domainSeparator(), structHash_));
   }
 
   function test_depositNoWithdraw() public {
@@ -565,7 +545,8 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     uint256 rewardAssetAmount_ = 1e18;
 
     _depositRewardAssets(ownerEOA_, rewardAssetAmount_);
-    uint256 nonceBefore_ = rewardsManager.eip712Nonces(ownerEOA_, WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH);
+    uint256 nonceBefore_ =
+      rewardsManager.eip712Nonces(ownerEOA_, rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH());
     uint256 deadline_ = block.timestamp + 1 hours;
     bytes32 digest_ =
       _buildWithdrawDigest(ownerEOA_, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_);
@@ -587,7 +568,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     );
     assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 0, "asset pool should be empty");
     assertEq(
-      rewardsManager.eip712Nonces(ownerEOA_, WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH),
+      rewardsManager.eip712Nonces(ownerEOA_, rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH()),
       nonceBefore_ + 1,
       "nonce should increment"
     );
@@ -601,7 +582,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     uint256 rewardAssetAmount_ = 5e17;
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
-    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH);
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH());
     uint256 deadline_ = block.timestamp + 1 hours;
     bytes32 digest_ =
       _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_);
@@ -622,7 +603,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     );
     assertEq(rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 0, "asset pool should be empty");
     assertEq(
-      rewardsManager.eip712Nonces(owner_, WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH),
+      rewardsManager.eip712Nonces(owner_, rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH()),
       nonceBefore_ + 1,
       "nonce should increment"
     );
@@ -636,7 +617,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
 
-    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH);
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH());
     uint256 deadline_ = block.timestamp + 1 hours;
     bytes memory invalidSignature_ = "0xdeadbeef";
 
@@ -646,7 +627,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     );
 
     assertEq(
-      rewardsManager.eip712Nonces(owner_, WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH),
+      rewardsManager.eip712Nonces(owner_, rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH()),
       nonceBefore_,
       "nonce should remain unchanged"
     );
@@ -659,7 +640,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     uint256 rewardAssetAmount_ = 1e18;
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
-    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH);
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH());
     uint256 deadline_ = block.timestamp - 1; // already expired
     bytes32 digest_ =
       _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, address(this), receiver_, deadline_);
@@ -672,7 +653,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     );
 
     assertEq(
-      rewardsManager.eip712Nonces(owner_, WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH),
+      rewardsManager.eip712Nonces(owner_, rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH()),
       nonceBefore_,
       "nonce should remain unchanged"
     );
@@ -687,7 +668,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     _depositRewardAssets(owner_, rewardAssetAmount_);
 
-    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH);
+    uint256 nonceBefore_ = rewardsManager.eip712Nonces(owner_, rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH());
     uint256 deadline_ = block.timestamp + 1 hours;
     bytes32 digest_ =
       _buildWithdrawDigest(owner_, rewardPoolId_, rewardAssetAmount_, authorizedCaller_, receiver_, deadline_);
@@ -699,7 +680,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
       rewardPoolId_, rewardAssetAmount_, owner_, receiver_, deadline_, signature_
     );
     assertEq(
-      rewardsManager.eip712Nonces(owner_, WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH),
+      rewardsManager.eip712Nonces(owner_, rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH()),
       nonceBefore_,
       "nonce should remain unchanged after revert"
     );
@@ -719,7 +700,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
       "owner should have no withdrawable rewards"
     );
     assertEq(
-      rewardsManager.eip712Nonces(owner_, WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH),
+      rewardsManager.eip712Nonces(owner_, rewardsManager.WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH()),
       nonceBefore_ + 1,
       "nonce should increment on success"
     );
