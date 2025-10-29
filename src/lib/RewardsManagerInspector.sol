@@ -72,4 +72,9 @@ abstract contract RewardsManagerInspector is RewardsManagerCommon {
 
     return claimableRewards_;
   }
+
+  /// @notice Returns the domain separator.
+  function domainSeparator() external view returns (bytes32) {
+    return _buildDomainSeparator();
+  }
 }
