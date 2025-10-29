@@ -8,12 +8,12 @@ import {
   ClaimableRewardsData,
   PreviewClaimableRewards,
   UserRewardsData,
-  DepositorRewardsData
+  DepositorRewardsData,
+  ClaimRewardsPoolData
 } from "../lib/structs/Rewards.sol";
 import {RewardsManagerState} from "../lib/RewardsManagerStates.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 import {ICozyManager} from "./ICozyManager.sol";
-import {ClaimRewardsPoolData} from "../lib/structs/Rewards.sol";
 
 interface IRewardsManager {
   function CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH() external view returns (bytes32);
