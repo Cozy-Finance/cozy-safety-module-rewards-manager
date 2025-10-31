@@ -15,7 +15,15 @@ contract MockDripModel is IDripModel {
     isValidDripModel = isValidDripModel_;
   }
 
-  function dripFactor(uint256 lastDripTime_, uint256 /* initialAmount_ */ ) external view override returns (uint256) {
+  function dripFactor(
+    uint256 lastDripTime_,
+    uint256 /* initialAmount_ */
+  )
+    external
+    view
+    override
+    returns (uint256)
+  {
     if (!isValidDripModel) revert("Invalid drip model");
     if (block.timestamp - lastDripTime_ == 0) return 0;
     return dripFactorConstant;

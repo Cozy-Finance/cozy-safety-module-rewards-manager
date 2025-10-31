@@ -8,12 +8,12 @@ import {
   ClaimableRewardsData,
   PreviewClaimableRewards,
   UserRewardsData,
-  DepositorRewardsData
+  DepositorRewardsData,
+  ClaimRewardsPoolData
 } from "../lib/structs/Rewards.sol";
 import {RewardsManagerState} from "../lib/RewardsManagerStates.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 import {ICozyManager} from "./ICozyManager.sol";
-import {ClaimRewardsPoolData} from "../lib/structs/Rewards.sol";
 
 interface IRewardsManager {
   function CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH() external view returns (bytes32);
@@ -71,13 +71,21 @@ interface IRewardsManager {
 
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
 
-  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address owner_)
-    external;
+  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address owner_) external;
 
   function depositorRewards(uint16 rewardPoolId_, address depositor_)
     external
     view
     returns (uint256 withdrawableRewards, uint256 logIndexSnapshot, uint32 epoch);
+
+  function domainSeparator() external view returns (bytes32);
+
+  function hashStakePoolIds(uint16[] calldata stakePoolIds_) external pure returns (bytes32);
+
+  function hashClaimRewardsPoolData(ClaimRewardsPoolData[] calldata claimRewardsPoolData_)
+    external
+    pure
+    returns (bytes32);
 
   function dripRewardPool(uint16 rewardPoolId_) external;
 

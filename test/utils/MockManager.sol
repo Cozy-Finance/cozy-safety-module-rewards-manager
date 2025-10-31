@@ -34,11 +34,23 @@ contract MockManager is Governable {
     depositFee = depositFee_;
   }
 
-  function getClaimFee(IRewardsManager /* rewardsManager_ */ ) external view returns (uint16) {
+  function getClaimFee(
+    IRewardsManager /* rewardsManager_ */
+  )
+    external
+    view
+    returns (uint16)
+  {
     return claimFee;
   }
 
-  function getDepositFee(IRewardsManager /* rewardsManager_ */ ) external view returns (uint16) {
+  function getDepositFee(
+    IRewardsManager /* rewardsManager_ */
+  )
+    external
+    view
+    returns (uint16)
+  {
     return depositFee;
   }
 }

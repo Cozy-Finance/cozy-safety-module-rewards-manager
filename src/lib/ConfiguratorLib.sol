@@ -35,16 +35,14 @@ library ConfiguratorLib {
     uint256 numExistingRewardPools_ = rewardPools_.length;
 
     // Validate the configuration parameters.
-    if (
-      !isValidConfiguration(
+    if (!isValidConfiguration(
         stakePoolConfigs_,
         rewardPoolConfigs_,
         numExistingStakePools_,
         numExistingRewardPools_,
         allowedStakePools_,
         allowedRewardPools_
-      )
-    ) return false;
+      )) return false;
 
     // Validate existing stake pools. The existing stake pool's underlying asset cannot change.
     for (uint16 i = 0; i < numExistingStakePools_; i++) {
@@ -141,8 +139,7 @@ library ConfiguratorLib {
     uint16 allowedStakePools_,
     uint16 allowedRewardPools_
   ) public {
-    if (
-      !isValidUpdate(
+    if (!isValidUpdate(
         stakePools_,
         rewardPools_,
         assetToStakePoolIds_,
@@ -150,8 +147,7 @@ library ConfiguratorLib {
         rewardPoolConfigs_,
         allowedStakePools_,
         allowedRewardPools_
-      )
-    ) revert IConfiguratorErrors.InvalidConfiguration();
+      )) revert IConfiguratorErrors.InvalidConfiguration();
 
     applyConfigUpdates(
       stakePools_,

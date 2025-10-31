@@ -219,7 +219,9 @@ contract CozyManagerUpdateClaimFees is MockDeployProtocol, CozyManagerTestSetup 
     assertEq(cozyManager.getClaimFee(rewardsManager_), newClaimFee_);
   }
 
-  function testFuzz_resetOverrideClaimFee(uint16 claimFee_, uint16 newClaimFee_, address rewardsManagerAddress_) public {
+  function testFuzz_resetOverrideClaimFee(uint16 claimFee_, uint16 newClaimFee_, address rewardsManagerAddress_)
+    public
+  {
     IRewardsManager rewardsManager_ = IRewardsManager(rewardsManagerAddress_);
     claimFee_ = uint16(bound(claimFee_, 0, MathConstants.ZOC));
     newClaimFee_ = uint16(bound(newClaimFee_, 0, MathConstants.ZOC));
