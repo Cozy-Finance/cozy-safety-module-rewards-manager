@@ -63,10 +63,12 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
     PreviewClaimableRewards memory actorPreviewClaimableRewards_ =
       rewardsManagerHandler.previewClaimableRewardsForActor(unstakedStakePoolId_, actor_)[0];
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
-      actorRewardsToBeClaimed[rewardsManager.rewardPools(rewardPoolId_).asset] +=
-        actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
-      rewardFeesToBePaid[rewardsManager.rewardPools(rewardPoolId_).asset] +=
-        actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].claimFeeAmount;
+      actorRewardsToBeClaimed[
+        rewardsManager.rewardPools(rewardPoolId_).asset
+      ] += actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
+      rewardFeesToBePaid[
+        rewardsManager.rewardPools(rewardPoolId_).asset
+      ] += actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].claimFeeAmount;
     }
 
     vm.prank(actor_);
@@ -299,7 +301,10 @@ abstract contract UnstakerInvariantsWithStateTransitions is InvariantTestBaseWit
     rewardsManager.unstake(_randomUint16(), 0, _randomAddress(), _randomAddress());
   }
 
-  function invariant_cannotUnstakeWithInsufficientStkReceiptTokens() public syncCurrentTimestamp(rewardsManagerHandler) {
+  function invariant_cannotUnstakeWithInsufficientStkReceiptTokens()
+    public
+    syncCurrentTimestamp(rewardsManagerHandler)
+  {
     address actor_ = rewardsManagerHandler.getActorWithStake(_randomUint256());
     uint16 unstakedStakePoolId_ = rewardsManagerHandler.getStakePoolIdForActorWithStake(_randomUint256(), actor_);
     uint256 stkReceiptTokenUnstakeAmount_ =

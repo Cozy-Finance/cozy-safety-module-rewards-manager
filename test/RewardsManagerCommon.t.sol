@@ -8,7 +8,10 @@ import {TestBase} from "./utils/TestBase.sol";
 import {MockManager} from "./utils/MockManager.sol";
 import {ICozyManager} from "../src/interfaces/ICozyManager.sol";
 import {
-  ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData, DepositorRewardsData
+  ClaimRewardsArgs,
+  ClaimableRewardsData,
+  UserRewardsData,
+  DepositorRewardsData
 } from "../src/lib/structs/Rewards.sol";
 import {StakePool, RewardPool} from "../src/lib/structs/Pools.sol";
 import {IDripModel} from "cozy-safety-module-libs/interfaces/IDripModel.sol";

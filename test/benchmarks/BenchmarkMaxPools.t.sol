@@ -113,9 +113,8 @@ abstract contract BenchmarkMaxPools is MockDeployProtocol {
     _stake(stakePoolId_, stakeAssetAmount_, receiver_);
 
     vm.prank(receiver_);
-    getStakePool(IRewardsManager(address(rewardsManager)), stakePoolId_).stkReceiptToken.approve(
-      address(rewardsManager), stakeAssetAmount_
-    );
+    getStakePool(IRewardsManager(address(rewardsManager)), stakePoolId_).stkReceiptToken
+      .approve(address(rewardsManager), stakeAssetAmount_);
   }
 
   function _setUpConfigUpdate() internal returns (StakePoolConfig[] memory, RewardPoolConfig[] memory) {

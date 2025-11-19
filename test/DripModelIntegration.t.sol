@@ -69,8 +69,7 @@ contract RewardsDripModelExponentialIntegrationTest is DripModelIntegrationTestS
 
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
     rewardPoolConfigs_[0] = RewardPoolConfig({
-      asset: rewardAsset,
-      dripModel: IDripModel(address(new DripModelExponential(DEFAULT_DRIP_RATE)))
+      asset: rewardAsset, dripModel: IDripModel(address(new DripModelExponential(DEFAULT_DRIP_RATE)))
     });
 
     rewardsManager = RewardsManager(
@@ -158,8 +157,7 @@ contract RewardsDripModelConstantIntegrationTest is DripModelIntegrationTestSetu
 
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
     rewardPoolConfigs_[0] = RewardPoolConfig({
-      asset: rewardAsset,
-      dripModel: IDripModel(address(new DripModelConstant(dripModelOwner, DEFAULT_DRIP_RATE)))
+      asset: rewardAsset, dripModel: IDripModel(address(new DripModelConstant(dripModelOwner, DEFAULT_DRIP_RATE)))
     });
 
     rewardsManager = RewardsManager(

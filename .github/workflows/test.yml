@@ -5,9 +5,6 @@ on:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
 
-env:
-  FOUNDRY_PROFILE: ci
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -28,6 +25,9 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
+
+      - name: Print Forge version
+        run: forge --version
 
       - name: Run Forge fmt
         run: |

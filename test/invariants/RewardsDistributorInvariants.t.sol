@@ -35,8 +35,9 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     PreviewClaimableRewards memory actorPreviewClaimableRewards_ =
       rewardsManagerHandler.previewClaimableRewardsForActor(stakePoolId_, actor_)[0];
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
-      actorRewardsToBeClaimed[rewardsManager.rewardPools(rewardPoolId_).asset] +=
-        actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
+      actorRewardsToBeClaimed[
+        rewardsManager.rewardPools(rewardPoolId_).asset
+      ] += actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
     }
 
     vm.prank(actor_);
@@ -126,8 +127,9 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
     }
 
     for (uint16 rewardPoolId_ = 0; rewardPoolId_ < numRewardPools; rewardPoolId_++) {
-      receiverPreviewRewardsToBeClaimed[rewardsManager.rewardPools(rewardPoolId_).asset] +=
-        actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
+      receiverPreviewRewardsToBeClaimed[
+        rewardsManager.rewardPools(rewardPoolId_).asset
+      ] += actorPreviewClaimableRewards_.claimableRewardsData[rewardPoolId_].amount;
     }
 
     vm.prank(actor_);
@@ -209,8 +211,8 @@ abstract contract RewardsDistributorInvariantsWithStateTransitions is InvariantT
         )
       );
 
-      uint256 scaledCumulativeDrippedRewards_ =
-        postRewardPools_[rewardPoolId_].cumulativeDrippedRewards.mulDivDown(stakePool_.rewardsWeight, MathConstants.ZOC);
+      uint256 scaledCumulativeDrippedRewards_ = postRewardPools_[rewardPoolId_].cumulativeDrippedRewards
+        .mulDivDown(stakePool_.rewardsWeight, MathConstants.ZOC);
       require(
         postCumulativeClaimableRewards_ == scaledCumulativeDrippedRewards_,
         string.concat(
