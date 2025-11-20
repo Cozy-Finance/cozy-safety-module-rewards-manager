@@ -50,7 +50,6 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
     uint256 userStkReceiptTokenBalance;
     uint256 stkReceiptTokenSupply;
     uint256 rewardsWeight;
-    uint256 numUserRewardAssets;
   }
 
   struct FinalizeClaimedRewardsArgs {
@@ -337,9 +336,17 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
     ClaimRewardsData memory claimRewardsData_ = ClaimRewardsData({
       userStkReceiptTokenBalance: stkReceiptToken_.balanceOf(args_.owner),
       stkReceiptTokenSupply: stkReceiptToken_.totalSupply(),
-      rewardsWeight: stakePool_.rewardsWeight,
-      numUserRewardAssets: userRewards_.length
+      rewardsWeight: stakePool_.rewardsWeight
     });
+
+    // Add user rewards data for new reward pools.
+    uint16 numRewardAssets_ = uint16(rewardPools.length);
+    uint16 numUserRewardAssets_ = uint16(userRewards_.length);
+    for (uint16 i = numUserRewardAssets_; i < numRewardAssets_; i++) {
+      userRewards_.push(
+        _previewAddUserRewardsData(claimRewardsData_.userStkReceiptTokenBalance, claimableRewards_[i].indexSnapshot)
+      );
+    }
 
     // When claiming rewards from a given reward pool, we take four steps:
     // (1) (Optionally) drip from the reward pool since time may have passed since the last drip.
@@ -366,19 +373,10 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
         claimableRewards_[rewardPoolId_] = newClaimableRewardsData_;
 
         // Step (3)
-        UserRewardsData memory newUserRewardsData_ =
+        uint256 oldIndexSnapshot_ = userRewards_[rewardPoolId_].indexSnapshot;
+        uint256 oldAccruedRewards_ = userRewards_[rewardPoolId_].accruedRewards;
+        userRewards_[rewardPoolId_] =
           UserRewardsData({accruedRewards: 0, indexSnapshot: newClaimableRewardsData_.indexSnapshot});
-        // A new UserRewardsData struct is pushed to the array in the case a new reward pool was added since rewards
-        // were last claimed for this user.
-        uint256 oldIndexSnapshot_ = 0;
-        uint256 oldAccruedRewards_ = 0;
-        if (rewardPoolId_ < claimRewardsData_.numUserRewardAssets) {
-          oldIndexSnapshot_ = userRewards_[rewardPoolId_].indexSnapshot;
-          oldAccruedRewards_ = userRewards_[rewardPoolId_].accruedRewards;
-          userRewards_[rewardPoolId_] = newUserRewardsData_;
-        } else {
-          userRewards_.push(newUserRewardsData_);
-        }
 
         // Step (4)
         _finalizeClaimedRewards(
