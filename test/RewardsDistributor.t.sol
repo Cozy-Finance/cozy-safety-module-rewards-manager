@@ -1246,7 +1246,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       uint256 expectedRewards_ =
         drippedRewards_.mulWadDown(userStkReceiptTokenBalance_.divWadDown(totalStkReceiptTokenBalance_));
       assertGt(receivedRewards_, 0);
-      assertLe(receivedRewards_, expectedRewards_);
+      assertEq(receivedRewards_, expectedRewards_);
     }
     {
       uint256 totalDrippedRewards_ = 1000; // 100_000 * 0.01
@@ -1255,7 +1255,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
       uint256 expectedRewards_ =
         drippedRewards_.mulWadDown(userStkReceiptTokenBalance_.divWadDown(totalStkReceiptTokenBalance_));
       assertGt(receivedRewards_, 0);
-      assertLe(receivedRewards_, expectedRewards_);
+      assertEq(receivedRewards_, expectedRewards_);
     }
 
     // Make sure user rewards data reflects new reward asset pool.
