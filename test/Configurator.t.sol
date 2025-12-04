@@ -173,10 +173,9 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     }
   }
 
-  function testFuzz_updateConfigs_OnInitialization_WhenPaused(
-    uint16 numStakePoolConfigs_,
-    uint16 numRewardPoolConfigs_
-  ) external {
+  function testFuzz_updateConfigs_OnInitialization_WhenPaused(uint16 numStakePoolConfigs_, uint16 numRewardPoolConfigs_)
+    external
+  {
     component.mockSetRewardsManagerState(RewardsManagerState.PAUSED);
 
     (numStakePoolConfigs_, numRewardPoolConfigs_) =

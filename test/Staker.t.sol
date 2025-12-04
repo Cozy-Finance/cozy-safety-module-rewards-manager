@@ -533,9 +533,9 @@ contract StakerUnitTest is TestBase, IStakerEvents {
     component.unstake(0, amountStaked_, receiver_, unstakeReceiver_);
 
     assertEq(mockStkReceiptToken.allowance(receiver_, spender_), 1, "stakeReceiptToken allowance"); // Only 1
-      // allowance left
-      // because
-      // of subtraction.
+    // allowance left
+    // because
+    // of subtraction.
     assertEq(mockStakeAsset.balanceOf(unstakeReceiver_), amountStaked_);
   }
 
