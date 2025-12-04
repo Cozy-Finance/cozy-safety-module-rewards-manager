@@ -465,7 +465,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
     // Bob adds more deposits
     _depositRewardAssets(bob_, 100e18);
     assertApproxEqAbs(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob_), 460e18, 1e16); // 360
-      // + 100
+    // + 100
     assertEq(
       rewardsManager.assetPools(IERC20(address(rewardAsset))).amount, 1000e18 + 500e18 + 300e18 - 200e18 + 100e18
     );
@@ -501,7 +501,7 @@ contract WithdrawerTest is TestBase, MockDeployProtocol {
 
     assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, alice_), 200e18);
     assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, bob_), 0); // Bob didn't deposit
-      // in new epoch
+    // in new epoch
     assertEq(rewardsManager.previewCurrentWithdrawableRewards(DEFAULT_REWARD_POOL_ID, charlie_), 400e18);
 
     // Partial drip in new epoch: 30%

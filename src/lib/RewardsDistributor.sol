@@ -679,7 +679,7 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
   {
     uint256 numRewardPools_ = rewardPools.length;
     uint256[256] memory bitmap_; // Since reward pool ids are a uint16, we are guaranteed to have rewardPoolId < 2^16 =
-      // 65536. We use a 256 * 256 = 65536 bit bitmap to check for duplicates.
+    // 65536. We use a 256 * 256 = 65536 bit bitmap to check for duplicates.
 
     uint256 numClaimRewardsPoolData_ = claimRewardsPoolData_.length;
     for (uint256 i = 0; i < numClaimRewardsPoolData_; i++) {
