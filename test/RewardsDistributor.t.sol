@@ -958,16 +958,26 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     component.claimRewards(0, claimRewardsPoolData_, _randomAddress());
   }
 
-  function test_checkValidClaimRewardsPoolDataDuplicateRewardPoolReverts() public {
-    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](2);
-    claimRewardsPoolData_[0] = ClaimRewardsPoolData({rewardPoolId: 2, drip: true});
-    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 2, drip: false});
+  function test_checkValidClaimRewardsPoolDataDuplicateRewardPoolReverts(uint8 numRewardPools_) public {
+    uint256 numRewardPools = uint256(numRewardPools_);
+    _setUpRewardPools(numRewardPools);
 
-    assertEq(component.checkValidClaimRewardsPoolData(claimRewardsPoolData_), false);
+    ClaimRewardsPoolData[] memory claimRewardsPoolData_ = new ClaimRewardsPoolData[](numRewardPools);
 
-    claimRewardsPoolData_[1] = ClaimRewardsPoolData({rewardPoolId: 2, drip: true});
+    bool[256] memory seen_;
+    bool expectedValid_ = true;
 
-    assertEq(component.checkValidClaimRewardsPoolData(claimRewardsPoolData_), false);
+    for (uint256 i = 0; i < numRewardPools; i++) {
+      uint16 rewardPoolId_ = uint16(bound(_randomUint64(), 0, type(uint8).max));
+      bool drip_ = _randomUint64() % 2 == 0;
+      claimRewardsPoolData_[i] = ClaimRewardsPoolData({rewardPoolId: rewardPoolId_, drip: drip_});
+
+      if (rewardPoolId_ >= numRewardPools) expectedValid_ = false;
+      if (seen_[rewardPoolId_]) expectedValid_ = false;
+      seen_[rewardPoolId_] = true;
+    }
+
+    assertEq(component.checkValidClaimRewardsPoolData(claimRewardsPoolData_), expectedValid_);
   }
 
   function test_claimRewardsWithStakePoolIds_InvalidRewardPoolSpecifiedReverts() public {
@@ -2211,6 +2221,6 @@ contract TestableRewardsDistributor is RewardsDistributor, Staker, Depositor, Re
   }
 
   function checkValidClaimRewardsPoolData(ClaimRewardsPoolData[] calldata claimRewardsPoolData_) public returns (bool) {
-    _checkValidClaimRewardsPoolData(claimRewardsPoolData_);
+    return _checkValidClaimRewardsPoolData(claimRewardsPoolData_);
   }
 }
