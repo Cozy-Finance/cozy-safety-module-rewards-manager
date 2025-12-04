@@ -958,7 +958,7 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     component.claimRewards(0, claimRewardsPoolData_, _randomAddress());
   }
 
-  function test_checkValidClaimRewardsPoolDataDuplicateRewardPoolReverts(uint8 numRewardPools_) public {
+  function testFuzz_checkValidClaimRewardsPoolDataDuplicateRewardPoolReverts(uint8 numRewardPools_) public {
     uint256 numRewardPools = uint256(numRewardPools_);
     _setUpRewardPools(numRewardPools);
 
