@@ -482,13 +482,24 @@ abstract contract RewardsDistributor is RewardsManagerCommon, IRewardsDistributo
         rewardsWeight_
       );
 
-      uint256 accruedRewards_ = i < numUserRewardAssets_
-        ? _previewUpdateUserRewardsData(
+      uint256 accruedRewards_;
+      if (i < numUserRewardAssets_) {
+        accruedRewards_ =
+        _previewUpdateUserRewardsData(
           ownerStkReceiptTokenBalance_, previewNextClaimableRewardsData_.indexSnapshot, userRewards_[i]
         )
-        .accruedRewards
-        : _previewAddUserRewardsData(ownerStkReceiptTokenBalance_, previewNextClaimableRewardsData_.indexSnapshot)
         .accruedRewards;
+      } else {
+        // For new pools, match the two-step calculation in _claimRewards():
+        // Step 1: Calculate from 0 to current indexSnapshot (before dripping)
+        // Step 2: Calculate from current indexSnapshot to final indexSnapshot (after dripping)
+        accruedRewards_ = _getUserAccruedRewards(ownerStkReceiptTokenBalance_, claimableRewards_[i].indexSnapshot, 0)
+          + _getUserAccruedRewards(
+            ownerStkReceiptTokenBalance_,
+            previewNextClaimableRewardsData_.indexSnapshot,
+            claimableRewards_[i].indexSnapshot
+          );
+      }
       uint256 claimFeeAmount_ = _computeClaimFeeAmount(accruedRewards_, claimFee_);
 
       claimableRewardsData_[i] = PreviewClaimableRewardsData({
