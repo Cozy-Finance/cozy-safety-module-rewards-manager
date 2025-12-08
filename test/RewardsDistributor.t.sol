@@ -1132,6 +1132,106 @@ contract RewardsDistributorClaimUnitTest is RewardsDistributorUnitTest {
     assertEq(previewClaimableRewardsAfterPause_[0].claimableRewardsData[2].amount, 0);
   }
 
+  function test_previewClaimableRewardsMatchesClaimRewardsForNewPoolEdgeCase() public {
+    // This test verifies the fix for the edge case where small index changes round down to 0
+    // when calculated in two steps, but would produce a non-zero result if calculated at once.
+    // The fix ensures previewClaimableRewards() matches claimRewards() by using the same two-step calculation.
+
+    cozyManager.setClaimFee(uint16(CLAIM_FEE)); // 2% claim fee
+
+    // Set up one stake pool with large supply
+    MockERC20 mockStakeAsset_ = new MockERC20("Mock Stake Asset", "MockStakeAsset", 18);
+    IReceiptToken stkReceiptToken_ = IReceiptToken(
+      address(new MockStkReceiptToken(address(component), "Mock StkReceiptToken", "MockStkReceiptToken", 18))
+    );
+    uint256 totalSupply_ = 200_000_000e18;
+    StakePool memory stakePool_ = StakePool({
+      amount: totalSupply_,
+      asset: IERC20(address(mockStakeAsset_)),
+      stkReceiptToken: stkReceiptToken_,
+      rewardsWeight: uint16(MathConstants.ZOC) // 100% weight
+    });
+
+    component.mockRegisterStkReceiptToken(0, stkReceiptToken_);
+    component.mockAddStakePool(stakePool_);
+    mockStakeAsset_.mint(address(component), totalSupply_);
+    component.mockAddAssetPool(IERC20(address(mockStakeAsset_)), AssetPool({amount: totalSupply_}));
+    stkReceiptToken_.mint(address(0), totalSupply_);
+
+    // Set up one reward pool initially (user will have rewards for this)
+    MockERC20 mockRewardAsset1_ = new MockERC20("Mock Reward Asset 1", "MockRewardAsset1", 18);
+    RewardPool memory rewardPool1_ = RewardPool({
+      undrippedRewards: 0,
+      cumulativeDrippedRewards: 0,
+      lastDripTime: uint128(block.timestamp),
+      asset: IERC20(address(mockRewardAsset1_)),
+      dripModel: IDripModel(address(new MockDripModel(0))),
+      epoch: 0,
+      logIndexSnapshot: 0
+    });
+    component.mockAddRewardPool(rewardPool1_);
+    mockRewardAsset1_.mint(address(component), 0);
+    component.mockAddAssetPool(IERC20(address(mockRewardAsset1_)), AssetPool({amount: 0}));
+    component.mockSetClaimableRewardsData(0, 0, 0, 0);
+
+    // User stakes a very large amount
+    address user_ = _randomAddress();
+    address receiver_ = _randomAddress();
+    uint256 userBalance_ = 199_999_999_999_999_999e18; // Very large balance that causes rounding issues
+    mockStakeAsset_.mint(user_, userBalance_);
+    vm.startPrank(user_);
+    mockStakeAsset_.approve(address(component), type(uint256).max);
+    component.stake(0, userBalance_, user_);
+    vm.stopPrank();
+
+    // Add a new reward pool (this will be new to the user)
+    // Set up so that index snapshot is 2 before any drip, and will be 7 after drip
+    MockERC20 mockRewardAsset2_ = new MockERC20("Mock Reward Asset 2", "MockRewardAsset2", 18);
+    // To get index 7 from index 2, we need: (7-2) * totalSupply * 1e4 / 1e36 = 5 * totalSupply * 1e4 / 1e36
+    uint256 cumulativeDrippedRewards_ = 5 * totalSupply_ * MathConstants.ZOC / (MathConstants.WAD ** 2);
+    RewardPool memory rewardPool2_ = RewardPool({
+      undrippedRewards: 0,
+      cumulativeDrippedRewards: cumulativeDrippedRewards_,
+      lastDripTime: uint128(block.timestamp),
+      asset: IERC20(address(mockRewardAsset2_)),
+      dripModel: IDripModel(address(new MockDripModel(0))),
+      epoch: 0,
+      logIndexSnapshot: 0
+    });
+    component.mockAddRewardPool(rewardPool2_);
+    mockRewardAsset2_.mint(address(component), cumulativeDrippedRewards_);
+    component.mockAddAssetPool(IERC20(address(mockRewardAsset2_)), AssetPool({amount: cumulativeDrippedRewards_}));
+
+    // Set claimable rewards index snapshot to 2 for the new reward pool
+    // This simulates the state before dripping when the pool is added
+    component.mockSetClaimableRewardsData(0, 1, 2, 0);
+
+    // Preview claimable rewards before claiming
+    uint16[] memory previewStakePoolIds_ = new uint16[](1);
+    previewStakePoolIds_[0] = 0;
+    PreviewClaimableRewards[] memory previewClaimableRewards_ =
+      component.previewClaimableRewards(previewStakePoolIds_, user_);
+
+    // Record balances before claiming
+    uint256 receiverPreBalance_ = mockRewardAsset2_.balanceOf(receiver_);
+
+    // Claim rewards
+    vm.prank(user_);
+    component.claimRewards(0, receiver_);
+
+    // Get the actual claimed amount
+    uint256 claimedAmount_ = mockRewardAsset2_.balanceOf(receiver_) - receiverPreBalance_;
+    uint256 previewAmount_ = previewClaimableRewards_[0].claimableRewardsData[1].amount;
+
+    // The key assertion: preview and claim should produce the same result
+    // Both use the two-step calculation: (2-0) + (7-2) = 0 + 0 = 0 (due to rounding)
+    assertEq(
+      previewAmount_,
+      claimedAmount_,
+      "Preview and claim should match for new pool edge case - both should use two-step calculation"
+    );
+  }
+
   function testFuzz_claimRewards(uint64 timeElapsed_) public {
     _setUpDefault();
     (address user_, uint16 stakePoolId_, address receiver_) = _getUserClaimRewardsFixture();
