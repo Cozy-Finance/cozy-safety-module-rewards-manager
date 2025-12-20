@@ -13,7 +13,11 @@ import {IReceiptTokenFactory} from "cozy-safety-module-libs/interfaces/IReceiptT
 import {RewardPoolConfig, StakePoolConfig} from "../src/lib/structs/Configs.sol";
 import {StakePool, RewardPool, IdLookup} from "../src/lib/structs/Pools.sol";
 import {
-  ClaimRewardsArgs, ClaimableRewardsData, UserRewardsData, DepositorRewardsData
+  ClaimRewardsArgs,
+  ClaimableRewardsData,
+  UserRewardsData,
+  DepositorRewardsData,
+  ClaimRewardsPoolData
 } from "../src/lib/structs/Rewards.sol";
 import {RewardsManager} from "../src/RewardsManager.sol";
 import {RewardsManagerFactory} from "../src/RewardsManagerFactory.sol";
@@ -85,10 +89,10 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
   }
 
   function _generateValidStakePoolConfig(uint16 weight_) private returns (StakePoolConfig memory) {
-    return StakePoolConfig({
-      asset: IERC20(address(new MockERC20("Mock Stake Asset", "cozyMock", 6))),
-      rewardsWeight: weight_
-    });
+    return
+      StakePoolConfig({
+        asset: IERC20(address(new MockERC20("Mock Stake Asset", "cozyMock", 6))), rewardsWeight: weight_
+      });
   }
 
   function _generateValidConfigs(uint256 numStakePoolConfigs_, uint256 numRewardPoolConfigs_)
@@ -133,7 +137,9 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     assertEq(address(rewardPool_.dripModel), address(rewardPoolConfig_.dripModel));
   }
 
-  function _assertStakePoolUpdatesApplied(StakePool memory stakePool_, StakePoolConfig memory stakePoolConfig_) private {
+  function _assertStakePoolUpdatesApplied(StakePool memory stakePool_, StakePoolConfig memory stakePoolConfig_)
+    private
+  {
     assertEq(address(stakePool_.asset), address(stakePoolConfig_.asset));
     assertEq(stakePool_.rewardsWeight, stakePoolConfig_.rewardsWeight);
   }
@@ -459,8 +465,9 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     StakePoolConfig[] memory stakePoolConfigs_,
     StakePoolConfig[] memory newStakePoolConfigs_
   ) private pure returns (StakePoolConfig[] memory) {
-    StakePoolConfig[] memory combinedStakePoolConfigs_ =
-      new StakePoolConfig[](stakePoolConfigs_.length + newStakePoolConfigs_.length);
+    StakePoolConfig[] memory combinedStakePoolConfigs_ = new StakePoolConfig[](
+      stakePoolConfigs_.length + newStakePoolConfigs_.length
+    );
     for (uint256 i = 0; i < stakePoolConfigs_.length; i++) {
       combinedStakePoolConfigs_[i] = stakePoolConfigs_[i];
     }
@@ -475,8 +482,9 @@ contract ConfiguratorUnitTest is TestBase, IConfiguratorEvents, IConfiguratorErr
     RewardPoolConfig[] memory rewardPoolConfigs_,
     RewardPoolConfig[] memory newRewardPoolConfigs_
   ) private pure returns (RewardPoolConfig[] memory) {
-    RewardPoolConfig[] memory combinedRewardPoolConfigs_ =
-      new RewardPoolConfig[](rewardPoolConfigs_.length + newRewardPoolConfigs_.length);
+    RewardPoolConfig[] memory combinedRewardPoolConfigs_ = new RewardPoolConfig[](
+      rewardPoolConfigs_.length + newRewardPoolConfigs_.length
+    );
     for (uint256 i = 0; i < rewardPoolConfigs_.length; i++) {
       combinedRewardPoolConfigs_[i] = rewardPoolConfigs_[i];
     }
@@ -749,20 +757,34 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
   function _dripAndResetCumulativeRewardsValues(
     StakePool[] storage, /* stakePools_ */
     RewardPool[] storage /* rewardPools_ */
-  ) internal override {
+  )
+    internal
+    override
+  {
     emit DripAndResetCumulativeRewardsValuesCalled();
   }
 
   // -------- Overridden abstract function placeholders --------
 
-  function _claimRewards(ClaimRewardsArgs memory /* args_ */ ) internal override {
+  function _claimRewards(
+    ClaimRewardsArgs memory, /* args_ */
+    ClaimRewardsPoolData[] memory /* claimRewardsPoolData_ */
+  )
+    internal
+    override
+  {
     __writeStub__();
   }
 
   function _previewCurrentWithdrawableRewards(
     RewardPool storage, /*rewardPool_*/
     DepositorRewardsData storage /*depositorRewardsData_*/
-  ) internal view override returns (uint256) {
+  )
+    internal
+    view
+    override
+    returns (uint256)
+  {
     __readStub__();
   }
 
@@ -770,7 +792,28 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     __readStub__();
   }
 
-  function _getNextDripAmount(uint256, /* totalBaseAmount_ */ IDripModel, /* dripModel_ */ uint256 /*lastDripTime_*/ )
+  function _getNextDripAmount(
+    uint256,
+    /* totalBaseAmount_ */
+    IDripModel,
+    /* dripModel_ */
+    uint256 /*lastDripTime_*/
+  )
+    internal
+    view
+    override
+    returns (uint256)
+  {
+    __readStub__();
+  }
+
+  function _getNextDripFactor(
+    uint256,
+    /* totalBaseAmount_ */
+    IDripModel,
+    /* dripModel_ */
+    uint256 /*lastDripTime_*/
+  )
     internal
     view
     override
@@ -783,22 +826,42 @@ contract TestableConfigurator is Configurator, RewardsManagerInspector, Testable
     uint256, /*userStkReceiptTokenBalance_*/
     mapping(uint16 => ClaimableRewardsData) storage, /*claimableRewards_*/
     UserRewardsData[] storage /*userRewards_*/
-  ) internal view override {
+  )
+    internal
+    view
+    override
+  {
     __readStub__();
   }
 
-  function _dripRewardPool(RewardPool storage /* rewardPool_ */ ) internal view override {
+  function _dripRewardPool(
+    RewardPool storage /* rewardPool_ */
+  )
+    internal
+    view
+    override
+  {
     __readStub__();
   }
 
   function _dripAndApplyPendingDrippedRewards(
     StakePool storage, /*stakePool_*/
     mapping(uint16 => ClaimableRewardsData) storage /*claimableRewards_*/
-  ) internal view override {
+  )
+    internal
+    view
+    override
+  {
     __readStub__();
   }
 
-  function _assertValidDepositBalance(IERC20, /*token_*/ uint256, /*tokenPoolBalance_*/ uint256 /*depositAmount_*/ )
+  function _assertValidDepositBalance(
+    IERC20,
+    /*token_*/
+    uint256,
+    /*tokenPoolBalance_*/
+    uint256 /*depositAmount_*/
+  )
     internal
     view
     override

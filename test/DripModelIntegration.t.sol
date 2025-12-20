@@ -29,14 +29,14 @@ abstract contract DripModelIntegrationTestSetup is MockDeployProtocol {
       address(rewardsManager_),
       rewardAsset.balanceOf(address(rewardsManager_)) + rewardAssetAmount_
     );
-    rewardsManager_.depositRewardAssetsWithoutTransfer(0, rewardAssetAmount_);
+    rewardsManager_.depositRewardAssetsWithoutTransfer(0, rewardAssetAmount_, _randomAddress());
   }
 
   function stake(RewardsManager rewardsManager_, uint256 stakeAssetAmount_, address receiver_) internal {
     deal(
       address(stakeAsset), address(rewardsManager_), stakeAsset.balanceOf(address(rewardsManager_)) + stakeAssetAmount_
     );
-    rewardsManager_.stakeWithoutTransfer(0, stakeAssetAmount_, receiver_);
+    rewardsManager_.stakeWithoutTransfer(0, stakeAssetAmount_, _randomAddress(), receiver_);
   }
 
   function _assertRewardDripAmountAndReset(uint256 skipTime_, uint256 expectedClaimedRewards_) internal {
@@ -65,12 +65,11 @@ contract RewardsDripModelExponentialIntegrationTest is DripModelIntegrationTestS
 
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
     stakePoolConfigs_[0] = StakePoolConfig({asset: stakeAsset, rewardsWeight: uint16(MathConstants.ZOC)}); // 100% of
-      // rewards for the only stake pool
+    // rewards for the only stake pool
 
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
     rewardPoolConfigs_[0] = RewardPoolConfig({
-      asset: rewardAsset,
-      dripModel: IDripModel(address(new DripModelExponential(DEFAULT_DRIP_RATE)))
+      asset: rewardAsset, dripModel: IDripModel(address(new DripModelExponential(DEFAULT_DRIP_RATE)))
     });
 
     rewardsManager = RewardsManager(
@@ -100,15 +99,15 @@ contract RewardsDripModelExponentialIntegrationTest is DripModelIntegrationTestS
   function test_RewardsDrip50Percent() public {
     uint256[] memory expectedClaimedRewards_ = new uint256[](6);
     expectedClaimedRewards_[0] = 246; // 1000 * dripFactor(1 year) ~= 1000 * 0.25 ~= 249 (up to rounding down in favor
-      // the protocol), taking a 1% fee, we get 249 * 0.99 = 246
+    // the protocol), taking a 1% fee, we get 249 * 0.99 = 246
     expectedClaimedRewards_[1] = 130; // 1000 * dripFactor(0.5 years) ~= 1000 * 0.13397459686 ~= 132, taking a 1% fee,
-      // we get 132 * 0.99 = 130
+    // we get 132 * 0.99 = 130
     expectedClaimedRewards_[2] = 67; // 1000 * dripFactor(0.25 years) ~= 1000 * 0.06939514124 ~= 68, taking a 1% fee, we
-      // get 68 * 0.99 = 67
+    // get 68 * 0.99 = 67
     expectedClaimedRewards_[3] = 26; // 1000 * dripFactor(0.1 years) ~= 1000 * 0.02835834225 ~= 27, taking a 1% fee, we
-      // get 27 * 0.99 = 26
+    // get 27 * 0.99 = 26
     expectedClaimedRewards_[4] = 12; // 1000 * dripFactor(0.05 years) ~= 1000 * 0.0142811467 ~= 13, taking a 1% fee, we
-      // get 13 * 0.99 = 13
+    // get 13 * 0.99 = 13
     expectedClaimedRewards_[5] = 0; // 1000 * dripFactor(0) ~= 1000 * 0 ~= 0
     _testSeveralRewardsDrips(DEFAULT_DRIP_RATE, expectedClaimedRewards_);
   }
@@ -127,15 +126,15 @@ contract RewardsDripModelExponentialIntegrationTest is DripModelIntegrationTestS
   function test_RewardsDrip100Percent() public {
     uint256[] memory expectedClaimedRewards_ = new uint256[](6);
     expectedClaimedRewards_[0] = 989; // 1000 * dripFactor(1 year) = 1000 * 1 ~= 999 (up to rounding down in favor the
-      // protocol), taking a 1% fee, we get 999 * 0.99 = 989
+    // protocol), taking a 1% fee, we get 999 * 0.99 = 989
     expectedClaimedRewards_[1] = 989; // 1000 * dripFactor(0.5 years) = 1000 * 1 ~= 999, taking a 1% fee, we get 999 *
-      // 0.99 = 989
+    // 0.99 = 989
     expectedClaimedRewards_[2] = 989; // 1000 * dripFactor(0.25 years) = 1000 * 1 ~= 999, taking a 1% fee, we get 999 *
-      // 0.99 = 989
+    // 0.99 = 989
     expectedClaimedRewards_[3] = 989; // 1000 * dripFactor(0.1 years) = 1000 * 1 ~= 999, taking a 1% fee, we get 999 *
-      // 0.99 = 989
+    // 0.99 = 989
     expectedClaimedRewards_[4] = 989; // 1000 * dripFactor(0.05 years) = 1000 * 1 ~= 999, taking a 1% fee, we get 999 *
-      // 0.99 = 989
+    // 0.99 = 989
     expectedClaimedRewards_[5] = 0; // 1000 * dripFactor(0) ~= 1000 * 0 ~= 0
     _testSeveralRewardsDrips(MathConstants.WAD, expectedClaimedRewards_);
   }
@@ -154,12 +153,11 @@ contract RewardsDripModelConstantIntegrationTest is DripModelIntegrationTestSetu
 
     StakePoolConfig[] memory stakePoolConfigs_ = new StakePoolConfig[](1);
     stakePoolConfigs_[0] = StakePoolConfig({asset: stakeAsset, rewardsWeight: uint16(MathConstants.ZOC)}); // 100% of
-      // rewards for the only stake pool
+    // rewards for the only stake pool
 
     RewardPoolConfig[] memory rewardPoolConfigs_ = new RewardPoolConfig[](1);
     rewardPoolConfigs_[0] = RewardPoolConfig({
-      asset: rewardAsset,
-      dripModel: IDripModel(address(new DripModelConstant(dripModelOwner, DEFAULT_DRIP_RATE)))
+      asset: rewardAsset, dripModel: IDripModel(address(new DripModelConstant(dripModelOwner, DEFAULT_DRIP_RATE)))
     });
 
     rewardsManager = RewardsManager(
@@ -189,15 +187,15 @@ contract RewardsDripModelConstantIntegrationTest is DripModelIntegrationTestSetu
   function test_FeesDripOnePercent() public {
     uint256[] memory expectedClaimedRewards_ = new uint256[](6);
     expectedClaimedRewards_[0] = 989; // 1000 * dripFactor(100 seconds) ~= 1000 * 1 ~= 999 (up to rounding down in favor
-      // the protocol), taking a 1% fee, we get 999 * 0.99 = 989
+    // the protocol), taking a 1% fee, we get 999 * 0.99 = 989
     expectedClaimedRewards_[1] = 494; // 1000 * dripFactor(50 seconds) ~= 1000 * 0.5 ~= 499, taking a 1% fee, we get
-      // 499 * 0.99 = 499
+    // 499 * 0.99 = 499
     expectedClaimedRewards_[2] = 246; // 1000 * dripFactor(25 seconds) ~= 1000 * 0.25 ~= 249, taking a 1% fee, we get
-      // 249 * 0.99 = 249
+    // 249 * 0.99 = 249
     expectedClaimedRewards_[3] = 98; // 1000 * dripFactor(10 seconds) ~= 1000 * 0.1 ~= 99, taking a 1% fee, we get 99 *
-      // 0.99 = 99
+    // 0.99 = 99
     expectedClaimedRewards_[4] = 48; // 1000 * dripFactor(5 seconds) ~= 1000 * 0.05 ~= 49, taking a 1% fee, we get 49 *
-      // 0.99 = 49
+    // 0.99 = 49
     expectedClaimedRewards_[5] = 0; // 1000 * dripFactor(0) ~= 1000 * 0 ~= 0
     _testSeveralRewardsDrips(10, expectedClaimedRewards_);
   }
@@ -216,15 +214,15 @@ contract RewardsDripModelConstantIntegrationTest is DripModelIntegrationTestSetu
   function test_FeesDrip100Percent() public {
     uint256[] memory expectedClaimedRewards_ = new uint256[](6);
     expectedClaimedRewards_[0] = 989; // 1000 * dripFactor(100 seconds) ~= 1000 * 1 = 999 (up to rounding down in favor
-      // the protocol), taking a 1% fee, we get 999 * 0.99 = 989
+    // the protocol), taking a 1% fee, we get 999 * 0.99 = 989
     expectedClaimedRewards_[1] = 989; // 1000 * dripFactor(50 seconds) ~= 1000 * 1 = 999, taking a 1% fee, we get 999 *
-      // 0.99 = 989
+    // 0.99 = 989
     expectedClaimedRewards_[2] = 989; // 1000 * dripFactor(25 seconds) ~= 1000 * 1 = 999, taking a 1% fee, we get 999 *
-      // 0.99 = 989
+    // 0.99 = 989
     expectedClaimedRewards_[3] = 989; // 1000 * dripFactor(10 seconds) ~= 1000 * 1 = 999, taking a 1% fee, we get 999 *
-      // 0.99 = 989
+    // 0.99 = 989
     expectedClaimedRewards_[4] = 989; // 1000 * dripFactor(5 seconds) ~= 1000 * 1 = 999, taking a 1% fee, we get 999 *
-      // 0.99 = 989
+    // 0.99 = 989
     expectedClaimedRewards_[5] = 0; // 1000 * dripFactor(0) = 1000 * 0 = 0
     _testSeveralRewardsDrips(REWARD_POOL_AMOUNT, expectedClaimedRewards_);
   }

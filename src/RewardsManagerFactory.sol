@@ -46,7 +46,7 @@ contract RewardsManagerFactory is IRewardsManagerFactory {
     StakePoolConfig[] calldata stakePoolConfigs_,
     RewardPoolConfig[] calldata rewardPoolConfigs_,
     bytes32 baseSalt_
-  ) public returns (IRewardsManager rewardsManager_) {
+  ) external returns (IRewardsManager rewardsManager_) {
     // It'd be harmless to let anyone deploy rewards managers, but to make it more clear where the proper entry
     // point for safety module creation is, we restrict this to being called by the cozy manager.
     if (msg.sender != address(cozyManager)) revert Unauthorized();

@@ -2,19 +2,35 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "cozy-safety-module-libs/interfaces/IERC20.sol";
+import {IReceiptToken} from "cozy-safety-module-libs/interfaces/IReceiptToken.sol";
 import {StakePool, RewardPool, AssetPool} from "../lib/structs/Pools.sol";
-import {ClaimableRewardsData, PreviewClaimableRewards, UserRewardsData} from "../lib/structs/Rewards.sol";
+import {
+  ClaimableRewardsData,
+  PreviewClaimableRewards,
+  UserRewardsData,
+  DepositorRewardsData,
+  ClaimRewardsPoolData
+} from "../lib/structs/Rewards.sol";
 import {RewardsManagerState} from "../lib/RewardsManagerStates.sol";
-import {ClaimableRewardsData, PreviewClaimableRewards} from "../lib/structs/Rewards.sol";
 import {RewardPoolConfig, StakePoolConfig} from "../lib/structs/Configs.sol";
 import {ICozyManager} from "./ICozyManager.sol";
 
 interface IRewardsManager {
+  function CLAIM_REWARDS_BY_SIG_ALL_POOLS_TYPEHASH() external view returns (bytes32);
+
+  function CLAIM_REWARDS_BY_SIG_SELECTED_POOLS_TYPEHASH() external view returns (bytes32);
+
+  function CLAIM_REWARDS_POOL_DATA_TYPEHASH() external view returns (bytes32);
+
+  function WITHDRAW_REWARD_ASSETS_BY_SIG_TYPEHASH() external view returns (bytes32);
+
   function allowedRewardPools() external view returns (uint16);
 
   function allowedStakePools() external view returns (uint16);
 
   function assetPools(IERC20 asset_) external view returns (AssetPool memory);
+
+  function assetToStakePoolIds(IERC20 asset_) external view returns (uint16 index, bool exists);
 
   function claimableRewards(uint16 stakePoolId_, uint16 rewardPoolId_)
     external
@@ -23,25 +39,87 @@ interface IRewardsManager {
 
   function claimRewards(uint16 stakePoolId_, address receiver_) external;
 
-  function cozyManager() external returns (ICozyManager);
+  function claimRewardsBySig(
+    uint16[] calldata stakePoolIds_,
+    address owner_,
+    address receiver_,
+    uint256 deadline_,
+    bytes calldata signature_
+  ) external;
+
+  function claimRewardsBySig(
+    uint16[] calldata stakePoolIds_,
+    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
+    address owner_,
+    address receiver_,
+    uint256 deadline_,
+    bytes calldata signature_
+  ) external;
+
+  function claimRewards(uint16[] calldata stakePoolIds_, address receiver_) external;
+
+  function claimRewards(uint16 stakePoolId_, ClaimRewardsPoolData[] calldata claimRewardsPoolData_, address receiver_)
+    external;
+
+  function claimRewards(
+    uint16[] calldata stakePoolIds_,
+    ClaimRewardsPoolData[] calldata claimRewardsPoolData_,
+    address receiver_
+  ) external;
+
+  function cozyManager() external view returns (ICozyManager);
 
   function depositRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
 
-  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_) external;
+  function depositRewardAssetsWithoutTransfer(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address owner_) external;
+
+  function depositorRewards(uint16 rewardPoolId_, address depositor_)
+    external
+    view
+    returns (uint256 withdrawableRewards, uint256 logIndexSnapshot, uint32 epoch);
+
+  function domainSeparator() external view returns (bytes32);
+
+  function hashStakePoolIds(uint16[] calldata stakePoolIds_) external pure returns (bytes32);
+
+  function hashClaimRewardsPoolData(ClaimRewardsPoolData[] calldata claimRewardsPoolData_)
+    external
+    pure
+    returns (bytes32);
 
   function dripRewardPool(uint16 rewardPoolId_) external;
 
   function dripRewards() external;
 
+  function eip712DomainName() external view returns (string memory);
+
+  function eip712DomainVersion() external view returns (uint64);
+
+  function eip712Nonces(address owner_, bytes32 actionKey_) external view returns (uint256);
+
   function getClaimableRewards() external view returns (ClaimableRewardsData[][] memory);
 
   function getClaimableRewards(uint16 stakePoolId_) external view returns (ClaimableRewardsData[] memory);
+
+  function getDepositorRewards(uint16 rewardPoolId_, address depositor_)
+    external
+    view
+    returns (DepositorRewardsData memory);
 
   function getRewardPools() external view returns (RewardPool[] memory);
 
   function getStakePools() external view returns (StakePool[] memory);
 
   function getUserRewards(uint16 stakePoolId_, address user) external view returns (UserRewardsData[] memory);
+
+  function userRewards(uint16 stakePoolId_, address owner_, uint256 rewardPoolIndex_)
+    external
+    view
+    returns (uint256 accruedRewards, uint256 indexSnapshot);
+
+  function incrementEIP712Version() external;
+
+  function setEIP712DomainName(string calldata name_) external;
 
   function initialize(
     address owner_,
@@ -50,11 +128,17 @@ interface IRewardsManager {
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external;
 
+  function initialized() external view returns (bool);
+
   function owner() external view returns (address);
 
   function pause() external;
 
+  function pause(bool[] memory dripRewardPool_) external;
+
   function pauser() external view returns (address);
+
+  function updatePauser(address newPauser_) external;
 
   function previewCurrentUndrippedRewards(uint16 rewardPoolId_) external view returns (uint256 nextTotalPoolAmount_);
 
@@ -63,7 +147,7 @@ interface IRewardsManager {
     view
     returns (PreviewClaimableRewards[] memory);
 
-  function previewCurrentWithdrawableRewards(uint16 rewardPoolId_, address depositor_) external view returns (uint256);
+  function previewCurrentWithdrawableRewards(uint16 rewardPoolId_, address owner_) external view returns (uint256);
 
   function receiptTokenFactory() external view returns (address);
 
@@ -73,18 +157,42 @@ interface IRewardsManager {
 
   function withdrawRewardAssets(uint16 rewardPoolId_, uint256 rewardAssetAmount_, address receiver_) external;
 
+  function withdrawRewardAssetsBySig(
+    uint16 rewardPoolId_,
+    uint256 rewardAssetAmount_,
+    address owner_,
+    address receiver_,
+    uint256 deadline_,
+    bytes calldata signature_
+  ) external;
+
   function stake(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external;
 
   function stakePools(uint256 id_) external view returns (StakePool memory);
 
-  function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address receiver_) external;
+  function stkReceiptTokenToStakePoolIds(IReceiptToken stkReceiptToken_)
+    external
+    view
+    returns (uint16 index, bool exists);
+
+  function stakeWithoutTransfer(uint16 stakePoolId_, uint256 assetAmount_, address owner_, address receiver_) external;
 
   function unpause() external;
+
+  function unpause(bool[] memory dripRewardPool_) external;
 
   function updateConfigs(StakePoolConfig[] calldata stakePoolConfigs_, RewardPoolConfig[] calldata rewardPoolConfigs_)
     external;
 
   function unstake(uint16 stakePoolId_, uint256 stkReceiptTokenAmount_, address receiver_, address owner_) external;
+
+  function unstake(
+    uint16 stakePoolId_,
+    uint256 stkReceiptTokenAmount_,
+    address receiver_,
+    address owner_,
+    bool[] memory dripRewardPool_
+  ) external;
 
   function updateUserRewardsForStkReceiptTokenTransfer(address from_, address to_) external;
 }

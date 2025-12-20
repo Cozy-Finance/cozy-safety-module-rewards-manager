@@ -142,8 +142,7 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
       stakePoolConfigs_[i] = currentStakePoolConfigs_[i];
     }
     stakePoolConfigs_[numStakePools] = StakePoolConfig({
-      asset: currentStakePoolConfigs_[_randomUint256() % currentStakePoolConfigs_.length].asset,
-      rewardsWeight: 0
+      asset: currentStakePoolConfigs_[_randomUint256() % currentStakePoolConfigs_.length].asset, rewardsWeight: 0
     });
 
     vm.prank(rewardsManager.owner());
@@ -173,7 +172,10 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     rewardsManager.updateConfigs(stakePoolConfigs_, currentRewardPoolConfigs_);
   }
 
-  function invariant_updateConfigsRevertsNewStakePoolsAreNotSorted() public syncCurrentTimestamp(rewardsManagerHandler) {
+  function invariant_updateConfigsRevertsNewStakePoolsAreNotSorted()
+    public
+    syncCurrentTimestamp(rewardsManagerHandler)
+  {
     (StakePoolConfig[] memory currentStakePoolConfigs_, RewardPoolConfig[] memory currentRewardPoolConfigs_) =
       _createValidConfigUpdate();
 
@@ -193,7 +195,10 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     rewardsManager.updateConfigs(stakePoolConfigs_, currentRewardPoolConfigs_);
   }
 
-  function invariant_updateConfigsRevertsRemovesExistingRewardPool() public syncCurrentTimestamp(rewardsManagerHandler) {
+  function invariant_updateConfigsRevertsRemovesExistingRewardPool()
+    public
+    syncCurrentTimestamp(rewardsManagerHandler)
+  {
     (StakePoolConfig[] memory currentStakePoolConfigs_, RewardPoolConfig[] memory currentRewardPoolConfigs_) =
       _createValidConfigUpdate();
 
@@ -255,8 +260,7 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     for (uint16 i = 0; i < currentRewardPoolConfigs_.length; i++) {
       // We cannot update the asset of the copied current config, since it will cause a revert.
       rewardPoolConfigs_[i] = RewardPoolConfig({
-        asset: currentRewardPoolConfigs_[i].asset,
-        dripModel: IDripModel(new MockDripModel(_randomUint256()))
+        asset: currentRewardPoolConfigs_[i].asset, dripModel: IDripModel(new MockDripModel(_randomUint256()))
       });
     }
 
@@ -286,7 +290,9 @@ abstract contract ConfiguratorInvariantsWithStateTransitions is InvariantTestBas
     assertEq(address(rewardPool_.dripModel), address(rewardPoolConfig_.dripModel));
   }
 
-  function _assertStakePoolUpdatesApplied(StakePool memory stakePool_, StakePoolConfig memory stakePoolConfig_) private {
+  function _assertStakePoolUpdatesApplied(StakePool memory stakePool_, StakePoolConfig memory stakePoolConfig_)
+    private
+  {
     assertEq(address(stakePool_.asset), address(stakePoolConfig_.asset));
     assertEq(stakePool_.rewardsWeight, stakePoolConfig_.rewardsWeight);
   }

@@ -10,7 +10,15 @@ contract MockDripModelFlexible is IDripModel {
     nextDripFactor = dripFactor_;
   }
 
-  function dripFactor(uint256 lastDripTime_, uint256 /* initialAmount_ */ ) external view override returns (uint256) {
+  function dripFactor(
+    uint256 lastDripTime_,
+    uint256 /* initialAmount_ */
+  )
+    external
+    view
+    override
+    returns (uint256)
+  {
     if (block.timestamp <= lastDripTime_) return 0;
     return nextDripFactor;
   }

@@ -60,11 +60,9 @@ contract RewardsManager is
     RewardPoolConfig[] calldata rewardPoolConfigs_
   ) external {
     if (initialized) revert Initialized();
-    if (
-      !ConfiguratorLib.isValidConfiguration(
+    if (!ConfiguratorLib.isValidConfiguration(
         stakePoolConfigs_, rewardPoolConfigs_, 0, 0, allowedStakePools, allowedRewardPools
-      )
-    ) revert IConfiguratorErrors.InvalidConfiguration();
+      )) revert IConfiguratorErrors.InvalidConfiguration();
 
     // Rewards managers are minimal proxies, so the owner and pauser is set to address(0) in the constructor for the
     // logic contract. When the rewards manager is initialized for the minimal proxy, we update the owner and pauser.

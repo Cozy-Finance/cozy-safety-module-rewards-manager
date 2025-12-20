@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.22;
 
-import {Governable} from "cozy-safety-module-libs/lib/Governable.sol";
 import {ConfiguratorLib} from "./ConfiguratorLib.sol";
 import {RewardsManagerCommon} from "./RewardsManagerCommon.sol";
 import {IConfiguratorErrors} from "../interfaces/IConfiguratorErrors.sol";
 import {RewardPoolConfig, StakePoolConfig} from "./structs/Configs.sol";
 
-abstract contract Configurator is RewardsManagerCommon, Governable {
+abstract contract Configurator is RewardsManagerCommon {
   /// @notice Execute config update to the rewards manager.
   /// @param stakePoolConfigs_ The array of new stake pool configs. The array must contain configs for all existing
   /// stake pools sorted by stake pool ID (with potentially updated rewards weights, but the same underlying asset).
